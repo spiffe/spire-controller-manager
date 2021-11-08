@@ -1,0 +1,43 @@
+REPODIR=$(git rev-parse --show-toplevel)
+
+error() {
+    echo "$*" 1>&2
+    exit 1
+}
+
+#############################################################################
+# OS detection
+#############################################################################
+OS1=$(uname -s)
+OS2=
+case "${OS1}" in
+Darwin)
+    OS1=darwin
+    OS2=osx
+    ;;
+Linux)
+    OS1=linux
+    OS2=linux
+    ;;
+*)
+    error "unsupported OS: ${OS1}"
+    ;;
+esac
+
+#############################################################################
+# ARCH detection
+#############################################################################
+ARCH1=$(uname -m)
+case "${ARCH1}" in
+x86_64)
+    ARCH2=amd64
+    ;;
+aarch64)
+    ARCH2=arm64
+    ;;
+*)
+    error "unsupported ARCH: ${ARCH1}"
+    ;;
+esac
+
+BUILDDIR="${REPODIR}/.build/${OS1}-${ARCH1}"

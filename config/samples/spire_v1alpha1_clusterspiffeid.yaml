@@ -1,0 +1,7 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: clusterspiffeid-sample
+spec:
+  # Add fields here
+  foo: bar

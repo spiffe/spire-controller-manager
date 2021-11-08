@@ -1,0 +1,7 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterFederatedTrustDomain
+metadata:
+  name: clusterfederatedtrustdomain-sample
+spec:
+  # Add fields here
+  foo: bar

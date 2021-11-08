@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eo pipefail
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+. "${DIR}"/common
+
+KUBEBUILDERHIST="${DIR}"/../.kubebuilder-hist
+
+KUBEBUILDERVER="v3.1.0"
+KUBEBUILDERBASE="${BUILDDIR}/kubebuilder"
+KUBEBUILDERDIR="${KUBEBUILDERBASE}/${KUBEBUILDERVER}"
+KUBEBUILDERBIN="${KUBEBUILDERDIR}/kubebuilder"
+KUBEBUILDERURL="https://github.com/kubernetes-sigs/kubebuilder/releases/download/${KUBEBUILDERVER}/kubebuilder_${OS1}_${ARCH2}"
+
+if [ ! -x "${KUBEBUILDERBIN}" ]; then
+    rm -rf "${KUBEBUILDERDIR}"
+    mkdir -p "${KUBEBUILDERDIR}"
+    echo "Downloading kubebuilder ${KUBEBUILDERVER}..."
+    curl -sSfL -o "${KUBEBUILDERBIN}" ${KUBEBUILDERURL}
+    chmod +x "${KUBEBUILDERBIN}"
+fi
+
+"${KUBEBUILDERBIN}" "$@"
+
+printf '%s: %s' "${KUBEBUILDERVER}" "$0" >> "${KUBEBUILDERHIST}"
+printf ' %q' "$@" >> "${KUBEBUILDERHIST}"
+printf '\n' >> "${KUBEBUILDERHIST}"
