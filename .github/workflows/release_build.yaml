@@ -1,0 +1,21 @@
+name: Release Build
+on:
+  push:
+    tags:
+      - 'v[0-9].[0-9]+.[0-9]+'
+jobs:
+  build-and-publish-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build image
+        run: make docker-build
+      - name: Log in to GHCR
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push images
+        run: ./.github/workflows/scripts/push-scratch-images.sh "${GITHUB_REF#refs/tags/v}"
