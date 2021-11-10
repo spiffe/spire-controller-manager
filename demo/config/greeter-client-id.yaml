@@ -1,0 +1,10 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: greeter-client
+spec:
+  spiffeIDTemplate: spiffe://cluster2.demo/greeter-client
+  podSelector:
+    matchLabels:
+      spire.spiffe.io/spiffeid: greeter-client
+  federatesWith: ["cluster1.demo"]

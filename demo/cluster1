@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+/usr/bin/env \
+    KUBECONFIG="${DIR}/.kube/cluster1" \
+    KIND_CLUSTER_NAME=cluster1 \
+    "$@"

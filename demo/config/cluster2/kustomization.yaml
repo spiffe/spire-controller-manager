@@ -1,0 +1,25 @@
+resources:
+- metallb/metallb-namespace.yaml
+- metallb/metallb-memberlist.yaml
+- metallb/metallb-system.yaml
+- metallb/metallb-config.yaml
+- spire/spiffe-csi-driver.yaml
+- spire/spire-namespace.yaml
+- crd/spire.spiffe.io_clusterfederatedtrustdomains.yaml
+- crd/spire.spiffe.io_clusterspiffeids.yaml
+- crd-rbac/role.yaml
+- crd-rbac/role_binding.yaml
+- crd-rbac/leader_election_role.yaml
+- crd-rbac/leader_election_role_binding.yaml
+- spire/spire-server.yaml
+- spire/spire-agent.yaml
+- greeter-client/greeter-client.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: spire-controller-manager-config
+  namespace: spire-system
+  files:
+  - spire/spire-controller-manager-config.yaml

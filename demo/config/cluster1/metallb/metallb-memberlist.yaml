@@ -1,0 +1,8 @@
+apiVersion: v1
+data:
+  secretkey: SGFYNU5FQ1FaL1hkcHpIWXRkaWxNMEd2cUhkSkFIeExYWkJpMGlCalEwRmJ0TlhzaER2SEsxd2FwYXRQcWZzYQo0RTIzZ2xQTkpEdzhFazVjZFRrc2VPRkxhbkVtWHdSbEYzY3lJOGRQSnl3Q2ppQ01mQVp3YkFPRm1XSzZaTzVaCnRNT2lHWHYzN2VLb3FlN1ZRYldwWC9tZFFqODVSa1hlWXFLVktJMkhiajA9
+kind: Secret
+metadata:
+  name: memberlist
+  namespace: metallb-system
+type: Opaque
