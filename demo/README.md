@@ -19,6 +19,11 @@ Additionally, each workload will obtain an X509-SVID from SPIRE. The workload
 registration will be accomplished by deploying a ClusterSPIFFEID CRD in each
 cluster that targets the greeter workloads and assigns them the proper ID.
 
+## Prerequisites
+
+- [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+- [Kubectl](https://kubernetes.io/docs/tasks/tools/)
+
 ## Steps
 
 Build the greeter server and client:
