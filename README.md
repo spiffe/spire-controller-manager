@@ -4,6 +4,12 @@
 
 A controller manager which reconciles SPIRE workload registration and federation relationships using [custom Kubernetes resources](/api/v1alpha1/).
 
+## Demo
+
+A [demo](./demo) has been prepared that shows the both workload registration
+and federated trust domain relationships using the CRDs offered by this
+project.
+
 ## Security
 
 ### Reporting Security Vulnerabilities
