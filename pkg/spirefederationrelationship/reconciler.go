@@ -121,7 +121,7 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 	for _, clusterFederatedTrustDomain := range clusterFederatedTrustDomains {
 		log := log.WithValues(clusterFederatedTrustDomainLogKey, objectName(&clusterFederatedTrustDomain))
 
-		federationRelationship, err := k8sapi.ParseClusterFederatedTrustDomainSpec(&clusterFederatedTrustDomain.Spec)
+		federationRelationship, err := spirev1alpha1.ParseClusterFederatedTrustDomainSpec(&clusterFederatedTrustDomain.Spec)
 		if err != nil {
 			log.Error(err, "Ignoring invalid ClusterFederatedTrustDomain")
 			continue

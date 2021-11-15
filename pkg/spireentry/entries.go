@@ -24,13 +24,13 @@ import (
 	"text/template"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
-	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
+	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func renderPodEntry(spec *k8sapi.ValidClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, trustDomain spiffeid.TrustDomain, clusterName string) (*spireapi.Entry, error) {
+func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, trustDomain spiffeid.TrustDomain, clusterName string) (*spireapi.Entry, error) {
 	// We uniquely target the Pod running on the Node. The former is done
 	// via the k8s:pod-uid selector, the latter via the parent ID.
 	selectors := []spireapi.Selector{

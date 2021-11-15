@@ -20,7 +20,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	cfg "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	cfgv1alpha1 "sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 )
 
 //+kubebuilder:object:root=true
@@ -30,7 +30,7 @@ type ProjectConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// ControllerManagerConfigurationSpec returns the contfigurations for controllers
-	cfg.ControllerManagerConfigurationSpec `json:",inline"`
+	cfgv1alpha1.ControllerManagerConfigurationSpec `json:",inline"`
 
 	// ClusterName is the cluster name
 	ClusterName string `json:"clusterName"`

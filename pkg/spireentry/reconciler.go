@@ -89,7 +89,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
 		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterSPIFFEID))
 
-		spec, err := k8sapi.ParseClusterSPIFFEIDSpec(&clusterSPIFFEID.Spec)
+		spec, err := spirev1alpha1.ParseClusterSPIFFEIDSpec(&clusterSPIFFEID.Spec)
 		if err != nil {
 			// TODO: should this be prevented via admission webhook? should
 			// we dump this failure into the status?
@@ -230,7 +230,7 @@ func (r *entryReconciler) listNamespacePods(ctx context.Context, namespace strin
 	return k8sapi.ListNamespacePods(ctx, r.config.K8sClient, namespace, podSelector)
 }
 
-func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *k8sapi.ValidClusterSPIFFEIDSpec, pod *corev1.Pod) (*spireapi.Entry, error) {
+func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, pod *corev1.Pod) (*spireapi.Entry, error) {
 	// TODO: should we be caching this? probably not since it grabs from the
 	// controller client, which is cached already.
 	node := new(corev1.Node)

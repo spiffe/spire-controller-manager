@@ -14,27 +14,73 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package k8sapi
+package v1alpha1
 
 import (
 	"errors"
 	"fmt"
-	"net/url"
-	"strings"
 	"text/template"
 	"time"
 
-	"github.com/spiffe/go-spiffe/v2/bundle/spiffebundle"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
-	"github.com/spiffe/spire-controller-manager/api/v1alpha1"
-	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
-	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-// ValidClusterSPIFFEIDSpec is a parsed and validated ClusterSPIFFEIDSpec
-type ValidClusterSPIFFEIDSpec struct {
+const (
+	dnsNameTemplateName          = "dnsNameTemplate"
+	spiffeIDTemplateName         = "spiffeIDTemplate"
+	workloadSelectorTemplateName = "workloadSelectorTemplate"
+)
+
+// log is for logging in this package.
+var clusterspiffeidlog = logf.Log.WithName("clusterspiffeid-resource")
+
+func (r *ClusterSPIFFEID) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
+}
+
+// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+
+// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
+//+kubebuilder:webhook:path=/validate-spire-spiffe-io-v1alpha1-clusterspiffeid,mutating=false,failurePolicy=fail,sideEffects=None,groups=spire.spiffe.io,resources=clusterspiffeids,verbs=create;update,versions=v1alpha1,name=vclusterspiffeid.kb.io,admissionReviewVersions=v1
+
+var _ webhook.Validator = &ClusterSPIFFEID{}
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+func (r *ClusterSPIFFEID) ValidateCreate() error {
+	clusterspiffeidlog.Info("validate create", "name", r.Name)
+
+	return r.validate()
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *ClusterSPIFFEID) ValidateUpdate(old runtime.Object) error {
+	clusterspiffeidlog.Info("validate update", "name", r.Name)
+
+	return r.validate()
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *ClusterSPIFFEID) ValidateDelete() error {
+	// Deletes are not validated.
+	return nil
+}
+
+func (r *ClusterSPIFFEID) validate() error {
+	_, err := ParseClusterSPIFFEIDSpec(&r.Spec)
+	return err
+}
+
+//+kubebuilder:object:generate=false
+// ParsedClusterSPIFFEIDSpec is a parsed and validated ClusterSPIFFEIDSpec
+type ParsedClusterSPIFFEIDSpec struct {
 	SPIFFEIDTemplate          *template.Template
 	NamespaceSelector         labels.Selector
 	PodSelector               labels.Selector
@@ -46,13 +92,12 @@ type ValidClusterSPIFFEIDSpec struct {
 }
 
 // ParseClusterSPIFFEIDSpec parses and validates the fields in the ClusterSPIFFEIDSpec
-func ParseClusterSPIFFEIDSpec(spec *spirev1alpha1.ClusterSPIFFEIDSpec) (*ValidClusterSPIFFEIDSpec, error) {
-	// TODO: update the ClusterSPIFFEID status if it is malformed
+func ParseClusterSPIFFEIDSpec(spec *ClusterSPIFFEIDSpec) (*ParsedClusterSPIFFEIDSpec, error) {
 	if spec.SPIFFEIDTemplate == "" {
 		return nil, errors.New("empty SPIFFEID template")
 	}
 
-	spiffeIDTemplate, err := template.New("spiffeIDTemplate").Parse(spec.SPIFFEIDTemplate)
+	spiffeIDTemplate, err := template.New(spiffeIDTemplateName).Parse(spec.SPIFFEIDTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("invalid SPIFFEID template: %w", err)
 	}
@@ -84,7 +129,7 @@ func ParseClusterSPIFFEIDSpec(spec *spirev1alpha1.ClusterSPIFFEIDSpec) (*ValidCl
 
 	var dnsNameTemplates []*template.Template
 	for _, value := range spec.DNSNameTemplates {
-		dnsNameTemplate, err := template.New("dnsNameTemplate").Parse(value)
+		dnsNameTemplate, err := template.New(dnsNameTemplateName).Parse(value)
 		if err != nil {
 			return nil, fmt.Errorf("invalid dnsNameTemplate value: %w", err)
 		}
@@ -93,14 +138,14 @@ func ParseClusterSPIFFEIDSpec(spec *spirev1alpha1.ClusterSPIFFEIDSpec) (*ValidCl
 
 	var workloadSelectorTemplates []*template.Template
 	for _, value := range spec.WorkloadSelectorTemplates {
-		workloadSelectorTemplate, err := template.New("workloadSelectorTemplate").Parse(value)
+		workloadSelectorTemplate, err := template.New(workloadSelectorTemplateName).Parse(value)
 		if err != nil {
 			return nil, fmt.Errorf("invalid workloadSelectorTemplates value: %w", err)
 		}
 		workloadSelectorTemplates = append(workloadSelectorTemplates, workloadSelectorTemplate)
 	}
 
-	return &ValidClusterSPIFFEIDSpec{
+	return &ParsedClusterSPIFFEIDSpec{
 		SPIFFEIDTemplate:          spiffeIDTemplate,
 		NamespaceSelector:         namespaceSelector,
 		PodSelector:               podSelector,
@@ -110,65 +155,4 @@ func ParseClusterSPIFFEIDSpec(spec *spirev1alpha1.ClusterSPIFFEIDSpec) (*ValidCl
 		WorkloadSelectorTemplates: workloadSelectorTemplates,
 		Admin:                     spec.Admin,
 	}, nil
-}
-
-func ParseClusterFederatedTrustDomainSpec(spec *v1alpha1.ClusterFederatedTrustDomainSpec) (*spireapi.FederationRelationship, error) {
-	trustDomain, err := spiffeid.TrustDomainFromString(spec.TrustDomain)
-	if err != nil {
-		return nil, fmt.Errorf("invalid trustDomain value: %w", err)
-	}
-
-	bundleEndpointURL, err := parseBundleEndpointURL(spec.BundleEndpointURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid bundleEndpointURL value: %w", err)
-	}
-
-	var bundleEndpointProfile spireapi.BundleEndpointProfile
-	switch spec.BundleEndpointProfile.Type {
-	case v1alpha1.HTTPSWebProfileType:
-		if spec.BundleEndpointProfile.EndpointSPIFFEID != "" {
-			return nil, fmt.Errorf("invalid endpointSPIFFEID value: not applicable to the %q profile", v1alpha1.HTTPSWebProfileType)
-		}
-		bundleEndpointProfile = spireapi.HTTPSWebProfile{}
-	case v1alpha1.HTTPSSPIFFEProfileType:
-		endpointSPIFFEID, err := spiffeid.FromString(spec.BundleEndpointProfile.EndpointSPIFFEID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid endpointSPIFFEID value: %w", err)
-		}
-		bundleEndpointProfile = spireapi.HTTPSSPIFFEProfile{
-			EndpointSPIFFEID: endpointSPIFFEID,
-		}
-	default:
-		return nil, fmt.Errorf("invalid type value %q", spec.BundleEndpointProfile.Type)
-	}
-
-	var trustDomainBundle *spiffebundle.Bundle
-	if spec.TrustDomainBundle != "" {
-		trustDomainBundle, err = spiffebundle.Read(trustDomain, strings.NewReader(spec.TrustDomainBundle))
-		if err != nil {
-			return nil, fmt.Errorf("invalid trustDomainBundle value: %w", err)
-		}
-	}
-
-	return &spireapi.FederationRelationship{
-		TrustDomain:           trustDomain,
-		BundleEndpointURL:     bundleEndpointURL,
-		BundleEndpointProfile: bundleEndpointProfile,
-		TrustDomainBundle:     trustDomainBundle,
-	}, nil
-}
-
-func parseBundleEndpointURL(s string) (*url.URL, error) {
-	u, err := url.Parse(s)
-	switch {
-	case err != nil:
-		return nil, err
-	case u.Scheme != "https":
-		return nil, errors.New("scheme must be https")
-	case u.Host == "":
-		return nil, errors.New("host is not specified")
-	case u.User != nil:
-		return nil, errors.New("cannot contain userinfo")
-	}
-	return u, nil
 }

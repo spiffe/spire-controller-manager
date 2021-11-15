@@ -154,6 +154,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
 		os.Exit(1)
 	}
+	if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
+		os.Exit(1)
+	}
+	if err = (&spirev1alpha1.ClusterSPIFFEID{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSPIFFEID")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err = (&controllers.PodReconciler{
