@@ -43,7 +43,11 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &federationRelationshipReconciler{
 		config: config,
 	}
-	return reconciler.New("federation relationship", r.reconcile, config.GCInterval)
+	return reconciler.New(reconciler.Config{
+		Kind:       "federation relationship",
+		Reconcile:  r.reconcile,
+		GCInterval: config.GCInterval,
+	})
 }
 
 type federationRelationshipReconciler struct {
