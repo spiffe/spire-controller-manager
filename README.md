@@ -1,6 +1,6 @@
-# SPIRE Controller Manager
+[![Development Phase](https://github.com/spiffe/spiffe/blob/main/.img/maturity/dev.svg)](https://github.com/spiffe/spiffe/blob/main/MATURITY.md#development)
 
-**WARNING:** This project is in the "[Development](https://github.com/spiffe/spiffe/blob/main/MATURITY.md#development)" phase of the [SPIFFE Project Maturity Phases](https://github.com/spiffe/spiffe/blob/main/MATURITY.md).
+# SPIRE Controller Manager
 
 A controller manager which reconciles SPIRE workload registration and federation relationships using [custom Kubernetes resources](/api/v1alpha1/).
 
