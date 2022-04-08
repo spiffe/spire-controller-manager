@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/utils/clock"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -33,19 +34,31 @@ type Reconciler interface {
 	Run(ctx context.Context) error
 }
 
-func New(kind string, method func(ctx context.Context), gcInterval time.Duration) Reconciler {
+type Config struct {
+	Kind       string
+	Reconcile  func(ctx context.Context)
+	GCInterval time.Duration
+	Clock      clock.Clock
+}
+
+func New(config Config) Reconciler {
+	if config.Clock == nil {
+		config.Clock = clock.RealClock{}
+	}
 	return &reconciler{
-		kind:       kind,
-		method:     method,
-		gcInterval: gcInterval,
+		kind:       config.Kind,
+		reconcile:  config.Reconcile,
+		gcInterval: config.GCInterval,
+		clock:      config.Clock,
 		triggerCh:  make(chan struct{}),
 	}
 }
 
 type reconciler struct {
 	kind       string
-	method     func(ctx context.Context)
+	reconcile  func(ctx context.Context)
 	gcInterval time.Duration
+	clock      clock.Clock
 	triggerCh  chan struct{}
 }
 
@@ -60,32 +73,31 @@ func (r *reconciler) Run(ctx context.Context) error {
 	ctx = withLogName(ctx, fmt.Sprintf("%s-reconciler", r.kind))
 	log := log.FromContext(ctx)
 
-	// Initialize the timer for WAY out.... we'll reset it to the right
-	// interval before selecting.
-	timer := time.NewTimer(time.Hour)
-	defer timer.Stop()
-
-	// Drain the reconcile channel. This isn't strictly necessary but
+	// Drain the trigger channel. This isn't strictly necessary but
 	// prevents (but not fully) doing an extra reconcile if reconciliation
 	// is triggered before the loop is entered.
 	r.drain()
 
+	var timer clock.Timer
 	for {
 		log.V(2).Info("Starting reconciliation")
-		r.method(ctx)
+		r.reconcile(ctx)
 		log.V(2).Info("Reconciliation finished")
-		if err := ctx.Err(); err != nil {
-			log.Info("Reconciliation canceled")
-			return err
-		}
 
 		log.V(2).Info("Waiting for next reconciliation")
-		timer.Reset(r.gcInterval)
+
+		if timer == nil {
+			timer = r.clock.NewTimer(r.gcInterval)
+			defer timer.Stop()
+		} else {
+			timer.Reset(r.gcInterval)
+		}
+
 		select {
 		case <-ctx.Done():
-			log.Info("Reconciliation canceled while waiting")
+			log.Info("Reconciliation canceled")
 			return ctx.Err()
-		case <-timer.C:
+		case <-timer.C():
 			log.V(2).Info("Performing periodic reconciliation")
 		case <-r.triggerCh:
 			log.V(2).Info("Performing triggered reconciliation")

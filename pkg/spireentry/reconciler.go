@@ -55,7 +55,11 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &entryReconciler{
 		config: config,
 	}
-	return reconciler.New("entry", r.reconcile, config.GCInterval)
+	return reconciler.New(reconciler.Config{
+		Kind:       "entry",
+		Reconcile:  r.reconcile,
+		GCInterval: config.GCInterval,
+	})
 }
 
 type entryReconciler struct {
