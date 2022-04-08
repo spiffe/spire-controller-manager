@@ -1,3 +1,4 @@
+[![Build Status](https://github.com/spiffe/spire-controller-manager/actions/workflows/nightly_build.yaml/badge.svg)](https://github.com/spiffe/spire-controller-manager/actions/workflows/nightly_build.yaml)
 [![Development Phase](https://github.com/spiffe/spiffe/blob/main/.img/maturity/dev.svg)](https://github.com/spiffe/spiffe/blob/main/MATURITY.md#development)
 
 # SPIRE Controller Manager
