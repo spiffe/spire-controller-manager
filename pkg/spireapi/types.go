@@ -50,14 +50,14 @@ type Selector struct {
 
 type FederationRelationship struct {
 	TrustDomain           spiffeid.TrustDomain
-	BundleEndpointURL     *url.URL
+	BundleEndpointURL     string
 	BundleEndpointProfile BundleEndpointProfile
 	TrustDomainBundle     *spiffebundle.Bundle
 }
 
 func (fr FederationRelationship) Equal(other FederationRelationship) bool {
 	return fr.TrustDomain == other.TrustDomain &&
-		fr.BundleEndpointURL.String() == other.BundleEndpointURL.String() &&
+		fr.BundleEndpointURL == other.BundleEndpointURL &&
 		fr.BundleEndpointProfile.Equal(other.BundleEndpointProfile)
 }
 
@@ -303,7 +303,7 @@ func federationRelationshipToAPI(in FederationRelationship) (*apitypes.Federatio
 	// TODO: input validation
 	out := &apitypes.FederationRelationship{
 		TrustDomain:       in.TrustDomain.String(),
-		BundleEndpointUrl: in.BundleEndpointURL.String(),
+		BundleEndpointUrl: in.BundleEndpointURL,
 	}
 
 	if in.TrustDomainBundle != nil {
@@ -350,8 +350,7 @@ func federationRelationshipFromAPI(in *apitypes.FederationRelationship) (Federat
 		return FederationRelationship{}, fmt.Errorf("invalid trust domain: %w", err)
 	}
 
-	bundleEndpointURL, err := url.Parse(in.BundleEndpointUrl)
-	if err != nil {
+	if _, err := url.Parse(in.BundleEndpointUrl); err != nil {
 		return FederationRelationship{}, fmt.Errorf("invalid bundle endpoint URL: %w", err)
 	}
 
@@ -389,7 +388,7 @@ func federationRelationshipFromAPI(in *apitypes.FederationRelationship) (Federat
 
 	return FederationRelationship{
 		TrustDomain:           trustDomain,
-		BundleEndpointURL:     bundleEndpointURL,
+		BundleEndpointURL:     in.BundleEndpointUrl,
 		BundleEndpointProfile: bundleEndpointProfile,
 		TrustDomainBundle:     trustDomainBundle,
 	}, nil
