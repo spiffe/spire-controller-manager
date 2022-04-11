@@ -76,8 +76,7 @@ func ParseClusterFederatedTrustDomainSpec(spec *ClusterFederatedTrustDomainSpec)
 		return nil, fmt.Errorf("invalid trustDomain value: %w", err)
 	}
 
-	bundleEndpointURL, err := parseBundleEndpointURL(spec.BundleEndpointURL)
-	if err != nil {
+	if err := validateBundleEndpointURL(spec.BundleEndpointURL); err != nil {
 		return nil, fmt.Errorf("invalid bundleEndpointURL value: %w", err)
 	}
 
@@ -85,19 +84,19 @@ func ParseClusterFederatedTrustDomainSpec(spec *ClusterFederatedTrustDomainSpec)
 	switch spec.BundleEndpointProfile.Type {
 	case HTTPSWebProfileType:
 		if spec.BundleEndpointProfile.EndpointSPIFFEID != "" {
-			return nil, fmt.Errorf("invalid endpointSPIFFEID value: not applicable to the %q profile", HTTPSWebProfileType)
+			return nil, fmt.Errorf("invalid bundle endpoint profile endpointSPIFFEID value: not applicable to the %q profile", HTTPSWebProfileType)
 		}
 		bundleEndpointProfile = spireapi.HTTPSWebProfile{}
 	case HTTPSSPIFFEProfileType:
 		endpointSPIFFEID, err := spiffeid.FromString(spec.BundleEndpointProfile.EndpointSPIFFEID)
 		if err != nil {
-			return nil, fmt.Errorf("invalid endpointSPIFFEID value: %w", err)
+			return nil, fmt.Errorf("invalid bundle endpoint profile endpointSPIFFEID value: %w", err)
 		}
 		bundleEndpointProfile = spireapi.HTTPSSPIFFEProfile{
 			EndpointSPIFFEID: endpointSPIFFEID,
 		}
 	default:
-		return nil, fmt.Errorf("invalid type value %q", spec.BundleEndpointProfile.Type)
+		return nil, fmt.Errorf("invalid bundle endpoint profile type value %q", spec.BundleEndpointProfile.Type)
 	}
 
 	var trustDomainBundle *spiffebundle.Bundle
@@ -110,23 +109,23 @@ func ParseClusterFederatedTrustDomainSpec(spec *ClusterFederatedTrustDomainSpec)
 
 	return &spireapi.FederationRelationship{
 		TrustDomain:           trustDomain,
-		BundleEndpointURL:     bundleEndpointURL,
+		BundleEndpointURL:     spec.BundleEndpointURL,
 		BundleEndpointProfile: bundleEndpointProfile,
 		TrustDomainBundle:     trustDomainBundle,
 	}, nil
 }
 
-func parseBundleEndpointURL(s string) (*url.URL, error) {
+func validateBundleEndpointURL(s string) error {
 	u, err := url.Parse(s)
 	switch {
 	case err != nil:
-		return nil, err
+		return err
 	case u.Scheme != "https":
-		return nil, errors.New("scheme must be https")
+		return errors.New("scheme must be https")
 	case u.Host == "":
-		return nil, errors.New("host is not specified")
+		return errors.New("host is not specified")
 	case u.User != nil:
-		return nil, errors.New("cannot contain userinfo")
+		return errors.New("cannot contain userinfo")
 	}
-	return u, nil
+	return nil
 }

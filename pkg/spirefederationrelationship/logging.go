@@ -41,8 +41,8 @@ func objectName(o metav1.Object) string {
 func federationRelationshipFields(fr spireapi.FederationRelationship) []interface{} {
 	fields := []interface{}{
 		trustDomainKey, fr.TrustDomain.String(),
-		bundleEndpointURLKey, fr.BundleEndpointURL.String(),
-		bundleEndpointProfileKey, fr.BundleEndpointProfile.Name(),
+		bundleEndpointURLKey, fr.BundleEndpointURL,
+		bundleEndpointProfileKey, safeBundleEndpointProfileName(fr.BundleEndpointProfile),
 	}
 	switch profile := fr.BundleEndpointProfile.(type) {
 	case spireapi.HTTPSSPIFFEProfile:
@@ -50,4 +50,11 @@ func federationRelationshipFields(fr spireapi.FederationRelationship) []interfac
 	case spireapi.HTTPSWebProfile:
 	}
 	return fields
+}
+
+func safeBundleEndpointProfileName(p spireapi.BundleEndpointProfile) string {
+	if p != nil {
+		return p.Name()
+	}
+	return ""
 }

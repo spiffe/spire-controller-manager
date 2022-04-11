@@ -18,6 +18,7 @@ package spirefederationrelationship
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
@@ -30,8 +31,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+type TrustDomainClient interface {
+	ListFederationRelationships(ctx context.Context) ([]spireapi.FederationRelationship, error)
+	CreateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error)
+	UpdateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error)
+	DeleteFederationRelationships(ctx context.Context, tds []spiffeid.TrustDomain) ([]spireapi.Status, error)
+}
+
 type ReconcilerConfig struct {
-	TrustDomainClient spireapi.TrustDomainClient
+	TrustDomainClient TrustDomainClient
 	K8sClient         client.Client
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
@@ -40,18 +48,27 @@ type ReconcilerConfig struct {
 }
 
 func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
-	r := &federationRelationshipReconciler{
-		config: config,
-	}
 	return reconciler.New(reconciler.Config{
-		Kind:       "federation relationship",
-		Reconcile:  r.reconcile,
+		Kind: "federation relationship",
+		Reconcile: func(ctx context.Context) {
+			Reconcile(ctx, config.TrustDomainClient, config.K8sClient)
+		},
 		GCInterval: config.GCInterval,
 	})
+
+}
+
+func Reconcile(ctx context.Context, trustDomainClient TrustDomainClient, k8sClient client.Client) {
+	r := &federationRelationshipReconciler{
+		trustDomainClient: trustDomainClient,
+		k8sClient:         k8sClient,
+	}
+	r.reconcile(ctx)
 }
 
 type federationRelationshipReconciler struct {
-	config ReconcilerConfig
+	trustDomainClient TrustDomainClient
+	k8sClient         client.Client
 }
 
 func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
@@ -102,7 +119,7 @@ func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
 }
 
 func (r *federationRelationshipReconciler) listFederationRelationships(ctx context.Context) (map[spiffeid.TrustDomain]spireapi.FederationRelationship, error) {
-	federationRelationships, err := r.config.TrustDomainClient.ListFederationRelationships(ctx)
+	federationRelationships, err := r.trustDomainClient.ListFederationRelationships(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -116,10 +133,16 @@ func (r *federationRelationshipReconciler) listFederationRelationships(ctx conte
 func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx context.Context) (map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, error) {
 	log := log.FromContext(ctx)
 
-	clusterFederatedTrustDomains, err := k8sapi.ListClusterFederatedTrustDomains(ctx, r.config.K8sClient)
+	clusterFederatedTrustDomains, err := k8sapi.ListClusterFederatedTrustDomains(ctx, r.k8sClient)
 	if err != nil {
 		return nil, err
 	}
+
+	// Sort the cluster federated trust domains by creation date. This provides
+	// stable sorting with trust domain conflict detection below, without which
+	// the reconciliation could lead to waffling between which CRD to reconcile
+	// against the SPIRE federated relationships.
+	sortClusterFederatedTrustDomainsByCreationDate(clusterFederatedTrustDomains)
 
 	out := make(map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, len(clusterFederatedTrustDomains))
 	for _, clusterFederatedTrustDomain := range clusterFederatedTrustDomains {
@@ -137,7 +160,7 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 		}
 
 		if existing, ok := out[federationRelationship.TrustDomain]; ok {
-			log.Error(nil, "Ignoring ClusterFederatedTrustDomain with conflicting trust domain",
+			log.Info("Ignoring ClusterFederatedTrustDomain with conflicting trust domain",
 				conflictWithKey, objectName(&existing.ClusterFederatedTrustDomain))
 			continue
 		}
@@ -150,7 +173,7 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 func (r *federationRelationshipReconciler) createFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) {
 	log := log.FromContext(ctx)
 
-	statuses, err := r.config.TrustDomainClient.CreateFederationRelationships(ctx, federationRelationships)
+	statuses, err := r.trustDomainClient.CreateFederationRelationships(ctx, federationRelationships)
 	if err != nil {
 		log.Error(err, "Failed to create federation relationships")
 		return
@@ -170,7 +193,7 @@ func (r *federationRelationshipReconciler) createFederationRelationships(ctx con
 func (r *federationRelationshipReconciler) updateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) {
 	log := log.FromContext(ctx)
 
-	statuses, err := r.config.TrustDomainClient.UpdateFederationRelationships(ctx, federationRelationships)
+	statuses, err := r.trustDomainClient.UpdateFederationRelationships(ctx, federationRelationships)
 	if err != nil {
 		log.Error(err, "Failed to update federation relationships")
 		return
@@ -189,7 +212,7 @@ func (r *federationRelationshipReconciler) updateFederationRelationships(ctx con
 func (r *federationRelationshipReconciler) deleteFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) {
 	log := log.FromContext(ctx)
 
-	statuses, err := r.config.TrustDomainClient.DeleteFederationRelationships(ctx, trustDomainIDsFromFederationRelationships(federationRelationships))
+	statuses, err := r.trustDomainClient.DeleteFederationRelationships(ctx, trustDomainIDsFromFederationRelationships(federationRelationships))
 	if err != nil {
 		log.Error(err, "Failed to delete federation relationships")
 		return
@@ -217,4 +240,18 @@ type clusterFederatedTrustDomainState struct {
 	ClusterFederatedTrustDomain spirev1alpha1.ClusterFederatedTrustDomain
 	FederationRelationship      spireapi.FederationRelationship
 	NextStatus                  spirev1alpha1.ClusterFederatedTrustDomainStatus
+}
+
+func sortClusterFederatedTrustDomainsByCreationDate(cftds []spirev1alpha1.ClusterFederatedTrustDomain) {
+	sort.Slice(cftds, func(a, b int) bool {
+		if cftds[a].CreationTimestamp.Time.Before(cftds[b].CreationTimestamp.Time) {
+			return true
+		}
+		if cftds[a].CreationTimestamp.Time.After(cftds[b].CreationTimestamp.Time) {
+			return false
+		}
+		// Creation timestamps, however unlikely, are equal. Let's tie-break
+		// using the UID.
+		return cftds[a].UID < cftds[b].UID
+	})
 }
