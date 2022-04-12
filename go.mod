@@ -6,7 +6,7 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.15.0
-	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.10
+	github.com/spiffe/go-spiffe/v2 v2.0.0
 	github.com/spiffe/spire-api-sdk v1.1.0
 	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.40.0

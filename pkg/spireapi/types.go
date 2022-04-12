@@ -231,7 +231,7 @@ func spiffeIDFromAPI(in *apitypes.SPIFFEID) (spiffeid.ID, error) {
 	if err != nil {
 		return spiffeid.ID{}, err
 	}
-	return td.NewID(in.Path), nil
+	return spiffeid.FromPath(td, in.Path)
 }
 
 func selectorToAPI(in Selector) (*apitypes.Selector, error) {
