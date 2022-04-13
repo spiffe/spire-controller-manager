@@ -30,6 +30,14 @@ Build the greeter server and client:
 
     $ (cd greeter; make docker-build)
 
+Pull the requisite images:
+
+    $ echo ghcr.io/spiffe/spire-server:1.1.0 \
+        ghcr.io/spiffe/spire-agent:1.1.0 \
+        ghcr.io/spiffe/spiffe-csi-driver:nightly \
+        ghcr.io/spiffe/spire-controller-manager:nightly \
+        | xargs -n1 docker pull
+
 Start up cluster1 and load the requisite images:
 
     $ ./cluster1 kind create cluster
