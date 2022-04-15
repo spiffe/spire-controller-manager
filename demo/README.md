@@ -23,6 +23,7 @@ cluster that targets the greeter workloads and assigns them the proper ID.
 
 - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 - [Kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [yq](https://github.com/mikefarah/yq)
 
 ## Steps
 
@@ -41,22 +42,25 @@ Pull the requisite images:
 Start up cluster1 and load the requisite images:
 
     $ ./cluster1 kind create cluster
-    $ ./cluster1 kind load docker-image \
+    $ echo \
         ghcr.io/spiffe/spire-server:1.1.0 \
         ghcr.io/spiffe/spire-agent:1.1.0 \
         ghcr.io/spiffe/spiffe-csi-driver:nightly \
         ghcr.io/spiffe/spire-controller-manager:nightly \
-        greeter-server:demo
+        greeter-server:demo \
+        | xargs -n1 ./cluster1 kind load docker-image
 
 Start up cluster 2 and load the requisite images:
 
     $ ./cluster2 kind create cluster
-    $ ./cluster2 kind load docker-image \
+    $ echo \
         ghcr.io/spiffe/spire-server:1.1.0 \
         ghcr.io/spiffe/spire-agent:1.1.0 \
         ghcr.io/spiffe/spiffe-csi-driver:nightly \
         ghcr.io/spiffe/spire-controller-manager:nightly \
-        greeter-client:demo
+        greeter-client:demo \
+        | xargs -n1 ./cluster2 kind load docker-image
+
 
 Deploy SPIRE components and greeter server in cluster1:
 

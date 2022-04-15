@@ -1,8 +1,7 @@
 resources:
 - metallb/metallb-namespace.yaml
-- metallb/metallb-memberlist.yaml
-- metallb/metallb-system.yaml
 - metallb/metallb-config.yaml
+- metallb/metallb.yaml
 - spire/spiffe-csi-driver.yaml
 - spire/spire-namespace.yaml
 - crd/spire.spiffe.io_clusterfederatedtrustdomains.yaml
@@ -13,6 +12,7 @@ resources:
 - crd-rbac/leader_election_role_binding.yaml
 - spire/spire-server.yaml
 - spire/spire-agent.yaml
+- spire/spire-controller-manager-webhook.yaml
 - greeter-client/greeter-client.yaml
 
 generatorOptions:
