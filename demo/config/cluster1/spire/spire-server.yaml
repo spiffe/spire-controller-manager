@@ -190,6 +190,8 @@ spec:
         - name: spire-controller-manager
           image: ghcr.io/spiffe/spire-controller-manager:nightly
           imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9443
           args:
           - "--config=spire-controller-manager-config.yaml"
           volumeMounts:
@@ -243,3 +245,21 @@ spec:
       protocol: TCP
   selector:
     app: spire-server
+
+
+---
+#
+# Service definition for SPIRE controller manager webhook
+apiVersion: v1
+kind: Service
+metadata:
+  name: spire-controller-manager-webhook-service
+  namespace: spire-system
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443
+  selector:
+    app: spire-server
+

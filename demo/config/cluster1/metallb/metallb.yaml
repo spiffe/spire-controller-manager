@@ -4,7 +4,6 @@ metadata:
   labels:
     app: metallb
   name: controller
-  namespace: metallb-system
 spec:
   allowPrivilegeEscalation: false
   allowedCapabilities: []
@@ -46,7 +45,6 @@ metadata:
   labels:
     app: metallb
   name: speaker
-  namespace: metallb-system
 spec:
   allowPrivilegeEscalation: false
   allowedCapabilities:
@@ -364,7 +362,7 @@ spec:
             secretKeyRef:
               name: memberlist
               key: secretkey
-        image: quay.io/metallb/speaker:main
+        image: quay.io/metallb/speaker:v0.12.1
         name: speaker
         ports:
         - containerPort: 7472
@@ -374,6 +372,24 @@ spec:
         - containerPort: 7946
           name: memberlist-udp
           protocol: UDP
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: monitoring
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: monitoring
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -425,11 +441,29 @@ spec:
           value: memberlist
         - name: METALLB_DEPLOYMENT
           value: controller
-        image: quay.io/metallb/controller:main
+        image: quay.io/metallb/controller:v0.12.1
         name: controller
         ports:
         - containerPort: 7472
           name: monitoring
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: monitoring
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: monitoring
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

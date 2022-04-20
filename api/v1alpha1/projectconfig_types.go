@@ -41,6 +41,10 @@ type ProjectConfig struct {
 	// IgnoreNamespaces are the namespaces to ignore
 	IgnoreNamespaces []string `json:"ignoreNamespaces"`
 
+	// ValidatingWebhookConfigurationName selects the webhook configuration to manage.
+	// Defaults to spire-controller-manager-webhook.
+	ValidatingWebhookConfigurationName string `json:"validatingWebhookConfigurationName"`
+
 	// GCInterval is how often SPIRE state is reconciled when the controller
 	// is otherwise idle. This impacts how quickly SPIRE state will converge
 	// after CRDs are removed or SPIRE state is mutated out from underneath

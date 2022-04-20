@@ -21,7 +21,7 @@ spec:
       - name: greeter-client
         image: greeter-client:demo
         imagePullPolicy: Never
-        args: ["--addr", "172.18.255.101:8443"]
+        args: ["--addr", "192.168.48.101:8443"]
         volumeMounts:
         - name: spire-agent-socket
           mountPath: /spire-agent-socket

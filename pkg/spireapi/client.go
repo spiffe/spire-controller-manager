@@ -28,6 +28,8 @@ import (
 type Client interface {
 	EntryClient
 	TrustDomainClient
+	SVIDClient
+	BundleClient
 	io.Closer
 }
 
@@ -46,10 +48,14 @@ func DialSocket(ctx context.Context, path string) (Client, error) {
 	return struct {
 		EntryClient
 		TrustDomainClient
+		SVIDClient
+		BundleClient
 		io.Closer
 	}{
 		EntryClient:       NewEntryClient(grpcClient),
 		TrustDomainClient: NewTrustDomainClient(grpcClient),
+		SVIDClient:        NewSVIDClient(grpcClient),
+		BundleClient:      NewBundleClient(grpcClient),
 		Closer:            grpcClient,
 	}, nil
 }
