@@ -19,8 +19,6 @@ package spireapi
 import (
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -55,6 +53,9 @@ type X509SVID struct {
 }
 
 type X509SVIDParams struct {
+	// Key is the X509-SVID private key.
+	Key crypto.Signer
+
 	// ID is the SPIFFE ID of the X509-SVID. Required.
 	ID spiffeid.ID
 
@@ -84,24 +85,21 @@ type svidClient struct {
 
 func (c svidClient) MintX509SVID(ctx context.Context, params X509SVIDParams) (*X509SVID, error) {
 	switch {
+	case params.Key == nil:
+		return nil, errors.New("key is required")
 	case params.ID.IsZero():
 		return nil, errors.New("id is required")
 	case params.TTL < 0:
-		return nil, errors.New("negative TTL cannot be requested")
+		return nil, errors.New("negative TTL is not allowed")
 	case params.TTL == 0:
 		params.TTL = DefaultX509SVIDTTL
-	}
-
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate X509-SVID private key: %w", err)
 	}
 
 	csr, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
 		Subject:  params.Subject,
 		DNSNames: params.DNSNames,
 		URIs:     []*url.URL{params.ID.URL()},
-	}, key)
+	}, params.Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create X509-SVID CSR: %w", err)
 	}
@@ -115,12 +113,12 @@ func (c svidClient) MintX509SVID(ctx context.Context, params X509SVIDParams) (*X
 	}
 
 	if resp.Svid == nil {
-		return nil, errors.New("no svid in response")
+		return nil, errors.New("no X509-SVID in response")
 	}
 
 	td, err := spiffeid.TrustDomainFromString(resp.Svid.Id.TrustDomain)
 	if err != nil {
-		return nil, fmt.Errorf("invalid trust domain in response ID : %w", err)
+		return nil, fmt.Errorf("invalid trust domain in response ID: %w", err)
 	}
 
 	id, err := spiffeid.FromPath(td, resp.Svid.Id.Path)
@@ -137,12 +135,12 @@ func (c svidClient) MintX509SVID(ctx context.Context, params X509SVIDParams) (*X
 		certChain = append(certChain, cert)
 	}
 	if len(certChain) == 0 {
-		return nil, fmt.Errorf("no certificates in response: %w", err)
+		return nil, errors.New("no certificates in response")
 	}
 
 	return &X509SVID{
 		ID:        id,
-		Key:       key,
+		Key:       params.Key,
 		CertChain: certChain,
 		ExpiresAt: certChain[0].NotAfter,
 	}, nil

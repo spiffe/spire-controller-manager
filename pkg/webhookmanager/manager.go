@@ -19,6 +19,9 @@ package webhookmanager
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -210,7 +213,13 @@ func (m *Manager) mintX509SVIDIfNeeded(ctx context.Context, store cache.Store) e
 }
 
 func (m *Manager) mintX509SVID(ctx context.Context, dnsNames []string) error {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return fmt.Errorf("failed to generate X509-SVID private key: %w", err)
+	}
+
 	svid, err := m.config.SVIDClient.MintX509SVID(ctx, spireapi.X509SVIDParams{
+		Key:      key,
 		ID:       m.config.ID,
 		DNSNames: dnsNames,
 		TTL:      x509SVIDTTL,

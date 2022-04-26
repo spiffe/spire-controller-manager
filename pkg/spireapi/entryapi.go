@@ -45,7 +45,7 @@ func (c entryClient) ListEntries(ctx context.Context) ([]Entry, error) {
 	for {
 		resp, err := c.api.ListEntries(ctx, &entryv1.ListEntriesRequest{
 			PageToken: pageToken,
-			PageSize:  entryListPageSize,
+			PageSize:  int32(entryListPageSize),
 		})
 		if err != nil {
 			return nil, err
@@ -62,12 +62,8 @@ func (c entryClient) ListEntries(ctx context.Context) ([]Entry, error) {
 func (c entryClient) CreateEntries(ctx context.Context, entries []Entry) ([]Status, error) {
 	statuses := make([]Status, 0, len(entries))
 	err := runBatch(len(entries), entryCreateBatchSize, func(start, end int) error {
-		toCreate, err := entriesToAPI(entries[start:end])
-		if err != nil {
-			return err
-		}
 		resp, err := c.api.BatchCreateEntry(ctx, &entryv1.BatchCreateEntryRequest{
-			Entries: toCreate,
+			Entries: entriesToAPI(entries[start:end]),
 		})
 		if err == nil {
 			for _, result := range resp.Results {
@@ -82,12 +78,8 @@ func (c entryClient) CreateEntries(ctx context.Context, entries []Entry) ([]Stat
 func (c entryClient) UpdateEntries(ctx context.Context, entries []Entry) ([]Status, error) {
 	statuses := make([]Status, 0, len(entries))
 	err := runBatch(len(entries), entryUpdateBatchSize, func(start, end int) error {
-		toUpdate, err := entriesToAPI(entries[start:end])
-		if err != nil {
-			return err
-		}
 		resp, err := c.api.BatchUpdateEntry(ctx, &entryv1.BatchUpdateEntryRequest{
-			Entries: toUpdate,
+			Entries: entriesToAPI(entries[start:end]),
 		})
 		if err == nil {
 			for _, result := range resp.Results {
