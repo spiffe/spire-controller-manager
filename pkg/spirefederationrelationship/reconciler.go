@@ -31,15 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type TrustDomainClient interface {
-	ListFederationRelationships(ctx context.Context) ([]spireapi.FederationRelationship, error)
-	CreateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error)
-	UpdateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error)
-	DeleteFederationRelationships(ctx context.Context, tds []spiffeid.TrustDomain) ([]spireapi.Status, error)
-}
-
 type ReconcilerConfig struct {
-	TrustDomainClient TrustDomainClient
+	TrustDomainClient spireapi.TrustDomainClient
 	K8sClient         client.Client
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
@@ -58,7 +51,7 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 
 }
 
-func Reconcile(ctx context.Context, trustDomainClient TrustDomainClient, k8sClient client.Client) {
+func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client) {
 	r := &federationRelationshipReconciler{
 		trustDomainClient: trustDomainClient,
 		k8sClient:         k8sClient,
@@ -67,7 +60,7 @@ func Reconcile(ctx context.Context, trustDomainClient TrustDomainClient, k8sClie
 }
 
 type federationRelationshipReconciler struct {
-	trustDomainClient TrustDomainClient
+	trustDomainClient spireapi.TrustDomainClient
 	k8sClient         client.Client
 }
 

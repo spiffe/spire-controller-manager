@@ -16,8 +16,10 @@ limitations under the License.
 
 package spireapi
 
-const (
+var (
 	// TODO: optimize batch/page sizes
+	// These batch sizes are vars so they can be adjusted during tests.
+
 	entryCreateBatchSize = 50
 	entryUpdateBatchSize = 50
 	entryDeleteBatchSize = 200

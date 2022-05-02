@@ -17,9 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/spiffe/go-spiffe/v2/bundle/spiffebundle"
@@ -76,7 +74,7 @@ func ParseClusterFederatedTrustDomainSpec(spec *ClusterFederatedTrustDomainSpec)
 		return nil, fmt.Errorf("invalid trustDomain value: %w", err)
 	}
 
-	if err := validateBundleEndpointURL(spec.BundleEndpointURL); err != nil {
+	if err := spireapi.ValidateBundleEndpointURL(spec.BundleEndpointURL); err != nil {
 		return nil, fmt.Errorf("invalid bundleEndpointURL value: %w", err)
 	}
 
@@ -113,19 +111,4 @@ func ParseClusterFederatedTrustDomainSpec(spec *ClusterFederatedTrustDomainSpec)
 		BundleEndpointProfile: bundleEndpointProfile,
 		TrustDomainBundle:     trustDomainBundle,
 	}, nil
-}
-
-func validateBundleEndpointURL(s string) error {
-	u, err := url.Parse(s)
-	switch {
-	case err != nil:
-		return err
-	case u.Scheme != "https":
-		return errors.New("scheme must be https")
-	case u.Host == "":
-		return errors.New("host is not specified")
-	case u.User != nil:
-		return errors.New("cannot contain userinfo")
-	}
-	return nil
 }
