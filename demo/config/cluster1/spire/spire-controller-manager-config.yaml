@@ -14,5 +14,4 @@ ignoreNamespaces:
   - kube-system
   - kube-public
   - spire-system
-  - metallb-system
   - local-path-storage

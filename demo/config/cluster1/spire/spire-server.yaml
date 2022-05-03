@@ -176,7 +176,7 @@ spec:
       shareProcessNamespace: true
       containers:
         - name: spire-server
-          image: ghcr.io/spiffe/spire-server:nightly
+          image: ghcr.io/spiffe/spire-server:1.2.3
           imagePullPolicy: IfNotPresent
           args: ["-config", "/run/spire/server/config/server.conf"]
           ports:
@@ -238,7 +238,7 @@ metadata:
   name: spire-server-bundle-endpoint
   namespace: spire-system
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
     - name: api
       port: 8443

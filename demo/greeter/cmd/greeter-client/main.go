@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
 	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffegrpc/grpccredentials"
@@ -17,8 +18,15 @@ import (
 
 func main() {
 	var addr string
-	flag.StringVar(&addr, "addr", "localhost:8080", "host:port of the server")
+	flag.StringVar(&addr, "addr", "", "host:port of the server")
 	flag.Parse()
+
+	if addr == "" {
+		addr = os.Getenv("GREETER_SERVER_ADDR")
+	}
+	if addr == "" {
+		addr = "localhost:8080"
+	}
 
 	log.Println("Starting up...")
 	log.Println("Server Address:", addr)

@@ -1,7 +1,4 @@
 resources:
-- metallb/metallb-namespace.yaml
-- metallb/metallb-config.yaml
-- metallb/metallb.yaml
 - spire/spiffe-csi-driver.yaml
 - spire/spire-namespace.yaml
 - crd/spire.spiffe.io_clusterfederatedtrustdomains.yaml
@@ -13,8 +10,6 @@ resources:
 - spire/spire-server.yaml
 - spire/spire-agent.yaml
 - spire/spire-controller-manager-webhook.yaml
-- greeter-server/greeter-server.yaml
-- greeter-server/greeter-server-service.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
