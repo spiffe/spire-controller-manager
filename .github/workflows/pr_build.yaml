@@ -3,17 +3,6 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  unit-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-      - name: Run tests
-        run: make test
   build-image:
     runs-on: ubuntu-latest
     steps:
@@ -43,12 +32,14 @@ jobs:
         with:
           name: image
           path: .
+      - name: Load archived image
+        run: zcat image.tar.gz | docker load
       - name: Test image
         run: |
           docker tag ghcr.io/spiffe/spire-controller-manager:devel ghcr.io/spiffe/spire-controller-manager:nightly
           (cd demo; ./test.sh)
   success:
-    needs: [unit-test, build-image, test-image]
+    needs: [build-image, test-image]
     runs-on: ubuntu-latest
     steps:
       - name: Shout it out
