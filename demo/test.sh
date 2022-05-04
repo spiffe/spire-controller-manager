@@ -21,7 +21,7 @@ log-good() {
 }
 
 fail-now() {
-    echo "${red}$(timestamp) $*${norm}"
+    echo "${red}$(timestamp) $*${norm}" 2>&1
     exit 1
 }
 
@@ -143,22 +143,33 @@ log-info "Configuring the greeter client ID in cluster2..."
 # Check status
 ############################################################################
 
+
 log-info "Checking greeter server logs for success..."
+SUCCESS=
 for ((i = 0; i < 30; i++)); do
     if ./cluster1 kubectl logs deployment/greeter-server | grep -q spiffe://cluster2.demo/greeter-client; then
         log-info "Server received request from client!"
+        SUCCESS=true
         break
     fi
     sleep 1
 done
+if [ -z "$SUCCESS" ]; then
+    fail-now "Server never received request from client :("
+fi
 
 log-info "Checking greeter client logs for success..."
+SUCCESS=
 for ((i = 0; i < 30; i++)); do
     if ./cluster2 kubectl logs deployment/greeter-client | grep -q spiffe://cluster1.demo/greeter-server; then
         log-info "Client received response from server!"
+        SUCCESS=true
         break
     fi
     sleep 1
 done
+if [ -z "$SUCCESS" ]; then
+    fail-now "Client never received response from server :("
+fi
 
 log-good "Success."
