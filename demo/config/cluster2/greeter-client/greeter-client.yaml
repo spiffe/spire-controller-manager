@@ -21,7 +21,6 @@ spec:
       - name: greeter-client
         image: greeter-client:demo
         imagePullPolicy: Never
-        args: ["--addr", "192.168.48.101:8443"]
         volumeMounts:
         - name: spire-agent-socket
           mountPath: /spire-agent-socket
@@ -29,6 +28,11 @@ spec:
         env:
         - name: SPIFFE_ENDPOINT_SOCKET
           value: unix:///spire-agent-socket/agent.sock
+        - name: GREETER_SERVER_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: greeter-client-config
+              key: greeter-server-addr
       volumes:
       - name: spire-agent-socket
         csi:

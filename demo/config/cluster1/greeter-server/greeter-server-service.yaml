@@ -4,7 +4,7 @@ metadata:
   name: greeter-server
   namespace: default
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
     - name: api
       port: 8443

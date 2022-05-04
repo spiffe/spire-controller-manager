@@ -3,18 +3,7 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-      - name: Run tests
-        run: make test
-  build:
+  build-image:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,8 +14,32 @@ jobs:
           go-version: 1.17
       - name: Build image
         run: make docker-build
+      - name: Export image
+        run: docker save ghcr.io/spiffe/spire-controller-manager:devel | gzip > image.tar.gz
+      - name: Archive image
+        uses: actions/upload-artifact@v2
+        with:
+          name: image
+          path: image.tar.gz
+  test-image:
+    needs: [build-image]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Download archived image
+        uses: actions/download-artifact@v2
+        with:
+          name: image
+          path: .
+      - name: Load archived image
+        run: zcat image.tar.gz | docker load
+      - name: Test image
+        run: |
+          docker tag ghcr.io/spiffe/spire-controller-manager:devel ghcr.io/spiffe/spire-controller-manager:nightly
+          (cd demo; ./test.sh)
   success:
-    needs: [test, build]
+    needs: [build-image, test-image]
     runs-on: ubuntu-latest
     steps:
       - name: Shout it out

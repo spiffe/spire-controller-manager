@@ -1,0 +1,3 @@
+resources:
+- greeter-server.yaml
+- greeter-server-service.yaml

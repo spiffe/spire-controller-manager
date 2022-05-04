@@ -33,9 +33,9 @@ Build the greeter server and client:
 
 Pull the requisite images:
 
-    $ echo ghcr.io/spiffe/spire-server:1.1.0 \
-        ghcr.io/spiffe/spire-agent:1.1.0 \
-        ghcr.io/spiffe/spiffe-csi-driver:nightly \
+    $ echo ghcr.io/spiffe/spire-server:1.2.3 \
+        ghcr.io/spiffe/spire-agent:1.2.3 \
+        ghcr.io/spiffe/spiffe-csi-driver:0.1.0 \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         | xargs -n1 docker pull
 
@@ -43,9 +43,9 @@ Start up cluster1 and load the requisite images:
 
     $ ./cluster1 kind create cluster
     $ echo \
-        ghcr.io/spiffe/spire-server:1.1.0 \
-        ghcr.io/spiffe/spire-agent:1.1.0 \
-        ghcr.io/spiffe/spiffe-csi-driver:nightly \
+        ghcr.io/spiffe/spire-server:1.2.3 \
+        ghcr.io/spiffe/spire-agent:1.2.3 \
+        ghcr.io/spiffe/spiffe-csi-driver:0.1.0 \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         greeter-server:demo \
         | xargs -n1 ./cluster1 kind load docker-image
@@ -62,11 +62,11 @@ Start up cluster 2 and load the requisite images:
         | xargs -n1 ./cluster2 kind load docker-image
 
 
-Deploy SPIRE components and greeter server in cluster1:
+Deploy SPIRE components in cluster1:
 
     $ ./cluster1 kubectl apply -k config/cluster1
 
-Deploy SPIRE components and greeter client in cluster2:
+Deploy SPIRE components in cluster2:
 
     $ ./cluster2 kubectl apply -k config/cluster2
 
@@ -79,6 +79,25 @@ Federate cluster2 with cluster1:
 
     $ ./cluster2 scripts/make-cluster-federated-trust-domain.sh | \
         ./cluster1 kubectl apply -f -
+
+Deploy the greeter server in cluster1:
+
+    $ ./cluster1 kubectl apply -k config/cluster1/greeter-server
+
+Configure the greeter client with the address of the server:
+
+    $ ./cluster2 kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: greeter-client-config
+    data:
+      greeter-server-addr: "$(./cluster1 ./scripts/get_service_ip_port.sh default greeter-server)"
+    EOF
+
+Deploy the greeter client in cluster2:
+
+    $ ./cluster2 kubectl apply -k config/cluster2/greeter-client
 
 Create the ClusterSPIFFEID for the greeter server in cluster1:
 

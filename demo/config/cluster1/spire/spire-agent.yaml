@@ -102,7 +102,7 @@ spec:
       serviceAccountName: spire-agent
       containers:
         - name: spire-agent
-          image: ghcr.io/spiffe/spire-agent:nightly
+          image: ghcr.io/spiffe/spire-agent:1.2.3
           imagePullPolicy: IfNotPresent
           args: ["-config", "/run/spire/config/agent.conf"]
           volumeMounts:
@@ -118,7 +118,7 @@ spec:
               mountPath: /run/spire/sockets
         # This is the container which runs the SPIFFE CSI driver.
         - name: spiffe-csi-driver
-          image: ghcr.io/spiffe/spiffe-csi-driver:nightly
+          image: ghcr.io/spiffe/spiffe-csi-driver:0.1.0
           imagePullPolicy: IfNotPresent
           args: [
             "-workload-api-socket-dir", "/spire-agent-socket",
