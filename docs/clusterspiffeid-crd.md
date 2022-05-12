@@ -58,3 +58,9 @@ The following data is available to the template:
 | `{{ .PodSpec }}`     | [PodSpec](https://pkg.go.dev/k8s.io/api/core/v1#PodSpec)                         | The pod specification |
 | `{{ .NodeMeta }}`    | [ObjectMeta](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#ObjectMeta) | The node metadata for the node the pod is scheduled on |
 | `{{ .NodeSpec }}`    | [NodeSpec](https://pkg.go.dev/k8s.io/api/core/v1#NodeSpec)                       | The node specification for the node the pod is scheduled on |
+
+For example, to use the above data to render an Istio-style SPIFFE ID, you could declare the following:
+
+```
+spiffeIDTemplate = "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccount }}"
+```
