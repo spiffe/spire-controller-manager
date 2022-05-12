@@ -1,13 +1,13 @@
-# permissions for end users to edit projectconfigs.
+# permissions for end users to edit controllermanagerconfigs.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: projectconfig-editor-role
+  name: controllermanagerconfig-editor-role
 rules:
 - apiGroups:
   - spire.spiffe.io
   resources:
-  - projectconfigs
+  - controllermanagerconfigs
   verbs:
   - create
   - delete
@@ -19,6 +19,6 @@ rules:
 - apiGroups:
   - spire.spiffe.io
   resources:
-  - projectconfigs/status
+  - controllermanagerconfigs/status
   verbs:
   - get

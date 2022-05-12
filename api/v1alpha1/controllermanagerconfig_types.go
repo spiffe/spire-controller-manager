@@ -25,8 +25,8 @@ import (
 
 //+kubebuilder:object:root=true
 
-// ProjectConfig is the Schema for the projectconfigs API
-type ProjectConfig struct {
+// ControllerManagerConfig is the Schema for the controller manager configuration
+type ControllerManagerConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// ControllerManagerConfigurationSpec returns the contfigurations for controllers
@@ -53,5 +53,5 @@ type ProjectConfig struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ProjectConfig{})
+	SchemeBuilder.Register(&ControllerManagerConfig{})
 }
