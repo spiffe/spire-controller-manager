@@ -13,13 +13,13 @@ of federation relationships.
 
 #### ClusterSPIFFEID
 
-The [ClusterSPIFFEID](/docs/clusterspiffeid-crd.md) resource is a cluster scoped
+The [ClusterSPIFFEID](docs/clusterspiffeid-crd.md) resource is a cluster scoped
 CRD that describes the shape of the identity that is applied to workloads, as
 well as selectors that describe which workloads the identity applies to.
 
 #### ClusterFederatedTrustDomain
 
-The [ClusterFederatedTrustDomain](/docs/clusterfederatedtrustdomain-crd.md)
+The [ClusterFederatedTrustDomain](docs/clusterfederatedtrustdomain-crd.md)
 resource is a cluster scoped CRD that describes a federation relationship for
 the cluster.
 
@@ -31,9 +31,9 @@ To facilitate workload registration, the SPIRE Controller manager registers
 controllers against the following resources:
 
 - [Pods](https://kubernetes.io/docs/concepts/workloads/pods/)
-- [ClusterSPIFFEID](/docs/clusterspiffeid-crd.md)
+- [ClusterSPIFFEID](docs/clusterspiffeid-crd.md)
 
-When changes are detected to these resources, a workload reconciliation process
+When changes are detected on these resources, a workload reconciliation process
 is triggered. This process determines which SPIRE entries should exist based on
 the existing Pods and ClusterSPIFFEID resources which apply to those pods. It
 creates, updates, and deletes entries on SPIRE server as appropriate to match
@@ -44,9 +44,9 @@ the declared state.
 To facilitate federation, the SPIRE Controller manager registers controllers
 against the following resources:
 
-- [ClusterFederatedTrustDomain](/docs/clusterfederatedtrustdomain-crd.md)
+- [ClusterFederatedTrustDomain](docs/clusterfederatedtrustdomain-crd.md)
 
-When changes are detected to these resources, a federation relationship
+When changes are detected on these resources, a federation relationship
 reconciliation process is triggered. This process determines which SPIRE
 federation relationships should exist based on the existing
 ClusterFederatedTrustDomain resources. It creates, updates, and deletes
@@ -56,16 +56,16 @@ federation relationships as appropriate to match the declared state.
 
 The SPIRE Controller Manager is designed to be deployed in the same pod as the
 SPIRE Server. It communicates with the SPIRE Server API using a private Unix
-Domain Socket within a shared volume. It requires [configuration](/docs/spire-controller-manager-config.md)
+Domain Socket within a shared volume. It requires [configuration](docs/spire-controller-manager-config.md)
 for the environment where it is being deployed.
 
-The [demo](./demo) includes [sample configuration](./demo/config/cluster1) for
+The [demo](demo) includes [sample configuration](demo/config/cluster1) for
 deploying the SPIRE Controller Manager, SPIRE, and the SPIFFE CSI driver,
 including requisite RBAC and Webhook configuration.
 
 ## Demo
 
-[Link](./demo)
+[Link](demo)
 
 ## Troubleshooting
 

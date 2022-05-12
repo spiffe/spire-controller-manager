@@ -4,7 +4,7 @@ The ClusterFederatedTrustDomain Custom Resource Definition (CRD) is a
 cluster-wide resource used to program SPIRE with a federation relationship with
 a foreign trust domain.
 
-The definition can be found [here](/api/v1alpha1/clusterfederatedtrustdomain_types.go).
+The definition can be found [here](../api/v1alpha1/clusterfederatedtrustdomain_types.go).
 
 See the [SPIFFE Federation](https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Federation.md) specification for more information.
 

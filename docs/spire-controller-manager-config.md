@@ -1,6 +1,6 @@
 # SPIRE Controller Manager Configuration
 
-The SPIRE Controller Manager configuration is defined [here](/api/v1alpha1/controllermanagerconfig_types.go).
+The SPIRE Controller Manager configuration is defined [here](../api/v1alpha1/controllermanagerconfig_types.go).
 
 Beyond the standard [controller manager configuration](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/config/v1alpha1#ControllerConfigurationSpec), the following fields are defined:
 

@@ -10,7 +10,7 @@ The controller registers the workloads with SPIRE, using templates to provide
 per-workload customization to various properties of the registration (e.g. the
 SPIFFE ID).
 
-The definition can be found [here](/api/v1alpha1/clusterspiffeid_types.go).
+The definition can be found [here](../api/v1alpha1/clusterspiffeid_types.go).
 
 ## ClusterSPIFFEIDSpec
 
