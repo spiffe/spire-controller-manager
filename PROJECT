@@ -31,7 +31,7 @@ resources:
     namespaced: true
   domain: spiffe.io
   group: spire
-  kind: ProjectConfig
+  kind: ControllerManagerConfig
   path: github.com/spiffe/spire-controller-manager/api/v1alpha1
   version: v1alpha1
 version: "3"

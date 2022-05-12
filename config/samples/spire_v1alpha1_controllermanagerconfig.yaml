@@ -1,6 +1,6 @@
 apiVersion: spire.spiffe.io/v1alpha1
-kind: ProjectConfig
+kind: ControllerManagerConfig
 metadata:
-  name: projectconfig-sample
+  name: controllermanagerconfig-sample
 spec:
   # TODO(user): Add fields here

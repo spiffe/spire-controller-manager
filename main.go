@@ -79,7 +79,7 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	var err error
-	ctrlConfig := spirev1alpha1.ProjectConfig{
+	ctrlConfig := spirev1alpha1.ControllerManagerConfig{
 		IgnoreNamespaces:                   []string{"kube-system", "kube-public", "spire-system"},
 		GCInterval:                         10 * time.Second,
 		ValidatingWebhookConfigurationName: "spire-controller-manager-webhook",

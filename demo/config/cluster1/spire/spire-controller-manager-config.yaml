@@ -1,5 +1,5 @@
 apiVersion: spire.spiffe.io/v1alpha1
-kind: ProjectConfig
+kind: ControllerManagerConfig
 metrics:
   bindAddress: 127.0.0.1:8082
 healthProbe:
