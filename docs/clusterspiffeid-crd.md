@@ -46,7 +46,7 @@ The definition can be found [here](../api/v1alpha1/clusterspiffeid_types.go).
 ## Templates
 
 Many of the fields in the specification define templates. These templates are
-rendered using the Go standard library [text template]() package.
+rendered using the Go standard library [text template](https://pkg.go.dev/text/template) package.
 
 The following data is available to the template:
 
