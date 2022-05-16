@@ -39,7 +39,7 @@ jobs:
         run: |
           docker tag ghcr.io/spiffe/spire-controller-manager:devel ghcr.io/spiffe/spire-controller-manager:nightly
           (cd demo; ./test.sh)
-  publish-image:
+  publish-image-and-release:
     needs: [test-image]
     runs-on: ubuntu-latest
     steps:
@@ -64,3 +64,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
         run: ./.github/workflows/scripts/push-images.sh "${GITHUB_REF#refs/tags/v}"
+      - name: Create Release
+        env:
+          # GH_REPO is required for older releases of `gh`. Until we're
+          # reasonably confident that that the gh release is new enough,
+          # set GH_REPO to the repository to create the release in.
+          #
+          # See https://github.com/cli/cli/issues/3556
+          GH_REPO: ${{ github.repository }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Create the release using the version number as the title
+        run: gh release create "${GITHUB_REF#refs/tags/}" --title "${GITHUB_REF#refs/tags/}"
