@@ -59,8 +59,33 @@ The following data is available to the template:
 | `{{ .NodeMeta }}`    | [ObjectMeta](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#ObjectMeta) | The node metadata for the node the pod is scheduled on |
 | `{{ .NodeSpec }}`    | [NodeSpec](https://pkg.go.dev/k8s.io/api/core/v1#NodeSpec)                       | The node specification for the node the pod is scheduled on |
 
-For example, to use the above data to render an Istio-style SPIFFE ID, you could declare the following:
+## Examples
 
-```
-spiffeIDTemplate = "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccount }}"
-```
+1. Apply an Istio-style SPIFFE ID to workloads running in namespaces with the "backend" label:
+
+    ```
+    apiVersion: spire.spiffe.io/v1alpha1
+    kind: ClusterSPIFFEID
+    metadata:
+      name: backend-workloads
+    spec:
+      spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccount }}"
+      namespaceSelector:
+        matchLabels:
+          backend: true
+    ```
+
+1. Federate workloads running the pods with the "banking" label with the "auditing" trust domain.
+
+    ```
+    apiVersion: spire.spiffe.io/v1alpha1
+    kind: ClusterSPIFFEID
+    metadata:
+      name: backend-workloads
+    spec:
+      spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccount }}"
+      podSelector:
+        matchLabels:
+          banking: true
+      federatesWith: ["auditing"]
+    ```
