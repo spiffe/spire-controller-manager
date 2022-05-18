@@ -8,7 +8,7 @@ cluster (cluster1) will host a greeter server workload. The second cluster
 (cluster2) will host a greeter client workload. Each cluster is a distinct
 SPIFFE trust domain.
 
-The greeter server and greeter client communicate with each over over TLS and
+The greeter server and greeter client communicate with each over TLS and
 perform mutual authentication.
 
 To facilitate this cross-cluster authentication, each cluster will be federated
