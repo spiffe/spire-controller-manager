@@ -46,7 +46,7 @@ The ClusterFederatedTrustDomain does not have any status fields.
         type: https_web
     ```
 
-1. Create a federation relationship with the "backend" trust domain using the [https_spiffe]https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Federation.md#522-spiffe-authentication-https_spiffe) profile, including the initial bundle contents to authenticate the endpoint:
+1. Create a federation relationship with the "backend" trust domain using the [https_spiffe](https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Federation.md#522-spiffe-authentication-https_spiffe) profile, including the initial bundle contents to authenticate the endpoint:
 
     ```
     apiVersion: spire.spiffe.io/v1alpha1
