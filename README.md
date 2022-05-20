@@ -1,7 +1,8 @@
 # SPIRE Controller Manager
 
 [![Build Status](https://github.com/spiffe/spire-controller-manager/actions/workflows/nightly_build.yaml/badge.svg)](https://github.com/spiffe/spire-controller-manager/actions/workflows/nightly_build.yaml)
-[![Development Phase](https://github.com/spiffe/spiffe/blob/main/.img/maturity/dev.svg)](https://github.com/spiffe/spiffe/blob/main/MATURITY.md#development)
+[![Pre-Production Phase](https://github.com/spiffe/spiffe/blob/main/.img/maturity/pre-prod.svg)](https://github.com/spiffe/spiffe/blob/main/MATURITY.md#pre-production)
+
 
 A [Kubernetes Controller](https://kubernetes.io/docs/concepts/architecture/controller/)
 manager which facilitates the registration of workloads and establishment
