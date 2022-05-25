@@ -48,6 +48,10 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+const (
+	defaultSPIREServerSocketPath = "/spire-server/api.sock"
+)
+
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
@@ -61,14 +65,13 @@ func init() {
 }
 
 func main() {
-	var configFile string
-	var spireAPISocket string
-	flag.StringVar(&configFile, "config", "",
+	var configFileFlag string
+	var spireAPISocketFlag string
+	flag.StringVar(&configFileFlag, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
-	flag.StringVar(&spireAPISocket, "spire-api-socket", "/spire-server/api.sock",
-		"The path to the SPIRE API socket")
+	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
 
 	opts := zap.Options{
 		Development: true,
@@ -78,7 +81,6 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	var err error
 	ctrlConfig := spirev1alpha1.ControllerManagerConfig{
 		IgnoreNamespaces:                   []string{"kube-system", "kube-public", "spire-system"},
 		GCInterval:                         10 * time.Second,
@@ -86,12 +88,29 @@ func main() {
 	}
 
 	options := ctrl.Options{Scheme: scheme}
-	if configFile != "" {
-		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile).OfKind(&ctrlConfig))
+	if configFileFlag != "" {
+		var err error
+		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFileFlag).OfKind(&ctrlConfig))
 		if err != nil {
 			setupLog.Error(err, "unable to load the config file")
 			os.Exit(1)
 		}
+	}
+
+	// Determine the SPIRE Server socket path
+	switch {
+	case ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
+		// Neither is set. Use the default.
+		ctrlConfig.SPIREServerSocketPath = defaultSPIREServerSocketPath
+	case ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag == "":
+		// Configuration file value is set. Use it.
+	case ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag != "":
+		// Deprecated flag value is set. Use it but warn.
+		ctrlConfig.SPIREServerSocketPath = spireAPISocketFlag
+		setupLog.Error(nil, "The spire-api-socket flag is deprecated and will be removed in a future release; use the configuration file instead")
+	case ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag != "":
+		// Both are set. Warn and ignore the deprecated flag.
+		setupLog.Error(nil, "Ignoring deprecated spire-api-socket flag which will be removed in a future release")
 	}
 
 	setupLog.Info("Config loaded",
@@ -99,17 +118,17 @@ func main() {
 		"trust domain", ctrlConfig.TrustDomain,
 		"ignore namespaces", ctrlConfig.IgnoreNamespaces,
 		"gc interval", ctrlConfig.GCInterval,
-		"spire socket", spireAPISocket)
+		"spire server socket path", ctrlConfig.SPIREServerSocketPath)
 
 	switch {
 	case ctrlConfig.TrustDomain == "":
-		setupLog.Error(err, "trust domain is required configuration")
+		setupLog.Error(nil, "trust domain is required configuration")
 		os.Exit(1)
 	case ctrlConfig.ClusterName == "":
-		setupLog.Error(err, "cluster name is required configuration")
+		setupLog.Error(nil, "cluster name is required configuration")
 		os.Exit(1)
 	case ctrlConfig.ValidatingWebhookConfigurationName == "":
-		setupLog.Error(err, "validating webhook configuration name is required configuration")
+		setupLog.Error(nil, "validating webhook configuration name is required configuration")
 		os.Exit(1)
 	case options.CertDir != "":
 		setupLog.Info("certDir configuration is ignored", "certDir", options.CertDir)
@@ -147,7 +166,7 @@ func main() {
 		setupLog.Error(err, "invalid trust domain name")
 		os.Exit(1)
 	}
-	spireClient, err := spireapi.DialSocket(ctx, spireAPISocket)
+	spireClient, err := spireapi.DialSocket(ctx, ctrlConfig.SPIREServerSocketPath)
 	if err != nil {
 		setupLog.Error(err, "unable to dial SPIRE Server socket")
 		os.Exit(1)

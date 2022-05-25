@@ -50,6 +50,9 @@ type ControllerManagerConfig struct {
 	// after CRDs are removed or SPIRE state is mutated out from underneath
 	// the controller.
 	GCInterval time.Duration `json:"gcInterval"`
+
+	// SPIREServerSocketPath is the path to the SPIRE Server API socket
+	SPIREServerSocketPath string `json:"spireServerSocketPath"`
 }
 
 func init() {
