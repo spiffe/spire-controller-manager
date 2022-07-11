@@ -1,0 +1,71 @@
+package spireentry
+
+import (
+	"testing"
+
+	"github.com/spiffe/go-spiffe/v2/spiffeid"
+	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
+	"github.com/stretchr/testify/require"
+)
+
+func TestMakeEntryKey(t *testing.T) {
+	id1 := spiffeid.RequireFromString("spiffe://domain.test/1")
+	id2 := spiffeid.RequireFromString("spiffe://domain.test/2")
+	sAABB := []spireapi.Selector{{Type: "A", Value: "A"}, {Type: "B", Value: "B"}}
+	sBBAA := []spireapi.Selector{{Type: "B", Value: "B"}, {Type: "A", Value: "A"}}
+	sAAAC := []spireapi.Selector{{Type: "A", Value: "A"}, {Type: "A", Value: "C"}}
+
+	t.Run("same tuple yields same key", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB}
+		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("selector order does not matter", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sBBAA}
+		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("parent ID changes key", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB}
+		b := spireapi.Entry{ID: "B", ParentID: id2, SPIFFEID: id2, Selectors: sAABB}
+		require.NotEqual(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("SPIFFE ID changes key", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id1, Selectors: sAABB}
+		require.NotEqual(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("Selectors change key", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAAAC}
+		require.NotEqual(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("TTL has no impact", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, TTL: 1}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, TTL: 2}
+		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("FederatesWith has no impact", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, FederatesWith: []spiffeid.TrustDomain{spiffeid.RequireTrustDomainFromString("domaina")}}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, FederatesWith: []spiffeid.TrustDomain{spiffeid.RequireTrustDomainFromString("domainb")}}
+		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("Admin has no impact", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, Admin: false}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, Admin: true}
+		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
+	t.Run("DNSNames have no impact", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DnsNames: []string{"A"}}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DnsNames: []string{"B"}}
+		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
+	})
+}

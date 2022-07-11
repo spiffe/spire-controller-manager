@@ -359,7 +359,7 @@ func makeEntryKey(entry spireapi.Entry) entryKey {
 
 func sortSelectors(unsorted []spireapi.Selector) []spireapi.Selector {
 	sorted := append([]spireapi.Selector(nil), unsorted...)
-	sort.Slice(unsorted, func(i, j int) bool {
+	sort.Slice(sorted, func(i, j int) bool {
 		switch {
 		case sorted[i].Type < sorted[j].Type:
 			return true
