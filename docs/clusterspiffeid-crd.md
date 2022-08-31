@@ -36,7 +36,7 @@ The definition can be found [here](../api/v1alpha1/clusterspiffeid_types.go).
 | Field | Description |
 | ----- | ----------- |
 | `namespaceSelected`      | How many namespaces were selected |
-| `namespacesIgnroed`      | How many namespaces were ignored |
+| `namespacesIgnored`      | How many namespaces were ignored |
 | `podsSelected`           | How many pods were selected |
 | `podEntryRenderFailures` | How many failures were encountered rendering a registration entry for the pod |
 | `entriesMasked`          | How many entries were masked because they were similar to other registration entries |
