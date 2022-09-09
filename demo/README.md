@@ -35,7 +35,7 @@ Pull the requisite images:
 
     $ echo ghcr.io/spiffe/spire-server:1.2.3 \
         ghcr.io/spiffe/spire-agent:1.2.3 \
-        ghcr.io/spiffe/spiffe-csi-driver:0.1.0 \
+        ghcr.io/spiffe/spiffe-csi-driver:0.2.0 \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         | xargs -n1 docker pull
 
@@ -45,7 +45,7 @@ Start up cluster1 and load the requisite images:
     $ echo \
         ghcr.io/spiffe/spire-server:1.2.3 \
         ghcr.io/spiffe/spire-agent:1.2.3 \
-        ghcr.io/spiffe/spiffe-csi-driver:0.1.0 \
+        ghcr.io/spiffe/spiffe-csi-driver:0.2.0 \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         greeter-server:demo \
         | xargs -n1 ./cluster1 kind load docker-image
