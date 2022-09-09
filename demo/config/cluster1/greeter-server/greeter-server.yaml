@@ -33,3 +33,4 @@ spec:
       - name: spire-agent-socket
         csi:
           driver: "csi.spiffe.io"
+          readOnly: true
