@@ -78,7 +78,7 @@ func (r *ClusterSPIFFEID) validate() error {
 	return err
 }
 
-//+kubebuilder:object:generate=false
+// +kubebuilder:object:generate=false
 // ParsedClusterSPIFFEIDSpec is a parsed and validated ClusterSPIFFEIDSpec
 type ParsedClusterSPIFFEIDSpec struct {
 	SPIFFEIDTemplate          *template.Template
