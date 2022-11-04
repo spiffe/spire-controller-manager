@@ -69,7 +69,7 @@ The following data is available to the template:
     metadata:
       name: backend-workloads
     spec:
-      spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccount }}"
+      spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
       namespaceSelector:
         matchLabels:
           backend: true
@@ -83,7 +83,7 @@ The following data is available to the template:
     metadata:
       name: backend-workloads
     spec:
-      spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccount }}"
+      spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
       podSelector:
         matchLabels:
           banking: true
