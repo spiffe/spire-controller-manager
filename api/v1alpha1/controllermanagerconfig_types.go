@@ -35,6 +35,9 @@ type ControllerManagerConfig struct {
 	// ClusterName is the cluster name
 	ClusterName string `json:"clusterName"`
 
+	// ClusterDomain is the cluster domain, ie cluster.local
+	ClusterDomain string `json:"clusterDomain"`
+
 	// TrustDomain is the name of the SPIFFE trust domain
 	TrustDomain string `json:"trustDomain"`
 

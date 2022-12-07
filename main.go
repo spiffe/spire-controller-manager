@@ -20,8 +20,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -53,6 +55,7 @@ import (
 const (
 	defaultSPIREServerSocketPath = "/spire-server/api.sock"
 	defaultGCInterval            = 10 * time.Second
+	k8sDefaultService            = "kubernetes.default.svc"
 )
 
 var (
@@ -128,8 +131,14 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 		setupLog.Error(nil, "Ignoring deprecated spire-api-socket flag which will be removed in a future release")
 	}
 
+	// Attempt to auto detect cluster domain if it wasn't specified
+	if ctrlConfig.ClusterDomain == "" {
+		ctrlConfig.ClusterDomain = autoDetectClusterDomain()
+	}
+
 	setupLog.Info("Config loaded",
 		"cluster name", ctrlConfig.ClusterName,
+		"cluster domain", ctrlConfig.ClusterDomain,
 		"trust domain", ctrlConfig.TrustDomain,
 		"ignore namespaces", ctrlConfig.IgnoreNamespaces,
 		"gc interval", ctrlConfig.GCInterval,
@@ -231,6 +240,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 	entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
 		TrustDomain:      trustDomain,
 		ClusterName:      ctrlConfig.ClusterName,
+		ClusterDomain:    ctrlConfig.ClusterDomain,
 		K8sClient:        mgr.GetClient(),
 		EntryClient:      spireClient,
 		IgnoreNamespaces: ctrlConfig.IgnoreNamespaces,
@@ -310,4 +320,24 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 	}
 
 	return nil
+}
+
+func autoDetectClusterDomain() string {
+	cname, err := net.LookupCNAME(k8sDefaultService)
+	if err != nil {
+		setupLog.Error(err, "unable to autodetect cluster domain")
+		return ""
+	}
+
+	re := regexp.MustCompile(regexp.QuoteMeta(k8sDefaultService) + `\.(.*)\.`)
+	matches := re.FindStringSubmatch(cname)
+
+	var clusterDomain string
+	if len(matches) == 2 {
+		clusterDomain = matches[1]
+	} else {
+		setupLog.Error(nil, " unable to extract cluster domain", "cname", cname, "matches", matches)
+	}
+
+	return clusterDomain
 }

@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	clusterName = "test"
-	trustDomain = "example.org"
+	clusterName   = "test"
+	clusterDomain = "cluster.local"
+	trustDomain   = "example.org"
 )
 
 func TestRenderPodEntry(t *testing.T) {
@@ -45,7 +46,7 @@ func TestRenderPodEntry(t *testing.T) {
 	td, err := spiffeid.TrustDomainFromString(trustDomain)
 	require.NoError(t, err)
 
-	entry, err := renderPodEntry(parsedSpec, node, pod, td, clusterName)
+	entry, err := renderPodEntry(parsedSpec, node, pod, td, clusterName, clusterDomain)
 	require.NoError(t, err)
 
 	// SPIFFE ID rendered correctly
