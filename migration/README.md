@@ -31,6 +31,7 @@ Next deploy the new SPIRE Controller Manager.
    ```shell
    kubectl apply -f ../config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml \
                  -f ../config/crd/bases/spire.spiffe.io_clusterfederatedtrustdomains.yaml \
+                 -f ../config/crd/bases/spire.spiffe.io_clusterstaticentries.yaml \
                  -f config/spire-controller-manager-webhook.yaml \
                  -f config/leader_election_role.yaml \
                  -f config/leader_election_role_binding.yaml \
@@ -46,7 +47,7 @@ Next deploy the new SPIRE Controller Manager.
    ```
 
    > **Note**
-   > See [FAQs](#faqs) for instructions on how to translate [label](#how-do-i-do-label-based-workload-registration), [annotation](#how-do-i-do-annotation-based-workload-registration), and [service account](#how-do-i-do-service-account-based-workload-registration) based workload registration. Also see [ClusterSPIFFEID definition](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information on how to create the most suitable shape for your environment.
+   > See [FAQs](#faqs) for instructions on how to translate [label](#how-do-i-do-label-based-workload-registration), [annotation](#how-do-i-do-annotation-based-workload-registration), and [service account](#how-do-i-do-service-account-based-workload-registration) based workload registration. Also see [ClusterSPIFFEID definition][1] for more information on how to create the most suitable shape for your environment.
 
 ## Delete the Kubernetes Workload Registrar CRD (CRD mode only)
 
@@ -145,7 +146,7 @@ spec:
 The `matchExpressions` statement will select only Pods with the `spiffe.io/spiffe-id` label. For Pods with this label, the `spiffeIDTemplate` will extract the value of this label and use it to form the SPIFFE ID.
 
 > **Note**
-> Allowing the value of labels to directly populate a SPIFFE ID gives the power to create arbitrary SPIFFE IDs to anyone that can deploy a Pod in your cluster. It's better to define a SPIFFE ID using a template that doesn't depend on a label. See [ClusterSPIFFEID defintion](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information. 
+> Allowing the value of labels to directly populate a SPIFFE ID gives the power to create arbitrary SPIFFE IDs to anyone that can deploy a Pod in your cluster. It's better to define a SPIFFE ID using a template that doesn't depend on a label. See [ClusterSPIFFEID defintion][1] for more information.
 
 ### How do I do annotation based workload registration?
 
@@ -165,7 +166,7 @@ spec:
 ```
 
 > **Note**
-> This will create an entry for every Pod in the system. For use cases where every Pod needs a certificate this configuration will work well. If you prefer to limit what Pods get a certificate, restrict it with a label like in the main example in `config/clusterspiffeid.yaml`. Also see [ClusterSPIFFEID defintion](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information.
+> This will create an entry for every Pod in the system. For use cases where every Pod needs a certificate this configuration will work well. If you prefer to limit what Pods get a certificate, restrict it with a label like in the main example in `config/clusterspiffeid.yaml`. Also see [ClusterSPIFFEID defintion][1] for more information.
 
 ### How do I federate trust domains?
 
@@ -181,7 +182,7 @@ metadata:
   ...
 ```
 
-The equivalent with SPIRE Controller Manager is accomplished with the `federatesWith` field of the [ClusterSPIFFEID CRD](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md).
+The equivalent with SPIRE Controller Manager is accomplished with the `federatesWith` field of the [ClusterSPIFFEID CRD][1].
 
 ```yaml
 apiVersion: spire.spiffe.io/v1alpha1
@@ -199,7 +200,7 @@ spec:
 
 ### How do I add DNS names to my certificates?
 
-You can add multiple DNS names with the `dnsNameTemplates` field of the [ClusterSPIFFEID CRD](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md).
+You can add multiple DNS names with the `dnsNameTemplates` field of the [ClusterSPIFFEID CRD][1].
 
 ```yaml
 apiVersion: spire.spiffe.io/v1alpha1
@@ -217,23 +218,13 @@ spec:
 
 ### Does SPIRE Controller Manager automatically populate DNS Names of Services a Pod is attached to?
 
-SPIRE Controller Manager doesn't monitor Endpoints like Kubernetes Workload Registrar did, so it won't do this automatically. A workaround is to use the `app` label to populate DNS Names using `dnsNameTemplates` field of the [ClusterSPIFFEID CRD](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md), assuming you are using `app` as your selector and it matches the name of the `Service`.
+Yes, this is enabled with the sample configuration in this migration guide. 
 
-```yaml
-apiVersion: spire.spiffe.io/v1alpha1
-kind: ClusterSPIFFEID
-metadata:
-  name: federation
-spec:
-  spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
-  podSelector:
-    matchLabels:
-      spiffe.io/spiffe-id: "true"
-  dnsNameTemplates: ["{{ index .PodMeta.Labels \"app\" }}.{{ .PodMeta.Namespace }}.svc.cluster.local"]
+For each [ClusterSPIFFEID][1] you want to auto populate DNS names for, set the `autoPopulateDNSNames` field there. See [example](config/clusterspiffeid.yaml).
 
-```
 
-If you require these DNS Names to be automatically populated, please update [#48](https://github.com/spiffe/spire-controller-manager/issues/48) with your use case.
+> **Note**
+> Spire Controller Manager 0.3.1 or later is required to auto populate DNS names.
 
 ### Can SPIRE Controller Manager be deployed in a different Pod from SPIRE Server?
 
@@ -275,3 +266,5 @@ SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Thoug
 ### What happens if a Pod is deployed while I'm in the middle of this cutover?
 
 SPIRE Controller Manager will reconcile the state of the system when it starts up. Any new Pods deployed after Kubernetes Workload Registrar is deleted and before SPIRE Controller Manager is up will have entries created when SPIRE Controller Manager is up.
+
+[1]: docs/clusterspiffeid-crd.md

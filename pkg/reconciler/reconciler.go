@@ -25,6 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const EndpointUID string = "subsets.addresses.targetRef.uid"
+
 type Triggerer interface {
 	Trigger()
 }

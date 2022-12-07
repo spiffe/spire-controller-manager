@@ -74,6 +74,9 @@ type ClusterSPIFFEIDSpec struct {
 
 	// Downstream indicates that the entry describes a downstream SPIRE server.
 	Downstream bool `json:"downstream,omitempty"`
+
+	// AutoPopulateDNSNames indicates whether or not to auto populate service DNS names.
+	AutoPopulateDNSNames bool `json:"autoPopulateDNSNames,omitempty"`
 }
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID

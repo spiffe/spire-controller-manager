@@ -4,6 +4,7 @@ metadata:
   name: example
 spec:
   spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+  autoPopulateDNSNames: true
   podSelector:
     matchLabels:
       spiffe.io/spiffe-id: "true"
