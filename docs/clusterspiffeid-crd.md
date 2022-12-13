@@ -63,7 +63,7 @@ The following data is available to the template:
 
 1. Apply an Istio-style SPIFFE ID to workloads running in namespaces with the "backend" label:
 
-    ```
+    ```yaml
     apiVersion: spire.spiffe.io/v1alpha1
     kind: ClusterSPIFFEID
     metadata:
@@ -72,12 +72,12 @@ The following data is available to the template:
       spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
       namespaceSelector:
         matchLabels:
-          backend: true
+          backend: "true"
     ```
 
 1. Federate workloads running the pods with the "banking" label with the "auditing" trust domain.
 
-    ```
+    ```yaml
     apiVersion: spire.spiffe.io/v1alpha1
     kind: ClusterSPIFFEID
     metadata:
@@ -86,6 +86,6 @@ The following data is available to the template:
       spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
       podSelector:
         matchLabels:
-          banking: true
+          banking: "true"
       federatesWith: ["auditing"]
     ```
