@@ -34,7 +34,7 @@ The ClusterFederatedTrustDomain does not have any status fields.
 
 1. Create a federation relationship with the "backend" trust domain using the [https_web](https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Federation.md#521-web-pki-https_web) profile.
 
-    ```
+    ```yaml
     apiVersion: spire.spiffe.io/v1alpha1
     kind: ClusterFederatedTrustDomain
     metadata:
@@ -48,7 +48,7 @@ The ClusterFederatedTrustDomain does not have any status fields.
 
 1. Create a federation relationship with the "backend" trust domain using the [https_spiffe](https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Federation.md#522-spiffe-authentication-https_spiffe) profile, including the initial bundle contents to authenticate the endpoint:
 
-    ```
+    ```yaml
     apiVersion: spire.spiffe.io/v1alpha1
     kind: ClusterFederatedTrustDomain
     metadata:
