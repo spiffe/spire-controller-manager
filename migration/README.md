@@ -96,7 +96,7 @@ Selector         : k8s:pod-uid:dca56e85-142e-4de2-b04a-257ac8d7e3c8
 When done you can delete the NGINX deployment, this will automatically delete the SPIFFE ID:
 
 ```shell
-$ kubectl delete -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/simple_deployment.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/simple_deployment.yaml
 ```
 
 ## FAQs
