@@ -63,7 +63,7 @@ spire-agent-5jkzg   1/1     Running   0             46m
 spire-server-0      2/2     Running   1 (11m ago)   11m
 ```
 > **Note**
-> It's ok to see a restart in the `spire-server-0` Pod. SPIRE Controller Manager relies on the SPIRE Server to get a certificate for it's Webhook, and when SPIRE Controller Manager comes up first it can't get that certificate and restarts.
+> It's ok to see a restart in the `spire-server-0` Pod. SPIRE Controller Manager relies on the SPIRE Server to get a certificate for it's Webhook, and when SPIRE Controller Manager comes up first it can't get that certificate and restarts. See [#39](https://github.com/spiffe/spire-controller-manager/issues/39).
 
 Next try to deploy this example NGINX Deployment:
 
@@ -169,6 +169,42 @@ spec:
     matchLabels:
       spiffe.io/spiffe-id: "true"
   federatesWith: ["example.io", "example.ai"]
+
+```
+
+### How do I add DNS names to my certificates?
+
+You can add multiple DNS names with the `dnsNameTemplates` field of the [ClusterSPIFFEID CRD](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md).
+
+```yaml
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: federation
+spec:
+  spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+  podSelector:
+    matchLabels:
+      spiffe.io/spiffe-id: "true"
+  dnsNameTemplates: ["{{ .PodMeta.Name }}", "my-custom-dns-name"]
+
+```
+
+### Does SPIRE Controller Manager automatically populate DNS Names of Services a Pod is attached to?
+
+SPIRE Controller Manager doesn't monitor endpoints like Kubernetes Workload Registrar did, so it won't do this automatically. A workaround is to use the `app` label to populate DNS Names using `dnsNameTemplates` field of the [ClusterSPIFFEID CRD](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md), assuming you are using `app` as your selector and it matches the name of the `Service`.
+
+```yaml
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: federation
+spec:
+  spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+  podSelector:
+    matchLabels:
+      spiffe.io/spiffe-id: "true"
+  dnsNameTemplates: ["{{ index .PodMeta.Labels \"app\" }}.{{ .PodMeta.Namespace }}.svc.cluster.local"]
 
 ```
 
