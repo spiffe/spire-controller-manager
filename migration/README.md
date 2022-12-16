@@ -4,7 +4,8 @@
 
 This guide will walk you through you through how to migrate an existing Kubernetes Workload Registrar deployment to SPIRE Controller Manager. Existing entries created by the Kubernetes Workload Registrar aren't compatible with SPIRE Controller Manager so they'll be deleted and replaced with new entries. Workloads will continue to function with the old entries until their certificates expire, after which they'll get new certificates based on the new entries.
 
-As we will be deleting and creating entries, it's important to do this migration during a downtime window.
+> **Note**
+> As we'll be deleting and creating entries, it's important to do this migration during a downtime window.
 
 ## Clean up Kubernetes Workload Registrar Resources
 
@@ -90,6 +91,12 @@ Revision         : 0
 X509-SVID TTL    : default
 JWT-SVID TTL     : default
 Selector         : k8s:pod-uid:dca56e85-142e-4de2-b04a-257ac8d7e3c8
+```
+
+When done you can delete the NGINX deployment, this will automatically delete the SPIFFE ID:
+
+```shell
+$ kubectl delete -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/simple_deployment.yaml
 ```
 
 ## FAQs
@@ -208,14 +215,6 @@ spec:
 
 ```
 
-### Why can't Kubernetes Workload Registrar entries be reused with the SPIRE Controller Manager?
-
-SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Though it is technically possible to modify all the entries, its a lot easier to just allow SPIRE Controller Maanger to automatically replace the entries.
-
-### What happens if a Pod is deployed while I'm in the middle of this cutover?
-
-SPIRE Controller Manager will reconcile the state of the system when it starts up. Any new Pods deployed after the Kubernetes Workload Registrar is deleted and before SPIRE Controller Manager is up will have entries created when SPIRE Controller Manager is up.
-
 ### How do i see SPIRE Controller Manager logs?
 
 ```shell
@@ -226,3 +225,25 @@ $ kubectl logs spire-server-0 -n spire -c spire-controller-manager
 2022-12-13T00:41:21.828Z	INFO	webhook-manager	Minted webhook certificate
 2022-12-13T00:41:21.844Z	INFO	webhook-manager	Webhook configuration patched with CABundle
 ```
+
+### I'm using CRD mode Kubernetes Workload Registrar and it gets stick deleting the SpiffeId CRD. What do I do?
+
+This can happen if the Kubernetes Workload Registrar is deleted before all the SpiffeId custom resources are removed. To get around this, manually remove the finalizers with the below script and try deleting the CRD again.
+
+```shell
+for ns in $(kubectl get ns | awk '{print $1}' | tail -n +2)
+do
+  if [ $(kubectl get spiffeids -n $ns 2>/dev/null | wc -l) -ne 0 ]
+  then
+    kubectl patch spiffeid $(kubectl get spiffeids -n $ns | awk '{print $1}' | tail -n +2) --type='merge' -p '{"metadata":{"finalizers":null}}' -n $ns
+  fi
+done
+```
+
+### Why can't Kubernetes Workload Registrar entries be reused with the SPIRE Controller Manager?
+
+SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Though it is technically possible to modify all the entries, its a lot easier to just allow SPIRE Controller Maanger to automatically replace the entries.
+
+### What happens if a Pod is deployed while I'm in the middle of this cutover?
+
+SPIRE Controller Manager will reconcile the state of the system when it starts up. Any new Pods deployed after the Kubernetes Workload Registrar is deleted and before SPIRE Controller Manager is up will have entries created when SPIRE Controller Manager is up.
