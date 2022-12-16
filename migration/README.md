@@ -232,7 +232,7 @@ $ kubectl logs spire-server-0 -n spire -c spire-controller-manager
 2022-12-13T00:41:21.844Z	INFO	webhook-manager	Webhook configuration patched with CABundle
 ```
 
-### I'm using CRD mode Kubernetes Workload Registrar and it gets stick deleting the SpiffeId CRD. What do I do?
+### I'm using CRD mode Kubernetes Workload Registrar and it gets stuck deleting the SpiffeId CRD. What do I do?
 
 This can happen if the Kubernetes Workload Registrar is deleted before all the SpiffeId custom resources are removed. To get around this, manually remove the finalizers with the below script and try deleting the CRD again.
 
