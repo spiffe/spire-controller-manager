@@ -199,7 +199,7 @@ spec:
 
 ### Does SPIRE Controller Manager automatically populate DNS Names of Services a Pod is attached to?
 
-SPIRE Controller Manager doesn't monitor endpoints like Kubernetes Workload Registrar did, so it won't do this automatically. A workaround is to use the `app` label to populate DNS Names using `dnsNameTemplates` field of the [ClusterSPIFFEID CRD](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md), assuming you are using `app` as your selector and it matches the name of the `Service`.
+SPIRE Controller Manager doesn't monitor Endpoints like Kubernetes Workload Registrar did, so it won't do this automatically. A workaround is to use the `app` label to populate DNS Names using `dnsNameTemplates` field of the [ClusterSPIFFEID CRD](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md), assuming you are using `app` as your selector and it matches the name of the `Service`.
 
 ```yaml
 apiVersion: spire.spiffe.io/v1alpha1
@@ -214,6 +214,12 @@ spec:
   dnsNameTemplates: ["{{ index .PodMeta.Labels \"app\" }}.{{ .PodMeta.Namespace }}.svc.cluster.local"]
 
 ```
+
+If you require these DNS Names to be automatically populated, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
+
+### Can SPIRE Controller Manager be deployed in a different Pod from SPIRE Server?
+
+This is not supported with SPIRE Controller Manager, they must by in the same Pod. If you require them to be in seperate Pods, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
 
 ### How do i see SPIRE Controller Manager logs?
 
@@ -240,10 +246,10 @@ do
 done
 ```
 
-### Why can't Kubernetes Workload Registrar entries be reused with the SPIRE Controller Manager?
+### Why can't Kubernetes Workload Registrar entries be reused with SPIRE Controller Manager?
 
 SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Though it is technically possible to modify all the entries, its a lot easier to just allow SPIRE Controller Maanger to automatically replace the entries.
 
 ### What happens if a Pod is deployed while I'm in the middle of this cutover?
 
-SPIRE Controller Manager will reconcile the state of the system when it starts up. Any new Pods deployed after the Kubernetes Workload Registrar is deleted and before SPIRE Controller Manager is up will have entries created when SPIRE Controller Manager is up.
+SPIRE Controller Manager will reconcile the state of the system when it starts up. Any new Pods deployed after Kubernetes Workload Registrar is deleted and before SPIRE Controller Manager is up will have entries created when SPIRE Controller Manager is up.
