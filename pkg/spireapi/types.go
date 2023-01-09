@@ -40,6 +40,7 @@ type Entry struct {
 	TTL           time.Duration
 	FederatesWith []spiffeid.TrustDomain
 	Admin         bool
+	Downstream    bool
 	DnsNames      []string
 }
 
@@ -148,6 +149,7 @@ func entryToAPI(in Entry) *apitypes.Entry {
 		FederatesWith: trustDomainsToAPI(in.FederatesWith),
 		Admin:         in.Admin,
 		DnsNames:      in.DnsNames,
+		Downstream:    in.Downstream,
 	}
 }
 
@@ -195,6 +197,7 @@ func entryFromAPI(in *apitypes.Entry) (Entry, error) {
 		FederatesWith: federatesWith,
 		Admin:         in.Admin,
 		DnsNames:      in.DnsNames,
+		Downstream:    in.Downstream,
 	}, nil
 }
 

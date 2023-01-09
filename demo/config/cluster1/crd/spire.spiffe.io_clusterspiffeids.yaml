@@ -48,6 +48,9 @@ spec:
                 items:
                   type: string
                 type: array
+              downstream:
+                description: Downstream indicates that the entry describes a downstream SPIRE server.
+                type: boolean
               federatesWith:
                 description: FederatesWith is a list of trust domain names that workloads
                   that obtain this SPIFFE ID will federate with.

@@ -24,6 +24,7 @@ The definition can be found [here](../api/v1alpha1/clusterspiffeid_types.go).
 | `ttl`                       | OPTIONAL | Duration value indicating an upper bound on the time-to-live for SVIDs issued to target workload |
 | `federatesWith`             | OPTIONAL | One or more trust domain names that target workloads federate with |
 | `admin`                     | OPTIONAL | Indicates whether the target workload is an admin workload (i.e. can access SPIRE administrative APIs) |
+| `downstream`                | OPTIONAL | Indicates that the entry describes a downstream SPIRE server. |
 
 ## ClusterSPIFFEIDStatus
 

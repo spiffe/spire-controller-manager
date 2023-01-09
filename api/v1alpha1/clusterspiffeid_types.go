@@ -67,6 +67,9 @@ type ClusterSPIFFEIDSpec struct {
 	// administrative APIs. Extra care should be taken to only apply this
 	// SPIFFE ID to admin workloads.
 	Admin bool `json:"admin,omitempty"`
+
+	// Downstream indicates that the entry describes a downstream SPIRE server.
+	Downstream bool `json:"downstream,omitempty"`
 }
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID

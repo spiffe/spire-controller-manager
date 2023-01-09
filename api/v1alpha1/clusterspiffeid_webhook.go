@@ -89,6 +89,7 @@ type ParsedClusterSPIFFEIDSpec struct {
 	DNSNameTemplates          []*template.Template
 	WorkloadSelectorTemplates []*template.Template
 	Admin                     bool
+	Downstream                bool
 }
 
 // ParseClusterSPIFFEIDSpec parses and validates the fields in the ClusterSPIFFEIDSpec
@@ -154,5 +155,6 @@ func ParseClusterSPIFFEIDSpec(spec *ClusterSPIFFEIDSpec) (*ParsedClusterSPIFFEID
 		DNSNameTemplates:          dnsNameTemplates,
 		WorkloadSelectorTemplates: workloadSelectorTemplates,
 		Admin:                     spec.Admin,
+		Downstream:                spec.Downstream,
 	}, nil
 }

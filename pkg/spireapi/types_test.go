@@ -30,6 +30,7 @@ var (
 		TTL:           time.Minute,
 		FederatesWith: []spiffeid.TrustDomain{spiffeid.RequireTrustDomainFromString("domain2.test")},
 		Admin:         true,
+		Downstream:    true,
 		DnsNames:      []string{"dnsname"},
 	}
 
@@ -47,6 +48,7 @@ var (
 		Ttl:           60,
 		FederatesWith: []string{"domain2.test"},
 		Admin:         true,
+		Downstream:    true,
 		DnsNames:      []string{"dnsname"},
 	}
 )

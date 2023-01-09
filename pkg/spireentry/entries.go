@@ -80,6 +80,7 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 		FederatesWith: spec.FederatesWith,
 		DnsNames:      dnsNames,
 		Admin:         spec.Admin,
+		Downstream:    spec.Downstream,
 	}, nil
 }
 
