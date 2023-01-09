@@ -29,7 +29,7 @@ The definition can be found [here](../api/v1alpha1/clusterspiffeid_types.go).
 
 | Field | Description |
 | ----- | ----------- |
-| `stats` | Statistics on what the ClusterSPIFFEID was applied to and any failures. See [ClusterSPIFFEIDStats](#cluster-spiffeid-stats).
+| `stats` | Statistics on what the ClusterSPIFFEID was applied to and any failures. See [ClusterSPIFFEIDStats](#cluster-spiffeid-stats). |
 
 ### ClusterSPIFFEIDStats
 
