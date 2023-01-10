@@ -67,6 +67,9 @@ type ClusterSPIFFEIDSpec struct {
 	// administrative APIs. Extra care should be taken to only apply this
 	// SPIFFE ID to admin workloads.
 	Admin bool `json:"admin,omitempty"`
+
+	// ParentID is the SPIFFE ID of the parent entry.
+	ParentID string `json:"parentId,omitempty"`
 }
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID

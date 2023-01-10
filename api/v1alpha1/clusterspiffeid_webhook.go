@@ -89,6 +89,7 @@ type ParsedClusterSPIFFEIDSpec struct {
 	DNSNameTemplates          []*template.Template
 	WorkloadSelectorTemplates []*template.Template
 	Admin                     bool
+	ParentID                  spiffeid.ID
 }
 
 // ParseClusterSPIFFEIDSpec parses and validates the fields in the ClusterSPIFFEIDSpec

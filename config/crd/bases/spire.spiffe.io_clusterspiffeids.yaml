@@ -99,6 +99,9 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+              parentId:
+                description: SPIFFE ID of the parent of this entry.
+                type: string
               podSelector:
                 description: PodSelector selects the pods that are targetted by this
                   CRD.
