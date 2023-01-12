@@ -16,7 +16,7 @@ First we need to clean up the Kubernetes Workload Registrar and its resources.
    kubectl delete crd spiffeids.spiffeid.spiffe.io
    ```
 
-1. Delete the `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other k8s-workload-registrar config. Not all of the resources below are applicable for all k8s-workload-registrar modes, so if there's a "not found" message it's safe to ignore. In genreal make sure to clean up any Kubernetes Workload Registrar resources aside from the SPIRE Server and Kubernetes Worklaod Registrar itself. Those will be removed below.
+1. Delete the `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other k8s-workload-registrar config. Not all of the resources below are applicable for all k8s-workload-registrar modes, so if there's a "not found" message it's safe to ignore. In general make sure to clean up any Kubernetes Workload Registrar resources aside from the SPIRE Server and Kubernetes Workload Registrar itself. Those will be removed below.
    ```shell
    kubectl delete validatingwebhookconfigurations k8s-workload-registrar k8s-workload-registrar-webhook
    kubectl delete service k8s-workload-registrar -n spire
