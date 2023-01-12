@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This guide will walk you through you through how to migrate an existing Kubernetes Workload Registrar deployment to SPIRE Controller Manager. Existing entries created by the Kubernetes Workload Registrar aren't compatible with SPIRE Controller Manager so they'll be deleted and replaced with new entries. Workloads will continue to function with the old entries until their certificates expire, after which they'll get new certificates based on the new entries.
+This guide will walk you through how to migrate an existing Kubernetes Workload Registrar deployment to SPIRE Controller Manager. Existing entries created by the Kubernetes Workload Registrar aren't compatible with SPIRE Controller Manager so they'll be deleted and replaced with new entries. Workloads will continue to function with the old entries until their certificates expire, after which they'll get new certificates based on the new entries.
 
 > **Note**
 > As we'll be deleting and creating entries, it's important to do this migration during a downtime window.
