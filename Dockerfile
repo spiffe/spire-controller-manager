@@ -28,12 +28,11 @@ COPY --link --from=xx / /
 RUN xx-go --wrap
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    go build -o bin/spire-controller-manager main.go
+    go build -ldflags '-s -w' -o bin/spire-controller-manager main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-#FROM gcr.io/distroless/static:nonroot
-FROM gcr.io/distroless/base AS spire-controller-manager
+# See https://github.com/chainguard-images/images/tree/main/images/static
+# Used to run static binaries, includes tzdata and ca-certificates
+FROM cgr.dev/chainguard/static:latest AS spire-controller-manager
 WORKDIR /
 ENTRYPOINT ["/spire-controller-manager"]
 CMD []
