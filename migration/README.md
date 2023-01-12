@@ -215,7 +215,7 @@ spec:
 
 ```
 
-If you require these DNS Names to be automatically populated, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
+If you require these DNS Names to be automatically populated, please update [#48](https://github.com/spiffe/spire-controller-manager/issues/48) with your use case.
 
 ### Can SPIRE Controller Manager be deployed in a different Pod from SPIRE Server?
 
