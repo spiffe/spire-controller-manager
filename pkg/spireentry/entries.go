@@ -76,7 +76,7 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 		SPIFFEID:      spiffeID,
 		ParentID:      parentID,
 		Selectors:     selectors,
-		TTL:           spec.TTL,
+		X509SVIDTTL:   spec.TTL,
 		FederatesWith: spec.FederatesWith,
 		DnsNames:      dnsNames,
 		Admin:         spec.Admin,

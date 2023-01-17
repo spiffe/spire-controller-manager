@@ -37,7 +37,7 @@ type Entry struct {
 	SPIFFEID      spiffeid.ID
 	ParentID      spiffeid.ID
 	Selectors     []Selector
-	TTL           time.Duration
+	X509SVIDTTL   time.Duration
 	FederatesWith []spiffeid.TrustDomain
 	Admin         bool
 	Downstream    bool
@@ -145,7 +145,7 @@ func entryToAPI(in Entry) *apitypes.Entry {
 		SpiffeId:      spiffeIDToAPI(in.SPIFFEID),
 		ParentId:      spiffeIDToAPI(in.ParentID),
 		Selectors:     selectorsToAPI(in.Selectors),
-		Ttl:           int32(in.TTL / time.Second),
+		X509SvidTtl:   int32(in.X509SVIDTTL / time.Second),
 		FederatesWith: trustDomainsToAPI(in.FederatesWith),
 		Admin:         in.Admin,
 		DnsNames:      in.DnsNames,
@@ -193,7 +193,7 @@ func entryFromAPI(in *apitypes.Entry) (Entry, error) {
 		SPIFFEID:      spiffeID,
 		ParentID:      parentID,
 		Selectors:     selectors,
-		TTL:           time.Duration(in.Ttl) * time.Second,
+		X509SVIDTTL:   time.Duration(in.X509SvidTtl) * time.Second,
 		FederatesWith: federatesWith,
 		Admin:         in.Admin,
 		DnsNames:      in.DnsNames,
