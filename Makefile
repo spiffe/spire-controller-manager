@@ -1,3 +1,5 @@
+BINARIES := spire-controller-manager
+PLATFORMS ?= linux/amd64,linux/arm64
 
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/spiffe/spire-controller-manager:devel
@@ -32,6 +34,10 @@ all: build
 # https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
 # More info on the awk command:
 # http://linuxcommand.org/lc3_adv_awk.php
+
+# Used to force some rules to run every time
+.PHONY: FORCE
+FORCE: ;
 
 .PHONY: help
 help: ## Display this help.
@@ -69,13 +75,27 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
+.PHONY: container-builder
+container-builder: ## Create a buildx node to create crossplatform images.
+	docker buildx create --platform $(PLATFORMS) --name container-builder --node container-builder0 --use
+
 .PHONY: docker-build
-docker-build: test ## Build docker image with the manager.
-	docker build -t ${IMG} .
+docker-build: $(addsuffix -image.tar,$(BINARIES)) ## Build docker image with the manager.
+
+spire-controller-manager-image.tar: Dockerfile FORCE | container-builder
+	docker buildx build \
+		--platform $(PLATFORMS) \
+		--target spire-controller-manager \
+		-o type=oci,dest=$@ \
+	    .
+
+.PHONY: load-images
+load-images: $(addsuffix -image.tar,$(BINARIES)) ## Load the image for your current PLATFORM into docker from the cross-platform oci tar.
+	./.github/workflows/scripts/load-oci-archives.sh
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
-	docker push ${IMG}
+	./.github/workflows/scripts/push-images.sh
 
 ##@ Deployment
 

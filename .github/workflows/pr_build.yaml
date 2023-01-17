@@ -7,33 +7,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.2.0
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3.5.0
         with:
-          go-version: 1.17
+          go-version: 1.19
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Build image
         run: make docker-build
-      - name: Export image
-        run: docker save ghcr.io/spiffe/spire-controller-manager:devel | gzip > image.tar.gz
+      - name: Export images
+        run: tar -czvf images.tar.gz *-image.tar
       - name: Archive image
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
-          name: image
-          path: image.tar.gz
+          name: images
+          path: images.tar.gz
   test-image:
     needs: [build-image]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.2.0
+      - name: Install regctl
+        uses: regclient/actions/regctl-installer@main
       - name: Download archived image
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3.0.2
         with:
-          name: image
+          name: images
           path: .
-      - name: Load archived image
-        run: zcat image.tar.gz | docker load
+      - name: Load archived images
+        run: |
+          tar xvf images.tar.gz
+          make load-images
       - name: Test image
         run: |
           docker tag ghcr.io/spiffe/spire-controller-manager:devel ghcr.io/spiffe/spire-controller-manager:nightly
