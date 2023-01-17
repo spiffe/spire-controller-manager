@@ -426,6 +426,9 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
 	if oldEntry.Admin != newEntry.Admin {
 		outdated = append(outdated, "admin")
 	}
+	if oldEntry.Downstream != newEntry.Downstream {
+		outdated = append(outdated, "downstream")
+	}
 	if !stringsMatch(oldEntry.DnsNames, newEntry.DnsNames) {
 		outdated = append(outdated, "dnsNames")
 	}

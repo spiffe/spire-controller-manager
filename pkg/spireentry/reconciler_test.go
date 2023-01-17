@@ -63,6 +63,12 @@ func TestMakeEntryKey(t *testing.T) {
 		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
 	})
 
+	t.Run("Downstream has no impact", func(t *testing.T) {
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, Downstream: false}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, Downstream: true}
+		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
+	})
+
 	t.Run("DNSNames have no impact", func(t *testing.T) {
 		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DnsNames: []string{"A"}}
 		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DnsNames: []string{"B"}}
