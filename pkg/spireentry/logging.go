@@ -37,6 +37,7 @@ const (
 	federatesWithKey      = "federatesWith"
 	dnsNamesKey           = "dnsNames"
 	adminKey              = "admin"
+	downstreamKey         = "downstream"
 )
 
 func objectName(o metav1.Object) string {
@@ -55,6 +56,7 @@ func entryLogFields(entry spireapi.Entry) []interface{} {
 		federatesWithKey, stringFromTrustDomains(entry.FederatesWith),
 		dnsNamesKey, stringList(entry.DnsNames),
 		adminKey, entry.Admin,
+		downstreamKey, entry.Downstream,
 	}
 }
 

@@ -24,3 +24,7 @@ testbin/*
 *.swp
 *.swo
 *~
+
+# oci image builds
+oci/
+*-image.tar
