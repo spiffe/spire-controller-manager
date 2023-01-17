@@ -417,8 +417,8 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
 	// selectors since they are part of the uniqueness check that resulted in
 	// the AlreadyExists error code.
 	var outdated []string
-	if oldEntry.TTL != newEntry.TTL {
-		outdated = append(outdated, "ttl")
+	if oldEntry.X509SVIDTTL != newEntry.X509SVIDTTL {
+		outdated = append(outdated, "x509SVIDTTL")
 	}
 	if !trustDomainsMatch(oldEntry.FederatesWith, newEntry.FederatesWith) {
 		outdated = append(outdated, "federatesWith")
