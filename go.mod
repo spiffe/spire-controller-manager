@@ -3,7 +3,7 @@ module github.com/spiffe/spire-controller-manager
 go 1.19
 
 require (
-	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
 	github.com/jpillora/backoff v1.0.0
 	github.com/onsi/ginkgo v1.16.4
