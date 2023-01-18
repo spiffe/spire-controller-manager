@@ -2,7 +2,22 @@ name: PR Build
 on:
   pull_request: {}
   workflow_dispatch: {}
+env:
+  GO_VERSION: 1.19
+
 jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+      - name: Setup go
+        uses: actions/setup-go@v3.5.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Run unit tests
+        run: make test
+  
   build-image:
     runs-on: ubuntu-latest
     steps:
@@ -11,7 +26,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v3.5.0
         with:
-          go-version: 1.19
+          go-version: ${{ env.GO_VERSION }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -25,8 +40,9 @@ jobs:
         with:
           name: images
           path: images.tar.gz
+
   test-image:
-    needs: [build-image]
+    needs: [unit-test, build-image]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,7 +63,7 @@ jobs:
           docker tag ghcr.io/spiffe/spire-controller-manager:devel ghcr.io/spiffe/spire-controller-manager:nightly
           (cd demo; ./test.sh)
   success:
-    needs: [build-image, test-image]
+    needs: [unit-test, build-image, test-image]
     runs-on: ubuntu-latest
     steps:
       - name: Shout it out
