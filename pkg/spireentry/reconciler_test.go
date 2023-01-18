@@ -46,8 +46,8 @@ func TestMakeEntryKey(t *testing.T) {
 	})
 
 	t.Run("TTL has no impact", func(t *testing.T) {
-		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, TTL: 1}
-		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, TTL: 2}
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, X509SVIDTTL: 1}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, X509SVIDTTL: 2}
 		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
 	})
 

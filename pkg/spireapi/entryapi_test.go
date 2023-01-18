@@ -163,7 +163,7 @@ func TestUpdateEntries(t *testing.T) {
 	ok := Status{Code: codes.OK}
 
 	dupWithTTL := func(entry Entry, ttl time.Duration) Entry {
-		entry.TTL = ttl
+		entry.X509SVIDTTL = ttl
 		return entry
 	}
 
