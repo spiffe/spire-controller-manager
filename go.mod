@@ -7,7 +7,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/jpillora/backoff v1.0.0
 	github.com/onsi/ginkgo/v2 v2.7.0
-	github.com/onsi/gomega v1.24.1
+	github.com/onsi/gomega v1.25.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0
 	github.com/spiffe/spire-api-sdk v1.5.4
 	github.com/stretchr/testify v1.8.1
