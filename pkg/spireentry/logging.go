@@ -54,7 +54,7 @@ func entryLogFields(entry spireapi.Entry) []interface{} {
 		spiffeIDKey, entry.SPIFFEID.String(),
 		selectorsKey, stringFromSelectors(entry.Selectors),
 		federatesWithKey, stringFromTrustDomains(entry.FederatesWith),
-		dnsNamesKey, stringList(entry.DnsNames),
+		dnsNamesKey, stringList(entry.DNSNames),
 		adminKey, entry.Admin,
 		downstreamKey, entry.Downstream,
 	}
@@ -62,21 +62,21 @@ func entryLogFields(entry spireapi.Entry) []interface{} {
 
 func stringFromTrustDomains(tds []spiffeid.TrustDomain) string {
 	return renderList(len(tds), func(i int, w io.StringWriter) {
-		w.WriteString(tds[i].String())
+		_, _ = w.WriteString(tds[i].String())
 	})
 }
 
 func stringFromSelectors(selectors []spireapi.Selector) string {
 	return renderList(len(selectors), func(i int, w io.StringWriter) {
-		w.WriteString(selectors[i].Type)
-		w.WriteString(":")
-		w.WriteString(selectors[i].Value)
+		_, _ = w.WriteString(selectors[i].Type)
+		_, _ = w.WriteString(":")
+		_, _ = w.WriteString(selectors[i].Value)
 	})
 }
 
 func stringList(ss []string) string {
 	return renderList(len(ss), func(i int, w io.StringWriter) {
-		w.WriteString(ss[i])
+		_, _ = w.WriteString(ss[i])
 	})
 }
 

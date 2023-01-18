@@ -48,7 +48,6 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 		},
 		GCInterval: config.GCInterval,
 	})
-
 }
 
 func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client) {
@@ -138,17 +137,17 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 	sortClusterFederatedTrustDomainsByCreationDate(clusterFederatedTrustDomains)
 
 	out := make(map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, len(clusterFederatedTrustDomains))
-	for _, clusterFederatedTrustDomain := range clusterFederatedTrustDomains {
-		log := log.WithValues(clusterFederatedTrustDomainLogKey, objectName(&clusterFederatedTrustDomain))
+	for i := range clusterFederatedTrustDomains {
+		log := log.WithValues(clusterFederatedTrustDomainLogKey, objectName(&clusterFederatedTrustDomains[i]))
 
-		federationRelationship, err := spirev1alpha1.ParseClusterFederatedTrustDomainSpec(&clusterFederatedTrustDomain.Spec)
+		federationRelationship, err := spirev1alpha1.ParseClusterFederatedTrustDomainSpec(&clusterFederatedTrustDomains[i].Spec)
 		if err != nil {
 			log.Error(err, "Ignoring invalid ClusterFederatedTrustDomain")
 			continue
 		}
 
 		state := &clusterFederatedTrustDomainState{
-			ClusterFederatedTrustDomain: clusterFederatedTrustDomain,
+			ClusterFederatedTrustDomain: clusterFederatedTrustDomains[i],
 			FederationRelationship:      *federationRelationship,
 		}
 
@@ -180,7 +179,6 @@ func (r *federationRelationshipReconciler) createFederationRelationships(ctx con
 			log.Error(status.Err(), "Failed to create federation relationship", federationRelationshipFields(federationRelationships[i])...)
 		}
 	}
-
 }
 
 func (r *federationRelationshipReconciler) updateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) {

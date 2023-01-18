@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Client interface {
@@ -40,7 +41,7 @@ func DialSocket(ctx context.Context, path string) (Client, error) {
 	} else {
 		target = "unix:" + path
 	}
-	grpcClient, err := grpc.DialContext(ctx, target, grpc.WithInsecure())
+	grpcClient, err := grpc.DialContext(ctx, target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial API socket: %w", err)
 	}

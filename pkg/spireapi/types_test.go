@@ -31,7 +31,7 @@ var (
 		FederatesWith: []spiffeid.TrustDomain{spiffeid.RequireTrustDomainFromString("domain2.test")},
 		Admin:         true,
 		Downstream:    true,
-		DnsNames:      []string{"dnsname"},
+		DNSNames:      []string{"dnsname"},
 	}
 
 	apiEntry = &apitypes.Entry{
@@ -119,10 +119,8 @@ func TestHTTPSSPIFFEProfileEquality(t *testing.T) {
 	idA := HTTPSSPIFFEProfile{EndpointSPIFFEID: spiffeid.RequireFromString("spiffe://a/endpoint")}
 	idB := HTTPSSPIFFEProfile{EndpointSPIFFEID: spiffeid.RequireFromString("spiffe://b/endpoint")}
 
-	assert.True(t, idA.Equal(idA))
 	assert.False(t, idA.Equal(idB))
 	assert.False(t, idB.Equal(idA))
-	assert.True(t, idB.Equal(idB))
 
 	// With pointer
 	assert.True(t, idA.Equal(&idA))
@@ -583,9 +581,8 @@ func TestValidateBundleEndpointURL(t *testing.T) {
 	assert.NoError(t, ValidateBundleEndpointURL("https://domain.test:443"))
 }
 
-func assertProtoEqual(t *testing.T, expected, actual proto.Message) bool {
+func assertProtoEqual(t *testing.T, expected, actual proto.Message) {
 	if diff := cmp.Diff(expected, actual, protocmp.Transform()); diff != "" {
-		return assert.Fail(t, fmt.Sprintf("protobuf is not equal: %s", diff))
+		assert.Fail(t, fmt.Sprintf("protobuf is not equal: %s", diff))
 	}
-	return true
 }

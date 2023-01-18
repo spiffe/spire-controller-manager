@@ -6,12 +6,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func NewClientBuilder() *fake.ClientBuilder {
+func NewClientBuilder() (*fake.ClientBuilder, error) {
 	return WithScheme(fake.NewClientBuilder())
 }
 
-func WithScheme(b *fake.ClientBuilder) *fake.ClientBuilder {
+func WithScheme(b *fake.ClientBuilder) (*fake.ClientBuilder, error) {
 	scheme := runtime.NewScheme()
-	spirev1alpha1.AddToScheme(scheme)
-	return b.WithScheme(scheme)
+	if err := spirev1alpha1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+
+	return b.WithScheme(scheme), nil
 }

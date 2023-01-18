@@ -41,7 +41,7 @@ type Entry struct {
 	FederatesWith []spiffeid.TrustDomain
 	Admin         bool
 	Downstream    bool
-	DnsNames      []string
+	DNSNames      []string
 }
 
 type Selector struct {
@@ -148,7 +148,7 @@ func entryToAPI(in Entry) *apitypes.Entry {
 		X509SvidTtl:   int32(in.X509SVIDTTL / time.Second),
 		FederatesWith: trustDomainsToAPI(in.FederatesWith),
 		Admin:         in.Admin,
-		DnsNames:      in.DnsNames,
+		DnsNames:      in.DNSNames,
 		Downstream:    in.Downstream,
 	}
 }
@@ -196,7 +196,7 @@ func entryFromAPI(in *apitypes.Entry) (Entry, error) {
 		X509SVIDTTL:   time.Duration(in.X509SvidTtl) * time.Second,
 		FederatesWith: federatesWith,
 		Admin:         in.Admin,
-		DnsNames:      in.DnsNames,
+		DNSNames:      in.DnsNames,
 		Downstream:    in.Downstream,
 	}, nil
 }
@@ -544,7 +544,7 @@ func jwtAuthorityToAPI(keyID string, publicKey crypto.PublicKey) (*apitypes.JWTK
 	}
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal public key: %v", err)
+		return nil, fmt.Errorf("failed to marshal public key: %w", err)
 	}
 	return &apitypes.JWTKey{
 		KeyId:     keyID,
@@ -573,7 +573,7 @@ func jwtAuthorityFromAPI(in *apitypes.JWTKey) (string, crypto.PublicKey, error) 
 	}
 	publicKey, err := x509.ParsePKIXPublicKey(in.PublicKey)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to unmarshal public key: %v", err)
+		return "", nil, fmt.Errorf("failed to unmarshal public key: %w", err)
 	}
 	return in.KeyId, publicKey, nil
 }
