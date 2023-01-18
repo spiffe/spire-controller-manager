@@ -19,7 +19,6 @@ jobs:
         run: make test
   
   build-image:
-    needs: [unit-test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,8 +40,9 @@ jobs:
         with:
           name: images
           path: images.tar.gz
+
   test-image:
-    needs: [build-image]
+    needs: [unit-test, build-image]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
