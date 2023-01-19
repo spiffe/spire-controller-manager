@@ -76,7 +76,7 @@ jobs:
           (cd demo; ./test.sh)
 
   success:
-    needs: [unit-test, build-image, test-image]
+    needs: [lint, unit-test, build-image, test-image]
     runs-on: ubuntu-latest
     steps:
       - name: Shout it out
