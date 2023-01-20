@@ -27,27 +27,21 @@ func TestListClusterSPIFFEIDs(t *testing.T) {
 	}
 
 	t.Run("list fails", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := FailList(builder.Build())
+		client := FailList(k8stest.NewClientBuilder(t).Build())
 		actual, err := k8sapi.ListClusterSPIFFEIDs(context.Background(), client)
 		assert.EqualError(t, err, errList.Error())
 		assert.Empty(t, actual)
 	})
 
 	t.Run("list empty", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := builder.Build()
+		client := k8stest.NewClientBuilder(t).Build()
 		actual, err := k8sapi.ListClusterSPIFFEIDs(context.Background(), client)
 		assert.NoError(t, err)
 		assert.Empty(t, actual)
 	})
 
 	t.Run("list not empty", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := builder.WithRuntimeObjects(&foo).Build()
+		client := k8stest.NewClientBuilder(t).WithRuntimeObjects(&foo).Build()
 		actual, err := k8sapi.ListClusterSPIFFEIDs(context.Background(), client)
 		assert.NoError(t, err)
 		assert.Equal(t, []spirev1alpha1.ClusterSPIFFEID{foo}, actual)
@@ -60,27 +54,21 @@ func TestListClusterFederatedTrustDomains(t *testing.T) {
 	}
 
 	t.Run("list fails", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := FailList(builder.Build())
+		client := FailList(k8stest.NewClientBuilder(t).Build())
 		actual, err := k8sapi.ListClusterFederatedTrustDomains(context.Background(), client)
 		assert.EqualError(t, err, errList.Error())
 		assert.Empty(t, actual)
 	})
 
 	t.Run("list empty", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := builder.Build()
+		client := k8stest.NewClientBuilder(t).Build()
 		actual, err := k8sapi.ListClusterFederatedTrustDomains(context.Background(), client)
 		assert.NoError(t, err)
 		assert.Empty(t, actual)
 	})
 
 	t.Run("list not empty", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := builder.WithRuntimeObjects(&foo).Build()
+		client := k8stest.NewClientBuilder(t).WithRuntimeObjects(&foo).Build()
 		actual, err := k8sapi.ListClusterFederatedTrustDomains(context.Background(), client)
 		assert.NoError(t, err)
 		assert.Equal(t, []spirev1alpha1.ClusterFederatedTrustDomain{foo}, actual)
@@ -96,9 +84,7 @@ func TestListNamespaces(t *testing.T) {
 	}
 
 	t.Run("list fails", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := FailList(builder.Build())
+		client := FailList(k8stest.NewClientBuilder(t).Build())
 		actual, err := k8sapi.ListNamespaces(context.Background(), client, nil)
 		assert.EqualError(t, err, errList.Error())
 		assert.Empty(t, actual)
@@ -143,9 +129,7 @@ func TestListNamespacePods(t *testing.T) {
 	objects := []runtime.Object{&pod1, &pod2, &pod3}
 
 	t.Run("list fails", func(t *testing.T) {
-		builder, err := k8stest.NewClientBuilder()
-		assert.NoError(t, err)
-		client := FailList(builder.Build())
+		client := FailList(k8stest.NewClientBuilder(t).Build())
 		actual, err := k8sapi.ListNamespacePods(context.Background(), client, "ns1", nil)
 		assert.EqualError(t, err, errList.Error())
 		assert.Empty(t, actual)
