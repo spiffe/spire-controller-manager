@@ -17,7 +17,9 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -50,6 +52,7 @@ import (
 
 const (
 	defaultSPIREServerSocketPath = "/spire-server/api.sock"
+	defaultGCInterval            = 10 * time.Second
 )
 
 var (
@@ -65,6 +68,18 @@ func init() {
 }
 
 func main() {
+	ctrlConfig, options, err := parseConfig()
+	if err != nil {
+		setupLog.Error(err, "error parsing configuration")
+		os.Exit(1)
+	}
+
+	if err := setupControllerManager(ctrlConfig, options); err != nil {
+		os.Exit(1)
+	}
+}
+
+func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
 	flag.StringVar(&configFileFlag, "config", "",
@@ -73,6 +88,7 @@ func main() {
 			"Command-line flags override configuration from this file.")
 	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
 
+	// Parse log flags
 	opts := zap.Options{
 		Development: true,
 	}
@@ -81,9 +97,10 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	// Set default values
 	ctrlConfig := spirev1alpha1.ControllerManagerConfig{
 		IgnoreNamespaces:                   []string{"kube-system", "kube-public", "spire-system"},
-		GCInterval:                         10 * time.Second,
+		GCInterval:                         defaultGCInterval,
 		ValidatingWebhookConfigurationName: "spire-controller-manager-webhook",
 	}
 
@@ -92,11 +109,9 @@ func main() {
 		var err error
 		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFileFlag).OfKind(&ctrlConfig))
 		if err != nil {
-			setupLog.Error(err, "unable to load the config file")
-			os.Exit(1)
+			return ctrlConfig, options, fmt.Errorf("unable to load the config file: %w", err)
 		}
 	}
-
 	// Determine the SPIRE Server socket path
 	switch {
 	case ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
@@ -123,17 +138,19 @@ func main() {
 	switch {
 	case ctrlConfig.TrustDomain == "":
 		setupLog.Error(nil, "trust domain is required configuration")
-		os.Exit(1)
+		return ctrlConfig, options, errors.New("trust domain is required configuration")
 	case ctrlConfig.ClusterName == "":
-		setupLog.Error(nil, "cluster name is required configuration")
-		os.Exit(1)
+		return ctrlConfig, options, errors.New("cluster name is required configuration")
 	case ctrlConfig.ValidatingWebhookConfigurationName == "":
-		setupLog.Error(nil, "validating webhook configuration name is required configuration")
-		os.Exit(1)
+		return ctrlConfig, options, errors.New("validating webhook configuration name is required configuration")
 	case options.CertDir != "":
 		setupLog.Info("certDir configuration is ignored", "certDir", options.CertDir)
 	}
 
+	return ctrlConfig, options, nil
+}
+
+func setupControllerManager(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options) error {
 	// It's unfortunate that we have to keep credentials on disk so that the
 	// manager can load them:
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to
@@ -141,7 +158,7 @@ func main() {
 	certDir, err := os.MkdirTemp("", "spire-controller-manager-")
 	if err != nil {
 		setupLog.Error(err, "failed to create temporary cert directory", "certDir", options.CertDir)
-		os.Exit(1)
+		return err
 	}
 	defer func() {
 		if err := os.RemoveAll(options.CertDir); err != nil {
@@ -164,19 +181,19 @@ func main() {
 	trustDomain, err := spiffeid.TrustDomainFromString(ctrlConfig.TrustDomain)
 	if err != nil {
 		setupLog.Error(err, "invalid trust domain name")
-		os.Exit(1)
+		return err
 	}
 	spireClient, err := spireapi.DialSocket(ctx, ctrlConfig.SPIREServerSocketPath)
 	if err != nil {
 		setupLog.Error(err, "unable to dial SPIRE Server socket")
-		os.Exit(1)
+		return err
 	}
 	defer spireClient.Close()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		return err
 	}
 
 	// We need a direct client to query and patch up the webhook. We can't use
@@ -186,13 +203,13 @@ func main() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		setupLog.Error(err, "failed to get in cluster configuration")
-		os.Exit(1)
+		return err
 	}
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		setupLog.Error(err, "failed to create an API client")
-		os.Exit(1)
+		return err
 	}
 
 	webhookID, _ := spiffeid.FromPath(trustDomain, "/spire-controller-manager-webhook")
@@ -207,7 +224,7 @@ func main() {
 
 	if err := webhookManager.Init(ctx); err != nil {
 		setupLog.Error(err, "failed to mint initial webhook certificate")
-		os.Exit(1)
+		return err
 	}
 
 	entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
@@ -231,7 +248,7 @@ func main() {
 		Triggerer: entryReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
-		os.Exit(1)
+		return err
 	}
 	if err = (&controllers.ClusterFederatedTrustDomainReconciler{
 		Client:    mgr.GetClient(),
@@ -239,15 +256,15 @@ func main() {
 		Triggerer: federationRelationshipReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
-		os.Exit(1)
+		return err
 	}
 	if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
-		os.Exit(1)
+		return err
 	}
 	if err = (&spirev1alpha1.ClusterSPIFFEID{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSPIFFEID")
-		os.Exit(1)
+		return err
 	}
 	//+kubebuilder:scaffold:builder
 
@@ -258,36 +275,38 @@ func main() {
 		IgnoreNamespaces: ctrlConfig.IgnoreNamespaces,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Pod")
-		os.Exit(1)
+		return err
 	}
 
 	if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
 		setupLog.Error(err, "unable to manage entry reconciler")
-		os.Exit(1)
+		return err
 	}
 
 	if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
 		setupLog.Error(err, "unable to manage federation relationship reconciler")
-		os.Exit(1)
+		return err
 	}
 
 	if err = mgr.Add(webhookManager); err != nil {
 		setupLog.Error(err, "unable to manage federation relationship reconciler")
-		os.Exit(1)
+		return err
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
+		return err
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
+		return err
 	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }

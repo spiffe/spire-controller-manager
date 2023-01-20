@@ -28,7 +28,7 @@ func (t *backoffTimer) C() <-chan time.Time {
 }
 
 func (t *backoffTimer) Stop() bool {
-	return t.Stop()
+	return t.timer.Stop()
 }
 
 func (t *backoffTimer) Reset() {

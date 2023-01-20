@@ -109,14 +109,14 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		}
 
 		clusterSPIFFEID.NextStatus.Stats.NamespacesSelected += len(namespaces)
-		for _, namespace := range namespaces {
-			if r.config.IgnoreNamespaces.In(namespace.Name) {
+		for i := range namespaces {
+			if r.config.IgnoreNamespaces.In(namespaces[i].Name) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}
-			log := log.WithValues(namespaceLogKey, objectName(&namespace))
+			log := log.WithValues(namespaceLogKey, objectName(&namespaces[i]))
 
-			pods, err := r.listNamespacePods(ctx, namespace.Name, spec.PodSelector)
+			pods, err := r.listNamespacePods(ctx, namespaces[i].Name, spec.PodSelector)
 			switch {
 			case err == nil:
 			case apierrors.IsNotFound(err):
@@ -127,10 +127,10 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			}
 
 			clusterSPIFFEID.NextStatus.Stats.PodsSelected += len(pods)
-			for _, pod := range pods {
-				log := log.WithValues(podLogKey, objectName(&pod))
+			for i := range pods {
+				log := log.WithValues(podLogKey, objectName(&pods[i]))
 
-				entry, err := r.renderPodEntry(ctx, spec, &pod)
+				entry, err := r.renderPodEntry(ctx, spec, &pods[i])
 				switch {
 				case err != nil:
 					log.Error(err, "Failed to render entry")
@@ -347,11 +347,11 @@ type entryKey string
 
 func makeEntryKey(entry spireapi.Entry) entryKey {
 	h := sha256.New()
-	io.WriteString(h, entry.SPIFFEID.String())
-	io.WriteString(h, entry.ParentID.String())
+	_, _ = io.WriteString(h, entry.SPIFFEID.String())
+	_, _ = io.WriteString(h, entry.ParentID.String())
 	for _, selector := range sortSelectors(entry.Selectors) {
-		io.WriteString(h, selector.Type)
-		io.WriteString(h, selector.Value)
+		_, _ = io.WriteString(h, selector.Type)
+		_, _ = io.WriteString(h, selector.Value)
 	}
 	sum := h.Sum(nil)
 	return entryKey(hex.EncodeToString(sum))
@@ -429,7 +429,7 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
 	if oldEntry.Downstream != newEntry.Downstream {
 		outdated = append(outdated, "downstream")
 	}
-	if !stringsMatch(oldEntry.DnsNames, newEntry.DnsNames) {
+	if !stringsMatch(oldEntry.DNSNames, newEntry.DNSNames) {
 		outdated = append(outdated, "dnsNames")
 	}
 

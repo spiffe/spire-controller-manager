@@ -190,7 +190,7 @@ func TestReconcile(t *testing.T) {
 
 			ctx := log.IntoContext(context.Background(), logrtesting.NewTestLogger(t))
 
-			k8sClient := k8stest.NewClientBuilder().WithRuntimeObjects(tt.withObjects...).Build()
+			k8sClient := k8stest.NewClientBuilder(t).WithRuntimeObjects(tt.withObjects...).Build()
 			spirefederationrelationship.Reconcile(ctx, tdc, k8sClient)
 			assert.Equal(t, tt.expectFRs, tdc.getFederationRelationships())
 		})

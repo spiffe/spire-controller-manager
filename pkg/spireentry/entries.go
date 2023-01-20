@@ -78,7 +78,7 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 		Selectors:     selectors,
 		X509SVIDTTL:   spec.TTL,
 		FederatesWith: spec.FederatesWith,
-		DnsNames:      dnsNames,
+		DNSNames:      dnsNames,
 		Admin:         spec.Admin,
 		Downstream:    spec.Downstream,
 	}, nil
@@ -148,7 +148,7 @@ func parseSelector(selector string) (spireapi.Selector, error) {
 	parts := strings.SplitN(selector, ":", 2)
 	switch {
 	case len(parts) == 1:
-		return spireapi.Selector{}, errors.New("expected at least one colon seperate the type from the value")
+		return spireapi.Selector{}, errors.New("expected at least one colon separate the type from the value")
 	case len(parts[0]) == 0:
 		return spireapi.Selector{}, errors.New("type cannot be empty")
 	case len(parts[1]) == 0:

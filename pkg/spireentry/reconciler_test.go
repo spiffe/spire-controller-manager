@@ -70,8 +70,8 @@ func TestMakeEntryKey(t *testing.T) {
 	})
 
 	t.Run("DNSNames have no impact", func(t *testing.T) {
-		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DnsNames: []string{"A"}}
-		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DnsNames: []string{"B"}}
+		a := spireapi.Entry{ID: "A", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DNSNames: []string{"A"}}
+		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DNSNames: []string{"B"}}
 		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
 	})
 }

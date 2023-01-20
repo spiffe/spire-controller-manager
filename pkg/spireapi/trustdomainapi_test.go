@@ -17,10 +17,6 @@ import (
 )
 
 var (
-	httpsWebProfile = &apitypes.FederationRelationship_HttpsWeb{
-		HttpsWeb: &apitypes.HTTPSWebProfile{},
-	}
-
 	domain1FR = FederationRelationship{
 		TrustDomain:           domain1,
 		BundleEndpointURL:     "https://domain1.test/bundle",
