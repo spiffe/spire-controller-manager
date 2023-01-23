@@ -117,8 +117,12 @@ func TestHTTPSWebProfileEquality(t *testing.T) {
 
 func TestHTTPSSPIFFEProfileEquality(t *testing.T) {
 	idA := HTTPSSPIFFEProfile{EndpointSPIFFEID: spiffeid.RequireFromString("spiffe://a/endpoint")}
+	idACopy := HTTPSSPIFFEProfile{EndpointSPIFFEID: spiffeid.RequireFromString("spiffe://a/endpoint")}
 	idB := HTTPSSPIFFEProfile{EndpointSPIFFEID: spiffeid.RequireFromString("spiffe://b/endpoint")}
+	idBCopy := HTTPSSPIFFEProfile{EndpointSPIFFEID: spiffeid.RequireFromString("spiffe://b/endpoint")}
 
+	assert.True(t, idA.Equal(idACopy))
+	assert.True(t, idB.Equal(idBCopy))
 	assert.False(t, idA.Equal(idB))
 	assert.False(t, idB.Equal(idA))
 
