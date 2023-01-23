@@ -122,8 +122,8 @@ func TestHTTPSSPIFFEProfileEquality(t *testing.T) {
 	idBCopy := HTTPSSPIFFEProfile{EndpointSPIFFEID: spiffeid.RequireFromString("spiffe://b/endpoint")}
 
 	assert.True(t, idA.Equal(idACopy))
-	assert.True(t, idB.Equal(idBCopy))
 	assert.False(t, idA.Equal(idB))
+	assert.True(t, idB.Equal(idBCopy))
 	assert.False(t, idB.Equal(idA))
 
 	// With pointer
