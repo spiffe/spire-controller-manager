@@ -74,7 +74,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := setupControllerManager(ctrlConfig, options); err != nil {
+	if err := run(ctrlConfig, options); err != nil {
 		os.Exit(1)
 	}
 }
@@ -150,7 +150,7 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 	return ctrlConfig, options, nil
 }
 
-func setupControllerManager(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options) error {
+func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options) error {
 	// It's unfortunate that we have to keep credentials on disk so that the
 	// manager can load them:
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to
