@@ -7,7 +7,8 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -19,7 +20,8 @@ jobs:
         run: make lint
 
   unit-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -31,7 +33,8 @@ jobs:
         run: make test
   
   build-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -54,8 +57,10 @@ jobs:
           path: images.tar.gz
 
   test-image:
+    runs-on: ubuntu-22.04
+
     needs: [unit-test, build-image]
-    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -76,8 +81,10 @@ jobs:
           (cd demo; ./test.sh)
 
   success:
+    runs-on: ubuntu-22.04
+
     needs: [lint, unit-test, build-image, test-image]
-    runs-on: ubuntu-latest
+
     steps:
       - name: Shout it out
         run: echo SUCCESS

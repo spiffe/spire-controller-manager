@@ -4,9 +4,11 @@ on:
     # Random minute number to avoid GH scheduler stampede
     - cron: '37 21 * * *'
   workflow_dispatch: {}
+
 jobs:
   build-and-publish-images:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
