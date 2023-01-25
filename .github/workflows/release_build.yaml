@@ -6,6 +6,10 @@ on:
 jobs:
   build-image:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -29,6 +33,10 @@ jobs:
   test-image:
     needs: [build-image]
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -48,6 +56,12 @@ jobs:
   publish-image-and-release:
     needs: [test-image]
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
