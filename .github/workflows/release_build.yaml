@@ -3,9 +3,10 @@ on:
   push:
     tags:
       - 'v[0-9].[0-9]+.[0-9]+'
+
 jobs:
   build-image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     permissions:
       contents: read
@@ -30,9 +31,11 @@ jobs:
         with:
           name: images
           path: images.tar.gz
+
   test-image:
+    runs-on: ubuntu-22.04
+
     needs: [build-image]
-    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -53,9 +56,11 @@ jobs:
         run: |
           docker tag ghcr.io/spiffe/spire-controller-manager:devel ghcr.io/spiffe/spire-controller-manager:nightly
           (cd demo; ./test.sh)
+
   publish-image-and-release:
+    runs-on: ubuntu-22.04
+
     needs: [test-image]
-    runs-on: ubuntu-latest
 
     permissions:
       contents: read
