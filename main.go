@@ -183,6 +183,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 		setupLog.Error(err, "invalid trust domain name")
 		return err
 	}
+	setupLog.Info("Dialing SPIRE Server socket")
 	spireClient, err := spireapi.DialSocket(ctx, ctrlConfig.SPIREServerSocketPath)
 	if err != nil {
 		setupLog.Error(err, "unable to dial SPIRE Server socket")
