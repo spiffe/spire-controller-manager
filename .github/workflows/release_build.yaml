@@ -8,6 +8,9 @@ jobs:
   build-image:
     runs-on: ubuntu-22.04
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -34,6 +37,9 @@ jobs:
 
     needs: [build-image]
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3.3.0
@@ -55,6 +61,11 @@ jobs:
     runs-on: ubuntu-22.04
 
     needs: [test-image]
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
 
     steps:
       - name: Checkout
