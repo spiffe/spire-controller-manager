@@ -24,6 +24,22 @@ rules:
 
 ---
 
+# Binds above cluster role to spire-server service account
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spire-server-cluster-role-binding
+subjects:
+- kind: ServiceAccount
+  name: spire-server
+  namespace: spire
+roleRef:
+  kind: ClusterRole
+  name: spire-server-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
 # Role for the SPIRE server
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -160,7 +176,7 @@ spec:
       shareProcessNamespace: true
       containers:
         - name: spire-server
-          image: ghcr.io/spiffe/spire-server:1.5.3
+          image: ghcr.io/spiffe/spire-server:1.5.4
           imagePullPolicy: IfNotPresent
           args: ["-config", "/run/spire/server/config/server.conf"]
           ports:
