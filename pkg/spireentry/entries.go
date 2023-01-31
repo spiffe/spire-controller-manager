@@ -56,12 +56,16 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 	}
 
 	var dnsNames []string
+	dnsNamesUnique := make(map[string]struct{})
 	for _, dnsNameTemplate := range spec.DNSNameTemplates {
 		dnsName, err := renderDNSName(dnsNameTemplate, data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to render DNS name: %w", err)
 		}
-		dnsNames = append(dnsNames, dnsName)
+		if _, exists := dnsNamesUnique[dnsName]; !exists {
+			dnsNamesUnique[dnsName] = struct{}{}
+			dnsNames = append(dnsNames, dnsName)
+		}
 	}
 
 	for _, workloadSelectorTemplate := range spec.WorkloadSelectorTemplates {
