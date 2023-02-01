@@ -221,7 +221,7 @@ If you require these DNS Names to be automatically populated, please update [#48
 
 This is not supported with SPIRE Controller Manager, they must by in the same Pod. If you require them to be in seperate Pods, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
 
-### Can I manually create entries like I could with the CRD Kubernetes Worklaod Registrar?
+### Can I manually create entries like I could with the CRD Kubernetes Workload Registrar?
 
 This is not currently supported, SPIRE Controller Manager will automatically garbage collect any manually created entries. If you need suppport for manually created entries, please update [#76](https://github.com/spiffe/spire-controller-manager/issues/76) with your use case.
 
