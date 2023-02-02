@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"text/template"
 	"time"
 
@@ -130,17 +129,7 @@ func ParseClusterSPIFFEIDSpec(spec *ClusterSPIFFEIDSpec) (*ParsedClusterSPIFFEID
 	}
 
 	var dnsNameTemplates []*template.Template
-	dnsNameTemplatesUnique := make(map[string]struct{})
 	for _, value := range spec.DNSNameTemplates {
-		// Check for duplicate templates. Strip out white space as the template can have variable white
-		// spaces between brackets, ie "{{ .PodMeta.Name }}" and "{{.PodMeta.Name}}" are the same
-		dnsNameTemplateNoSpaces := strings.ReplaceAll(value, " ", "")
-		if _, exists := dnsNameTemplatesUnique[dnsNameTemplateNoSpaces]; exists {
-			return nil, fmt.Errorf("duplicate dnsNameTemplate: %s", value)
-		}
-		dnsNameTemplatesUnique[dnsNameTemplateNoSpaces] = struct{}{}
-
-		// Render the DNS Name template
 		dnsNameTemplate, err := template.New(dnsNameTemplateName).Parse(value)
 		if err != nil {
 			return nil, fmt.Errorf("invalid dnsNameTemplate value: %w", err)
