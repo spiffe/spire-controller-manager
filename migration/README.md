@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This guide will walk you through how to migrate an existing Kubernetes Workload Registrar deployment to SPIRE Controller Manager. Existing entries created by the Kubernetes Workload Registrar aren't compatible with SPIRE Controller Manager so they'll be deleted and replaced with new entries. Workloads will continue to function with the old entries until their certificates expire, after which they'll get new certificates based on the new entries.
+This guide will walk you through how to migrate an existing Kubernetes Workload Registrar deployment to SPIRE Controller Manager. Existing entries created by the Kubernetes Workload Registrar aren't compatible with SPIRE Controller Manager so they'll be deleted and replaced with new entries. Workloads will continue to function with their existing SVIDs. After switching over they'll get pushed new SVIDs based on the new entries.
 
 > **Note**
 > As we'll be deleting and creating entries, it's important to do this migration during a downtime window.
@@ -51,7 +51,7 @@ Next we deploy the new SPIRE Controller Manager.
    ```
 
    > **Note**
-   > See [FAQs](#faqs) or instructions on how to translate [label](#how-do-i-do-label-based-workload-registration), [annotation](#how-do-i-do-annotation-based-workload-registration), and [service account](#how-do-i-do-service-account-based-workload-registration) based workload registration. Also see [ClusterSPIFFEID defintion](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information on how to create the shape most suitable to your environment.
+   > See [FAQs](#faqs) for instructions on how to translate [label](#how-do-i-do-label-based-workload-registration), [annotation](#how-do-i-do-annotation-based-workload-registration), and [service account](#how-do-i-do-service-account-based-workload-registration) based workload registration. Also see [ClusterSPIFFEID definition](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information on how to create the most suitable shape for your environment.
 
 ## Verify Spire Controller Manager Deployment
 
@@ -151,7 +151,7 @@ spec:
 
 ### How do I federate trust domains?
 
-With Kubernetes Workload Regisrar the Pod annotation `spiffe.io/federatesWith` is used to create SPIFFE ID's that federate with other trust domains. For example:
+With Kubernetes Workload Registrar the Pod annotation `spiffe.io/federatesWith` is used to create SPIFFE ID's that federate with other trust domains. For example:
 
 ```yaml
 apiVersion: v1
@@ -219,7 +219,7 @@ If you require these DNS Names to be automatically populated, please update [#48
 
 ### Can SPIRE Controller Manager be deployed in a different Pod from SPIRE Server?
 
-This is not supported with SPIRE Controller Manager, they must by in the same Pod. If you require them to be in seperate Pods, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
+This is not supported with SPIRE Controller Manager, they must be in the same Pod. If you require them to be in seperate Pods, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
 
 ### Can I manually create entries like I could with the CRD Kubernetes Workload Registrar?
 
@@ -252,7 +252,7 @@ done
 
 ### Why can't Kubernetes Workload Registrar entries be reused with SPIRE Controller Manager?
 
-SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Though it is technically possible to modify all the entries, its a lot easier to just allow SPIRE Controller Maanger to automatically replace the entries.
+SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Though it is technically possible to modify all the entries, its a lot easier to just allow SPIRE Controller Manager to automatically replace the entries.
 
 ### What happens if a Pod is deployed while I'm in the middle of this cutover?
 
