@@ -11,12 +11,7 @@ This guide will walk you through how to migrate an existing Kubernetes Workload 
 
 First we need to clean up the Kubernetes Workload Registrar and its resources.
 
-1. (CRD mode only) Delete the SpiffeId Custom Resource Definition (CRD). This will delete all entries created by the k8s-workload-registrar. 
-   ```shell
-   kubectl delete crd spiffeids.spiffeid.spiffe.io
-   ```
-
-1. Delete the `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other k8s-workload-registrar config. Not all of the resources below are applicable for all k8s-workload-registrar modes, so if there's a "not found" message it's safe to ignore. In general make sure to clean up any Kubernetes Workload Registrar resources aside from the SPIRE Server and Kubernetes Workload Registrar itself. Those will be removed below.
+1. Delete the `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other k8s-workload-registrar config. Not all of the resources below are applicable for all Kubernetes Workload Registrar modes, so if there's a "not found" message it's safe to ignore. In general make sure to clean up any Kubernetes Workload Registrar resources aside from the SPIRE Server and Kubernetes Workload Registrar itself. Those will be removed below.
    ```shell
    kubectl delete validatingwebhookconfigurations k8s-workload-registrar k8s-workload-registrar-webhook
    kubectl delete service k8s-workload-registrar -n spire
@@ -32,7 +27,7 @@ First we need to clean up the Kubernetes Workload Registrar and its resources.
 
 Next we deploy the new SPIRE Controller Manager.
 
-1. Create the `ClusterSPIFFEID` CRD, `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other SPIRE Controller Manager config.
+1. Create the `ClusterSPIFFEID` Custom Resource Definition (CRD), `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other SPIRE Controller Manager config.
    ```shell
    kubectl apply -f config/spire.spiffe.io_clusterspiffeids.yaml \
                  -f config/spire.spiffe.io_clusterfederatedtrustdomains.yaml \
@@ -52,6 +47,27 @@ Next we deploy the new SPIRE Controller Manager.
 
    > **Note**
    > See [FAQs](#faqs) for instructions on how to translate [label](#how-do-i-do-label-based-workload-registration), [annotation](#how-do-i-do-annotation-based-workload-registration), and [service account](#how-do-i-do-service-account-based-workload-registration) based workload registration. Also see [ClusterSPIFFEID definition](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information on how to create the most suitable shape for your environment.
+
+## Delete the Kubernetes Workload Registrar CRD (CRD mode only)
+
+The CRD mode requires an additonal step of removing the SpiffeId CRD. SPIRE Controller Manager uses a different CRD, so this one needs to be removed and resources cleaned up.
+
+1. Manually remove the finalizers with the below script. SPIRE Controller Manager will automatically clean up entries, so the finalizers can safely be removed.
+
+```shell
+for ns in $(kubectl get ns | awk '{print $1}' | tail -n +2)
+do
+  if [ $(kubectl get spiffeids -n $ns 2>/dev/null | wc -l) -ne 0 ]
+  then
+    kubectl patch spiffeid $(kubectl get spiffeids -n $ns | awk '{print $1}' | tail -n +2) --type='merge' -p '{"metadata":{"finalizers":null}}' -n $ns
+  fi
+done
+```
+
+1. Delete the SpiffeId CRD. This will delete all entries created by the k8s-workload-registrar. 
+   ```shell
+   kubectl delete crd spiffeids.spiffeid.spiffe.io
+   ```
 
 ## Verify Spire Controller Manager Deployment
 
