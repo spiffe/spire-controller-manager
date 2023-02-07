@@ -64,7 +64,7 @@ The CRD mode requires an additonal step of removing the SpiffeId CRD. SPIRE Cont
    done
    ```
 
-1. Delete the SpiffeId CRD. This will delete all entries created by the k8s-workload-registrar. 
+1. Delete the SpiffeId CRD. This will delete all entries created by the k8s-workload-registrar. If you have a lot of SpiffeId resources this may take a little while to complete.
    ```shell
    kubectl delete crd spiffeids.spiffeid.spiffe.io
    ```
@@ -165,7 +165,7 @@ spec:
 ```
 
 > **Note**
-> This will create entries for every Pod in the system. Its better to restrict it with a label like in the main example in `config/clusterspiffeid.yaml`. Also see [ClusterSPIFFEID defintion](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information.
+> This will create an entry for every Pod in the system. For use cases where every Pod needs a certificate this configuration will work well. If you prefer to limit what Pods get a certificate, restrict it with a label like in the main example in `config/clusterspiffeid.yaml`. Also see [ClusterSPIFFEID defintion](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) for more information.
 
 ### How do I federate trust domains?
 
