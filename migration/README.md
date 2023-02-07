@@ -9,7 +9,7 @@ This guide will walk you through how to migrate an existing Kubernetes Workload 
 
 ## Clean up Kubernetes Workload Registrar Resources
 
-First we need to clean up the Kubernetes Workload Registrar and its resources.
+First clean up the Kubernetes Workload Registrar and its resources.
 
 1. Delete the `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other k8s-workload-registrar config. Not all of the resources below are applicable for all Kubernetes Workload Registrar modes, so if there's a "not found" message it's safe to ignore. In general make sure to clean up any Kubernetes Workload Registrar resources aside from the SPIRE Server and Kubernetes Workload Registrar itself. Those will be removed below.
    ```shell
@@ -25,7 +25,7 @@ First we need to clean up the Kubernetes Workload Registrar and its resources.
 
 ## Deploy Spire Controller Manager
 
-Next we deploy the new SPIRE Controller Manager.
+Next deploy the new SPIRE Controller Manager.
 
 1. Create the `ClusterSPIFFEID` Custom Resource Definition (CRD), `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other SPIRE Controller Manager config.
    ```shell
@@ -54,15 +54,15 @@ The CRD mode requires an additonal step of removing the SpiffeId CRD. SPIRE Cont
 
 1. Manually remove the finalizers with the below script. SPIRE Controller Manager will automatically clean up entries, so the finalizers can safely be removed.
 
-```shell
-for ns in $(kubectl get ns | awk '{print $1}' | tail -n +2)
-do
-  if [ $(kubectl get spiffeids -n $ns 2>/dev/null | wc -l) -ne 0 ]
-  then
-    kubectl patch spiffeid $(kubectl get spiffeids -n $ns | awk '{print $1}' | tail -n +2) --type='merge' -p '{"metadata":{"finalizers":null}}' -n $ns
-  fi
-done
-```
+   ```shell
+   for ns in $(kubectl get ns | awk '{print $1}' | tail -n +2)
+   do
+     if [ $(kubectl get spiffeids -n $ns 2>/dev/null | wc -l) -ne 0 ]
+     then
+       kubectl patch spiffeid $(kubectl get spiffeids -n $ns | awk '{print $1}' | tail -n +2) --type='merge' -p '{"metadata":{"finalizers":null}}' -n $ns
+     fi
+   done
+   ```
 
 1. Delete the SpiffeId CRD. This will delete all entries created by the k8s-workload-registrar. 
    ```shell
@@ -71,49 +71,51 @@ done
 
 ## Verify Spire Controller Manager Deployment
 
-First verify the Pods came up correctly. The `spire-server-0` Pod should have two containers running in it.
+Finally verify SPIRE Controller Manager deployed correctly.
 
-```shell
-$ kubectl get pods -n spire
-NAME                READY   STATUS    RESTARTS      AGE
-spire-agent-5jkzg   1/1     Running   0             46m
-spire-server-0      2/2     Running   1 (11m ago)   11m
-```
-> **Note**
-> It's ok to see a restart in the `spire-server-0` Pod. SPIRE Controller Manager relies on the SPIRE Server to get a certificate for it's Webhook, and when SPIRE Controller Manager comes up first it can't get that certificate and restarts. See [#39](https://github.com/spiffe/spire-controller-manager/issues/39).
+1. Verify the Pods came up correctly. The `spire-server-0` Pod should have two containers running in it.
 
-Next try to deploy this example NGINX Deployment:
+   ```shell
+   $ kubectl get pods -n spire
+   NAME                READY   STATUS    RESTARTS      AGE
+   spire-agent-5jkzg   1/1     Running   0             46m
+   spire-server-0      2/2     Running   1 (11m ago)   11m
+   ```
+   > **Note**
+   > It's ok to see a restart in the `spire-server-0` Pod. SPIRE Controller Manager relies on the SPIRE Server to get a certificate for it's Webhook, and when SPIRE Controller Manager comes up first it can't get that certificate and restarts. See [#39](https://github.com/spiffe/spire-controller-manager/issues/39).
 
-```shell
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/simple_deployment.yaml
+1. Deploy this example NGINX Deployment.
 
-```
+   ```shell
+   kubectl apply -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/simple_deployment.yaml
 
-And add the label to the Deployment Template. This will reroll the Deployment
+   ```
 
-```shell
-kubectl patch deployment nginx-deployment -p '{"spec":{"template":{"metadata":{"labels":{"spiffe.io/spiffe-id": "true"}}}}}'
-```
+1. Add the 'spiffe.io/spiffe-id' label to the Deployment Template. This will reroll the Deployment.
 
-From the SPIRE Server you should see a single entry with SPIFFE ID `spiffe://example.org/ns/default/sa/default`:
+   ```shell
+   kubectl patch deployment nginx-deployment -p '{"spec":{"template":{"metadata":{"labels":{"spiffe.io/spiffe-id": "true"}}}}}'
+   ```
 
-```shell
-$ kubectl exec spire-server-0  -n spire -c spire-server -- ./bin/spire-server entry show
-Found 1 entry
-Entry ID         : c93a53bd-c313-4239-a13b-75ebf292db8f
-SPIFFE ID        : spiffe://example.org/ns/default/sa/default
-Parent ID        : spiffe://example.org/spire/agent/k8s_psat/demo-cluster/85ad58a6-64ae-4cc7-a126-f60dfa5b8139
-Revision         : 0
-X509-SVID TTL    : default
-JWT-SVID TTL     : default
-Selector         : k8s:pod-uid:dca56e85-142e-4de2-b04a-257ac8d7e3c8
-```
+1. From the SPIRE Server you should see a single entry with SPIFFE ID `spiffe://example.org/ns/default/sa/default`.
 
-When done you can delete the NGINX deployment, this will automatically delete the SPIFFE ID:
+   ```shell
+   $ kubectl exec spire-server-0  -n spire -c spire-server -- ./bin/spire-server entry show
+   Found 1 entry
+   Entry ID         : c93a53bd-c313-4239-a13b-75ebf292db8f
+   SPIFFE ID        : spiffe://example.org/ns/default/sa/default
+   Parent ID        : spiffe://example.org/spire/agent/k8s_psat/demo-cluster/85ad58a6-64ae-4cc7-a126-f60dfa5b8139
+   Revision         : 0
+   X509-SVID TTL    : default
+   JWT-SVID TTL     : default
+   Selector         : k8s:pod-uid:dca56e85-142e-4de2-b04a-257ac8d7e3c8
+   ```
 
-```shell
-kubectl delete -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/simple_deployment.yaml
-```
+1. When done you can delete the NGINX deployment, this will automatically delete the SPIFFE ID.
+
+   ```shell
+   kubectl delete -f https://raw.githubusercontent.com/kubernetes/website/master/content/en/examples/application/simple_deployment.yaml
+   ```
 
 ## FAQs
 
