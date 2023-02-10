@@ -29,8 +29,8 @@ Next deploy the new SPIRE Controller Manager.
 
 1. Create the `ClusterSPIFFEID` Custom Resource Definition (CRD), `ValidatingWebhookConfiguration`, `Service`, `Roles`, and other SPIRE Controller Manager config.
    ```shell
-   kubectl apply -f config/spire.spiffe.io_clusterspiffeids.yaml \
-                 -f config/spire.spiffe.io_clusterfederatedtrustdomains.yaml \
+   kubectl apply -f ../config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml \
+                 -f ../config/crd/bases/spire.spiffe.io_clusterfederatedtrustdomains.yaml \
                  -f config/spire-controller-manager-webhook.yaml \
                  -f config/leader_election_role.yaml \
                  -f config/leader_election_role_binding.yaml \
