@@ -56,12 +56,18 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 	}
 
 	var dnsNames []string
+	dnsNamesSet := make(map[string]struct{})
 	for _, dnsNameTemplate := range spec.DNSNameTemplates {
 		dnsName, err := renderDNSName(dnsNameTemplate, data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to render DNS name: %w", err)
 		}
-		dnsNames = append(dnsNames, dnsName)
+
+		// Only add the DNS name if it doesn't already exist
+		if _, exists := dnsNamesSet[dnsName]; !exists {
+			dnsNamesSet[dnsName] = struct{}{}
+			dnsNames = append(dnsNames, dnsName)
+		}
 	}
 
 	for _, workloadSelectorTemplate := range spec.WorkloadSelectorTemplates {
@@ -78,7 +84,7 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 		Selectors:     selectors,
 		X509SVIDTTL:   spec.TTL,
 		FederatesWith: spec.FederatesWith,
-		DnsNames:      dnsNames,
+		DNSNames:      dnsNames,
 		Admin:         spec.Admin,
 		Downstream:    spec.Downstream,
 	}, nil
@@ -148,7 +154,7 @@ func parseSelector(selector string) (spireapi.Selector, error) {
 	parts := strings.SplitN(selector, ":", 2)
 	switch {
 	case len(parts) == 1:
-		return spireapi.Selector{}, errors.New("expected at least one colon seperate the type from the value")
+		return spireapi.Selector{}, errors.New("expected at least one colon separate the type from the value")
 	case len(parts[0]) == 0:
 		return spireapi.Selector{}, errors.New("type cannot be empty")
 	case len(parts[1]) == 0:

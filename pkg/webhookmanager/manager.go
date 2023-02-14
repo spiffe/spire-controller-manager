@@ -282,7 +282,6 @@ func (m *Manager) updateWebhookConfigIfNeeded(ctx context.Context, store cache.S
 		log.FromContext(ctx).Info("Webhook configuration patched with CABundle")
 	}
 	return nil
-
 }
 
 func (m *Manager) refreshBundle(ctx context.Context) error {

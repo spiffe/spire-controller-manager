@@ -1,10 +1,11 @@
 BINARIES := spire-controller-manager
 PLATFORMS ?= linux/amd64,linux/arm64
+DIR := ${CURDIR}
 
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/spiffe/spire-controller-manager:devel
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.23
+ENVTEST_K8S_VERSION = 1.24
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -43,6 +44,51 @@ FORCE: ;
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+##@ OS/ARCH detection
+
+os1=$(shell uname -s)
+os2=
+ifeq ($(os1),Darwin)
+os1=darwin
+os2=osx
+else ifeq ($(os1),Linux)
+os1=linux
+os2=linux
+else
+$(error unsupported OS: $(os1))
+endif
+
+arch1=$(shell uname -m)
+ifeq ($(arch1),x86_64)
+arch2=amd64
+else ifeq ($(arch1),aarch64)
+arch2=arm64
+else ifeq ($(arch1),arm64)
+arch2=arm64
+else
+$(error unsupported ARCH: $(arch1))
+endif
+
+##@ Vars
+
+build_dir := $(DIR)/.build/$(os1)-$(arch1)
+
+golangci_lint_version = v1.50.1
+golangci_lint_dir = $(build_dir)/golangci_lint/$(golangci_lint_version)
+golangci_lint_bin = $(golangci_lint_dir)/golangci-lint
+golangci_lint_cache = $(golangci_lint_dir)/cache
+
+##@ Install toolchain
+
+install-golangci-lint: $(golangci_lint_bin)
+
+$(golangci_lint_bin):
+	@echo "Installing golangci-lint $(golangci_lint_version)..."
+	$(E)rm -rf $(dir $(golangci_lint_dir))
+	$(E)mkdir -p $(golangci_lint_dir)
+	$(E)mkdir -p $(golangci_lint_cache)
+	$(E)GOBIN=$(golangci_lint_dir) $(go_path) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(golangci_lint_version)
+
 ##@ Development
 
 .PHONY: manifests
@@ -64,6 +110,14 @@ vet: ## Run go vet against code.
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out
+
+##@ Code cleanliness
+
+.PHONY: lint lint-code
+lint: lint-code
+
+lint-code: $(golangci_lint_bin)
+	$(E)PATH="$(PATH):$(go_bin_dir)" $(golangci_lint_bin) run ./...
 
 ##@ Build
 
@@ -123,7 +177,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.8.0)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.11.1)
 
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 .PHONY: kustomize

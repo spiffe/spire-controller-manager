@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
   name: clusterspiffeids.spire.spiffe.io
 spec:
@@ -59,7 +59,7 @@ spec:
                   type: string
                 type: array
               namespaceSelector:
-                description: NamespaceSelector selects the namespaces that are targetted
+                description: NamespaceSelector selects the namespaces that are targeted
                   by this CRD.
                 properties:
                   matchExpressions:
@@ -103,8 +103,9 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               podSelector:
-                description: PodSelector selects the pods that are targetted by this
+                description: PodSelector selects the pods that are targeted by this
                   CRD.
                 properties:
                   matchExpressions:
@@ -148,6 +149,7 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               spiffeIDTemplate:
                 description: SPIFFEID is the SPIFFE ID template. The node and pod
                   spec are made available to the template under .NodeSpec, .PodSpec
@@ -217,9 +219,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -41,10 +42,10 @@ func startServer(t *testing.T, registerFn func(s *grpc.Server)) grpc.ClientConnI
 
 	listener, err := net.Listen("tcp", "localhost:0")
 	require.NoError(t, err)
-	go s.Serve(listener)
+	go func() { _ = s.Serve(listener) }()
 	t.Cleanup(s.GracefulStop)
 
-	conn, err := grpc.DialContext(context.Background(), listener.Addr().String(), grpc.WithInsecure(), grpc.FailOnNonTempDialError(true), grpc.WithReturnConnectionError())
+	conn, err := grpc.DialContext(context.Background(), listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.FailOnNonTempDialError(true), grpc.WithReturnConnectionError())
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = conn.Close()
@@ -66,12 +67,10 @@ func listBounds(pageToken string, pageSize int, n int, get func(int) string) (in
 	return start, n, false
 }
 
-func assertErrorIs(tb testing.TB, err error, target error) bool {
+func assertErrorIs(tb testing.TB, err error, target error) {
 	if !errors.Is(err, target) {
 		assert.FailNowf(tb, "error does not match error chain", "expected error %+v; got %+v", target, err)
-		return false
 	}
-	return true
 }
 
 func decodeKey(s string) crypto.Signer {

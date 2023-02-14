@@ -55,11 +55,11 @@ type ClusterSPIFFEIDSpec struct {
 	// obtain this SPIFFE ID will federate with.
 	FederatesWith []string `json:"federatesWith,omitempty"`
 
-	// NamespaceSelector selects the namespaces that are targetted by this
+	// NamespaceSelector selects the namespaces that are targeted by this
 	// CRD.
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// PodSelector selects the pods that are targetted by this
+	// PodSelector selects the pods that are targeted by this
 	// CRD.
 	PodSelector *metav1.LabelSelector `json:"podSelector,omitempty"`
 
