@@ -73,7 +73,7 @@ endif
 
 build_dir := $(DIR)/.build/$(os1)-$(arch1)
 
-golangci_lint_version = v1.50.1
+golangci_lint_version = v1.51.2
 golangci_lint_dir = $(build_dir)/golangci_lint/$(golangci_lint_version)
 golangci_lint_bin = $(golangci_lint_dir)/golangci-lint
 golangci_lint_cache = $(golangci_lint_dir)/cache
