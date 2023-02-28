@@ -1,6 +1,6 @@
 module greeter
 
-go 1.19
+go 1.20
 
 require (
 	github.com/spiffe/go-spiffe/v2 v2.1.2
