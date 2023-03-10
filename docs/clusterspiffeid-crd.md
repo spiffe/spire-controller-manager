@@ -92,7 +92,7 @@ The following data is available to the template:
       federatesWith: ["auditing"]
     ```
 
-1. Add a DNS names:
+1. Add a DNS name:
 
     ```yaml
     apiVersion: spire.spiffe.io/v1alpha1
