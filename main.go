@@ -23,7 +23,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strings"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -133,7 +133,12 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 
 	// Attempt to auto detect cluster domain if it wasn't specified
 	if ctrlConfig.ClusterDomain == "" {
-		ctrlConfig.ClusterDomain = autoDetectClusterDomain()
+		clusterDomain, err := autoDetectClusterDomain()
+		if err != nil {
+			setupLog.Error(err, "unable to autodetect cluster domain")
+		}
+
+		ctrlConfig.ClusterDomain = clusterDomain
 	}
 
 	setupLog.Info("Config loaded",
@@ -322,22 +327,31 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 	return nil
 }
 
-func autoDetectClusterDomain() string {
+func autoDetectClusterDomain() (string, error) {
 	cname, err := net.LookupCNAME(k8sDefaultService)
 	if err != nil {
-		setupLog.Error(err, "unable to autodetect cluster domain")
-		return ""
+		return "", fmt.Errorf("unable to lookup CNAME: %w", err)
 	}
 
-	re := regexp.MustCompile(regexp.QuoteMeta(k8sDefaultService) + `\.(.*)\.`)
-	matches := re.FindStringSubmatch(cname)
-
-	var clusterDomain string
-	if len(matches) == 2 {
-		clusterDomain = matches[1]
-	} else {
-		setupLog.Error(nil, " unable to extract cluster domain", "cname", cname, "matches", matches)
+	clusterDomain, err := parseClusterDomainCNAME(cname)
+	if err != nil {
+		return "", fmt.Errorf("unable to parse CNAME \"%s\": %w", cname, err)
 	}
 
-	return clusterDomain
+	return clusterDomain, nil
+}
+
+func parseClusterDomainCNAME(cname string) (string, error) {
+	clusterDomain := strings.TrimPrefix(cname, k8sDefaultService+".")
+	if clusterDomain == cname {
+		return "", errors.New("CNAME did not have expected prefix")
+	}
+
+	// Trim off optional trailing dot
+	clusterDomain = strings.TrimSuffix(clusterDomain, ".")
+	if clusterDomain == "" {
+		return "", errors.New("CNAME did not have a cluster domain")
+	}
+
+	return clusterDomain, nil
 }
