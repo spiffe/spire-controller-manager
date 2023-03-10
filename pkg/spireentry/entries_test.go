@@ -20,8 +20,8 @@ func TestRenderPodEntry(t *testing.T) {
 	spec := &spirev1alpha1.ClusterSPIFFEIDSpec{
 		SPIFFEIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}",
 		DNSNameTemplates: []string{
-			"{{ .PodSpec.ServiceAccountName }}.{{ .PodMeta.Namespace }}.svc",
-			"{{ .PodMeta.Name }}.{{ .PodMeta.Namespace }}.svc",
+			"{{ .PodSpec.ServiceAccountName }}.{{ .PodMeta.Namespace }}.svc.{{ .ClusterDomain }}",
+			"{{ .PodMeta.Name }}.{{ .PodMeta.Namespace }}.svc.{{ .ClusterDomain }}",
 			"{{ .PodMeta.Name }}.{{ .TrustDomain }}.svc",
 		},
 	}
@@ -61,6 +61,6 @@ func TestRenderPodEntry(t *testing.T) {
 
 	// DNS names rendered correctly and are unique
 	require.Len(t, entry.DNSNames, len(spec.DNSNameTemplates)-1)
-	require.Contains(t, entry.DNSNames, pod.Name+"."+pod.Namespace+"."+"svc")
-	require.Contains(t, entry.DNSNames, pod.Name+"."+trustDomain+"."+"svc")
+	require.Contains(t, entry.DNSNames, pod.Name+"."+pod.Namespace+".svc."+clusterDomain)
+	require.Contains(t, entry.DNSNames, pod.Name+"."+trustDomain+".svc")
 }
