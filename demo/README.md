@@ -54,8 +54,8 @@ Start up cluster 2 and load the requisite images:
 
     $ ./cluster2 kind create cluster
     $ echo \
-        ghcr.io/spiffe/spire-server:1.1.0 \
-        ghcr.io/spiffe/spire-agent:1.1.0 \
+        ghcr.io/spiffe/spire-server:1.2.3 \
+        ghcr.io/spiffe/spire-agent:1.2.3 \
         ghcr.io/spiffe/spiffe-csi-driver:nightly \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         greeter-client:demo \
