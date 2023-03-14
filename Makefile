@@ -122,12 +122,14 @@ lint-code: $(golangci_lint_bin)
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+build: $(addprefix bin,/$(BINARIES)) ## Build manager binary.
+
+bin/%: main.go generate fmt vet FORCE
+	go build -o $@ $<
 
 .PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go
+run: build ## Run a controller from your host.
+	bin/spire-controller-manager
 
 .PHONY: container-builder
 container-builder: ## Create a buildx node to create crossplatform images.
