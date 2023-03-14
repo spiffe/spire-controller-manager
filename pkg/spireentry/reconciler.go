@@ -42,6 +42,7 @@ import (
 type ReconcilerConfig struct {
 	TrustDomain      spiffeid.TrustDomain
 	ClusterName      string
+	ClusterDomain    string
 	EntryClient      spireapi.EntryClient
 	K8sClient        client.Client
 	IgnoreNamespaces stringset.StringSet
@@ -241,7 +242,7 @@ func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha
 	if err := r.config.K8sClient.Get(ctx, types.NamespacedName{Name: pod.Spec.NodeName}, node); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-	return renderPodEntry(spec, node, pod, r.config.TrustDomain, r.config.ClusterName)
+	return renderPodEntry(spec, node, pod, r.config.TrustDomain, r.config.ClusterName, r.config.ClusterDomain)
 }
 
 func (r *entryReconciler) createEntries(ctx context.Context, declaredEntries []declaredEntry) {

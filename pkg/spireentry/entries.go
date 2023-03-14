@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, trustDomain spiffeid.TrustDomain, clusterName string) (*spireapi.Entry, error) {
+func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, trustDomain spiffeid.TrustDomain, clusterName, clusterDomain string) (*spireapi.Entry, error) {
 	// We uniquely target the Pod running on the Node. The former is done
 	// via the k8s:pod-uid selector, the latter via the parent ID.
 	selectors := []spireapi.Selector{
@@ -42,12 +42,13 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 	}
 
 	data := &templateData{
-		TrustDomain: trustDomain.String(),
-		ClusterName: clusterName,
-		PodMeta:     &pod.ObjectMeta,
-		PodSpec:     &pod.Spec,
-		NodeMeta:    &node.ObjectMeta,
-		NodeSpec:    &node.Spec,
+		TrustDomain:   trustDomain.String(),
+		ClusterName:   clusterName,
+		ClusterDomain: clusterDomain,
+		PodMeta:       &pod.ObjectMeta,
+		PodSpec:       &pod.Spec,
+		NodeMeta:      &node.ObjectMeta,
+		NodeSpec:      &node.Spec,
 	}
 
 	spiffeID, err := renderSPIFFEID(spec.SPIFFEIDTemplate, data, trustDomain)
@@ -91,12 +92,13 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 }
 
 type templateData struct {
-	TrustDomain string
-	ClusterName string
-	PodMeta     *metav1.ObjectMeta
-	PodSpec     *corev1.PodSpec
-	NodeMeta    *metav1.ObjectMeta
-	NodeSpec    *corev1.NodeSpec
+	TrustDomain   string
+	ClusterName   string
+	ClusterDomain string
+	PodMeta       *metav1.ObjectMeta
+	PodSpec       *corev1.PodSpec
+	NodeMeta      *metav1.ObjectMeta
+	NodeSpec      *corev1.NodeSpec
 }
 
 func renderSPIFFEID(tmpl *template.Template, data *templateData, expectTD spiffeid.TrustDomain) (spiffeid.ID, error) {

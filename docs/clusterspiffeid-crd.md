@@ -53,12 +53,13 @@ The following data is available to the template:
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
-| `{{ .TrustDomain }}` | string                                                                           | The name of the trust domain the controller is operating for |
-| `{{ .ClusterName }}` | string                                                                           | The name of the cluster, as defined in the controller [configuration](./spire-controller-manager-config.md) |
-| `{{ .PodMeta }}`     | [ObjectMeta](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#ObjectMeta) | The pod metadata |
-| `{{ .PodSpec }}`     | [PodSpec](https://pkg.go.dev/k8s.io/api/core/v1#PodSpec)                         | The pod specification |
-| `{{ .NodeMeta }}`    | [ObjectMeta](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#ObjectMeta) | The node metadata for the node the pod is scheduled on |
-| `{{ .NodeSpec }}`    | [NodeSpec](https://pkg.go.dev/k8s.io/api/core/v1#NodeSpec)                       | The node specification for the node the pod is scheduled on |
+| `{{ .TrustDomain }}`   | string                                                                           | The name of the trust domain the controller is operating for |
+| `{{ .ClusterName }}`   | string                                                                           | The name of the cluster, as defined in the controller [configuration](./spire-controller-manager-config.md) |
+| `{{ .ClusterDomain }}` | string                                                                           | The domain of the cluster, as defined in the controller [configuration](./spire-controller-manager-config.md) |
+| `{{ .PodMeta }}`       | [ObjectMeta](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#ObjectMeta) | The pod metadata |
+| `{{ .PodSpec }}`       | [PodSpec](https://pkg.go.dev/k8s.io/api/core/v1#PodSpec)                         | The pod specification |
+| `{{ .NodeMeta }}`      | [ObjectMeta](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#ObjectMeta) | The node metadata for the node the pod is scheduled on |
+| `{{ .NodeSpec }}`      | [NodeSpec](https://pkg.go.dev/k8s.io/api/core/v1#NodeSpec)                       | The node specification for the node the pod is scheduled on |
 
 ## Examples
 
@@ -89,4 +90,16 @@ The following data is available to the template:
         matchLabels:
           banking: "true"
       federatesWith: ["auditing"]
+    ```
+
+1. Add a DNS name:
+
+    ```yaml
+    apiVersion: spire.spiffe.io/v1alpha1
+    kind: ClusterSPIFFEID
+    metadata:
+      name: backend-workloads-with-dns-names
+    spec:
+      spiffeIDTemplate: "spiffe://domain.test/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+      dnsNameTemplates: ["{{ .PodMeta.Name }}.{{ .PodMeta.Namespace }}.{{ .ClusterDomain }}"]
     ```

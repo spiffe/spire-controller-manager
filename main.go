@@ -20,8 +20,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -53,6 +55,7 @@ import (
 const (
 	defaultSPIREServerSocketPath = "/spire-server/api.sock"
 	defaultGCInterval            = 10 * time.Second
+	k8sDefaultService            = "kubernetes.default.svc"
 )
 
 var (
@@ -128,8 +131,19 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 		setupLog.Error(nil, "Ignoring deprecated spire-api-socket flag which will be removed in a future release")
 	}
 
+	// Attempt to auto detect cluster domain if it wasn't specified
+	if ctrlConfig.ClusterDomain == "" {
+		clusterDomain, err := autoDetectClusterDomain()
+		if err != nil {
+			setupLog.Error(err, "unable to autodetect cluster domain")
+		}
+
+		ctrlConfig.ClusterDomain = clusterDomain
+	}
+
 	setupLog.Info("Config loaded",
 		"cluster name", ctrlConfig.ClusterName,
+		"cluster domain", ctrlConfig.ClusterDomain,
 		"trust domain", ctrlConfig.TrustDomain,
 		"ignore namespaces", ctrlConfig.IgnoreNamespaces,
 		"gc interval", ctrlConfig.GCInterval,
@@ -231,6 +245,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 	entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
 		TrustDomain:      trustDomain,
 		ClusterName:      ctrlConfig.ClusterName,
+		ClusterDomain:    ctrlConfig.ClusterDomain,
 		K8sClient:        mgr.GetClient(),
 		EntryClient:      spireClient,
 		IgnoreNamespaces: ctrlConfig.IgnoreNamespaces,
@@ -310,4 +325,33 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 	}
 
 	return nil
+}
+
+func autoDetectClusterDomain() (string, error) {
+	cname, err := net.LookupCNAME(k8sDefaultService)
+	if err != nil {
+		return "", fmt.Errorf("unable to lookup CNAME: %w", err)
+	}
+
+	clusterDomain, err := parseClusterDomainCNAME(cname)
+	if err != nil {
+		return "", fmt.Errorf("unable to parse CNAME \"%s\": %w", cname, err)
+	}
+
+	return clusterDomain, nil
+}
+
+func parseClusterDomainCNAME(cname string) (string, error) {
+	clusterDomain := strings.TrimPrefix(cname, k8sDefaultService+".")
+	if clusterDomain == cname {
+		return "", errors.New("CNAME did not have expected prefix")
+	}
+
+	// Trim off optional trailing dot
+	clusterDomain = strings.TrimSuffix(clusterDomain, ".")
+	if clusterDomain == "" {
+		return "", errors.New("CNAME did not have a cluster domain")
+	}
+
+	return clusterDomain, nil
 }
