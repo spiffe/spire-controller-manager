@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.2] - 2023-02-28
+
+### Added
+
+- Multiarch docker images supporting both amd64 and arm64 (#51)
+- Support for registration for downstream workloads (#44)
+- Migration guide for migrating from the k8s-workload-registrer (#40)
+
+### Fixed
+
+- Status subresource yaml in demo preventing status from being updated (#38)
+
+### Changed
+
+- Waits for 5 seconds for the SPIRE Server socket to become available (#80)
+- Generated DNS Names are deduplicated before registration (#85)
+
+## [0.2.1] - 2022-07-11
+
+### Fixed
+
+- Bug causing entries to be recreated on every reconciliation (#32)
+
 ## [0.2.0] - 2022-06-01
 
 ### Added
