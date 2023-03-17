@@ -124,7 +124,7 @@ lint-code: $(golangci_lint_bin)
 .PHONY: build
 build: $(addprefix bin,/$(BINARIES)) ## Build manager binary.
 
-bin/%: main.go generate fmt vet FORCE
+bin/%: cmd/%/main.go generate fmt vet FORCE
 	go build -o $@ $<
 
 .PHONY: run
