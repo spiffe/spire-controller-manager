@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -43,7 +42,7 @@ func TestParseClusterDomainCNAME(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			domain, err := parseClusterDomainCNAME(test.cname)
 			if test.expectedErr != "" {
-				require.EqualError(t, errors.New(test.expectedErr), err.Error())
+				require.EqualError(t, err, test.expectedErr)
 				return
 			}
 
