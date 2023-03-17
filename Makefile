@@ -124,8 +124,8 @@ lint-code: $(golangci_lint_bin)
 .PHONY: build
 build: $(addprefix bin,/$(BINARIES)) ## Build manager binary.
 
-bin/%: cmd/%/main.go generate fmt vet FORCE
-	go build -o $@ $<
+bin/%: cmd/% generate fmt vet FORCE
+	go build -o $@ ./$<
 
 .PHONY: run
 run: build ## Run a controller from your host.
