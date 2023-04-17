@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -188,6 +189,11 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 		CertDir:  certDir,
 		CertName: keyPairName,
 		KeyName:  keyPairName,
+		TLSOpts: []func(*tls.Config){
+			func(s *tls.Config) {
+				s.MinVersion = tls.VersionTLS12
+			},
+		},
 	}
 
 	ctx := ctrl.SetupSignalHandler()
