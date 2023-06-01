@@ -23,8 +23,8 @@ apiVersion: spire.spiffe.io/v1alpha1
 kind: ControllerManagerConfig
 metrics:
   bindAddress: 127.0.0.1:8082
-healthProbe:
-  bindAddress: 127.0.0.1:8083
+health:
+  healthProbeBindAddress: 127.0.0.1:8083
 leaderElection:
   leaderElect: true
   resourceName: 98c9c988.spiffe.io
@@ -73,6 +73,9 @@ func TestLoadOptionsFromFileReplaceDefaultValues(t *testing.T) {
 			},
 			Metrics: spirev1alpha1.ControllerMetrics{
 				BindAddress: "127.0.0.1:8082",
+			},
+			Health: spirev1alpha1.ControllerHealth{
+				HealthProbeBindAddress: "127.0.0.1:8083",
 			},
 		},
 		ClusterName: "cluster2",
