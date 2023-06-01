@@ -110,9 +110,7 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 
 	options := ctrl.Options{Scheme: scheme}
 	if configFileFlag != "" {
-		var err error
-		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFileFlag).OfKind(&ctrlConfig))
-		if err != nil {
+		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig); err != nil {
 			return ctrlConfig, options, fmt.Errorf("unable to load the config file: %w", err)
 		}
 	}
@@ -158,8 +156,8 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 		return ctrlConfig, options, errors.New("cluster name is required configuration")
 	case ctrlConfig.ValidatingWebhookConfigurationName == "":
 		return ctrlConfig, options, errors.New("validating webhook configuration name is required configuration")
-	case options.CertDir != "":
-		setupLog.Info("certDir configuration is ignored", "certDir", options.CertDir)
+	case ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir != "":
+		setupLog.Info("certDir configuration is ignored", "certDir", ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir)
 	}
 
 	return ctrlConfig, options, nil
@@ -172,12 +170,12 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 	// obtain the certificates so we don't have to touch disk.
 	certDir, err := os.MkdirTemp("", "spire-controller-manager-")
 	if err != nil {
-		setupLog.Error(err, "failed to create temporary cert directory", "certDir", options.CertDir)
+		setupLog.Error(err, "failed to create temporary cert directory")
 		return err
 	}
 	defer func() {
-		if err := os.RemoveAll(options.CertDir); err != nil {
-			setupLog.Error(err, "failed to remove temporary cert directory", "certDir", options.CertDir)
+		if err := os.RemoveAll(certDir); err != nil {
+			setupLog.Error(err, "failed to remove temporary cert directory", "certDir", certDir)
 			os.Exit(1)
 		}
 	}()
@@ -185,7 +183,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 	// webhook server credentials are stored in a single file to keep rotation
 	// simple.
 	const keyPairName = "keypair.pem"
-	options.WebhookServer = &webhook.Server{
+	options.WebhookServer = webhook.NewServer(webhook.Options{
 		CertDir:  certDir,
 		CertName: keyPairName,
 		KeyName:  keyPairName,
@@ -194,7 +192,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 				s.MinVersion = tls.VersionTLS12
 			},
 		},
-	}
+	})
 
 	ctx := ctrl.SetupSignalHandler()
 

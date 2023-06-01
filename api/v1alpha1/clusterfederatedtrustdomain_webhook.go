@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -46,26 +47,26 @@ func (r *ClusterFederatedTrustDomain) SetupWebhookWithManager(mgr ctrl.Manager) 
 var _ webhook.Validator = &ClusterFederatedTrustDomain{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomain) ValidateCreate() error {
+func (r *ClusterFederatedTrustDomain) ValidateCreate() (admission.Warnings, error) {
 	clusterfederatedtrustdomainlog.Info("validate create", "name", r.Name)
 	return r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomain) ValidateUpdate(old runtime.Object) error {
+func (r *ClusterFederatedTrustDomain) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	clusterfederatedtrustdomainlog.Info("validate update", "name", r.Name)
 	return r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomain) ValidateDelete() error {
+func (r *ClusterFederatedTrustDomain) ValidateDelete() (admission.Warnings, error) {
 	// Deletes are not validated.
-	return nil
+	return nil, nil
 }
 
-func (r *ClusterFederatedTrustDomain) validate() error {
+func (r *ClusterFederatedTrustDomain) validate() (admission.Warnings, error) {
 	_, err := ParseClusterFederatedTrustDomainSpec(&r.Spec)
-	return err
+	return nil, err
 }
 
 func ParseClusterFederatedTrustDomainSpec(spec *ClusterFederatedTrustDomainSpec) (*spireapi.FederationRelationship, error) {
