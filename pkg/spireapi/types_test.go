@@ -364,7 +364,7 @@ func TestFederationRelationshipToAPI(t *testing.T) {
 				TrustDomainBundle:     bundle,
 			},
 			expectFR: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
 				BundleEndpointProfile: &apitypes.FederationRelationship_HttpsWeb{
 					HttpsWeb: &apitypes.HTTPSWebProfile{},
@@ -383,7 +383,7 @@ func TestFederationRelationshipToAPI(t *testing.T) {
 				TrustDomainBundle: bundle,
 			},
 			expectFR: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
 				BundleEndpointProfile: &apitypes.FederationRelationship_HttpsSpiffe{
 					HttpsSpiffe: &apitypes.HTTPSSPIFFEProfile{
@@ -453,7 +453,7 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "invalid bundle endpoint URL",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:           td.String(),
+				TrustDomain:           td.Name(),
 				BundleEndpointProfile: httpsWebProfile,
 			},
 			expectErr: "invalid bundle endpoint URL: bundle endpoint URL is missing",
@@ -461,7 +461,7 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "trust domain bundle missing trust domain",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
 				TrustDomainBundle: &apitypes.Bundle{},
 			},
@@ -470,34 +470,34 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "trust domain bundle has invalid X.509 authority",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
-				TrustDomainBundle: &apitypes.Bundle{TrustDomain: td.String(), X509Authorities: []*apitypes.X509Certificate{{}}},
+				TrustDomainBundle: &apitypes.Bundle{TrustDomain: td.Name(), X509Authorities: []*apitypes.X509Certificate{{}}},
 			},
 			expectErr: "invalid trust domain bundle: x509: malformed certificate",
 		},
 		{
 			desc: "trust domain bundle has invalid JWT authority key id",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
-				TrustDomainBundle: &apitypes.Bundle{TrustDomain: td.String(), JwtAuthorities: []*apitypes.JWTKey{{PublicKey: publicKeyBytes}}},
+				TrustDomainBundle: &apitypes.Bundle{TrustDomain: td.Name(), JwtAuthorities: []*apitypes.JWTKey{{PublicKey: publicKeyBytes}}},
 			},
 			expectErr: "invalid trust domain bundle: key ID is missing",
 		},
 		{
 			desc: "trust domain bundle has invalid JWT authority public key",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
-				TrustDomainBundle: &apitypes.Bundle{TrustDomain: td.String(), JwtAuthorities: []*apitypes.JWTKey{{KeyId: "KEYID"}}},
+				TrustDomainBundle: &apitypes.Bundle{TrustDomain: td.Name(), JwtAuthorities: []*apitypes.JWTKey{{KeyId: "KEYID"}}},
 			},
 			expectErr: "invalid trust domain bundle: failed to unmarshal public key: asn1: syntax error: sequence truncated",
 		},
 		{
 			desc: "unrecognized profile type",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
 			},
 			expectErr: "bundle endpoint profile is missing",
@@ -505,7 +505,7 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "https_web profile is missing data",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:           td.String(),
+				TrustDomain:           td.Name(),
 				BundleEndpointUrl:     bundleEndpointURL,
 				BundleEndpointProfile: &apitypes.FederationRelationship_HttpsWeb{},
 			},
@@ -514,7 +514,7 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "https_spiffe profile is missing data",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:           td.String(),
+				TrustDomain:           td.Name(),
 				BundleEndpointUrl:     bundleEndpointURL,
 				BundleEndpointProfile: &apitypes.FederationRelationship_HttpsSpiffe{},
 			},
@@ -523,7 +523,7 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "https_spiffe profile is has an invalid endpoint SPIFFE ID",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:       td.String(),
+				TrustDomain:       td.Name(),
 				BundleEndpointUrl: bundleEndpointURL,
 				BundleEndpointProfile: &apitypes.FederationRelationship_HttpsSpiffe{
 					HttpsSpiffe: &apitypes.HTTPSSPIFFEProfile{},
@@ -534,7 +534,7 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "success with https_web",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:           td.String(),
+				TrustDomain:           td.Name(),
 				BundleEndpointUrl:     bundleEndpointURL,
 				BundleEndpointProfile: httpsWebProfile,
 				TrustDomainBundle:     apiBundle,
@@ -549,7 +549,7 @@ func TestFederationRelationshipFromAPI(t *testing.T) {
 		{
 			desc: "success with https_spiffe",
 			fr: &apitypes.FederationRelationship{
-				TrustDomain:           td.String(),
+				TrustDomain:           td.Name(),
 				BundleEndpointUrl:     bundleEndpointURL,
 				BundleEndpointProfile: httpsSPIFFEProfile,
 				TrustDomainBundle:     apiBundle,

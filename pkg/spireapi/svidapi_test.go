@@ -169,7 +169,7 @@ func (s *svidServer) MintX509SVID(ctx context.Context, req *svidv1.MintX509SVIDR
 		Svid: &apitypes.X509SVID{
 			CertChain: [][]byte{cert.Raw},
 			Id: &apitypes.SPIFFEID{
-				TrustDomain: id.TrustDomain().String(),
+				TrustDomain: id.TrustDomain().Name(),
 				Path:        id.Path(),
 			},
 			ExpiresAt: notAfter.Unix(),
