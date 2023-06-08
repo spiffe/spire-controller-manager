@@ -108,7 +108,7 @@ func TestLoadOptionsFromFileInvalidPath(t *testing.T) {
 	}
 
 	err := spirev1alpha1.LoadOptionsFromFile("", scheme, &options, &ctrlConfig)
-	require.EqualError(t, err, "file path is required")
+	require.EqualError(t, err, "could not read file at : open : no such file or directory")
 
 	err = spirev1alpha1.LoadOptionsFromFile("foo.yaml", scheme, &options, &ctrlConfig)
 	fmt.Printf("err :%v\n", err)

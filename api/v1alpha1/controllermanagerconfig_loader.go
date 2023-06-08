@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -13,10 +12,6 @@ import (
 )
 
 func LoadOptionsFromFile(path string, scheme *runtime.Scheme, options *ctrl.Options, config *ControllerManagerConfig) error {
-	if path == "" {
-		return errors.New("file path is required")
-	}
-
 	if err := loadFile(path, scheme, config); err != nil {
 		return err
 	}
@@ -39,8 +34,6 @@ func loadFile(path string, scheme *runtime.Scheme, config *ControllerManagerConf
 	if err = runtime.DecodeInto(codecs.UniversalDecoder(), content, config); err != nil {
 		return fmt.Errorf("could not decode file into runtime.Object: %w", err)
 	}
-
-	// setupLog.Info(fmt.Sprintf("Loaded config: %+v\n", config))
 
 	return nil
 }
