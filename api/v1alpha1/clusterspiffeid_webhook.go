@@ -29,6 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 const (
@@ -54,28 +55,28 @@ func (r *ClusterSPIFFEID) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Validator = &ClusterSPIFFEID{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateCreate() error {
+func (r *ClusterSPIFFEID) ValidateCreate() (admission.Warnings, error) {
 	clusterspiffeidlog.Info("validate create", "name", r.Name)
 
 	return r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateUpdate(old runtime.Object) error {
+func (r *ClusterSPIFFEID) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	clusterspiffeidlog.Info("validate update", "name", r.Name)
 
 	return r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateDelete() error {
+func (r *ClusterSPIFFEID) ValidateDelete() (admission.Warnings, error) {
 	// Deletes are not validated.
-	return nil
+	return nil, nil
 }
 
-func (r *ClusterSPIFFEID) validate() error {
+func (r *ClusterSPIFFEID) validate() (admission.Warnings, error) {
 	_, err := ParseClusterSPIFFEIDSpec(&r.Spec)
-	return err
+	return nil, err
 }
 
 // +kubebuilder:object:generate=false
