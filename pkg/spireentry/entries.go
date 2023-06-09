@@ -42,7 +42,7 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 	}
 
 	data := &templateData{
-		TrustDomain:   trustDomain.String(),
+		TrustDomain:   trustDomain.Name(),
 		ClusterName:   clusterName,
 		ClusterDomain: clusterDomain,
 		PodMeta:       &pod.ObjectMeta,
