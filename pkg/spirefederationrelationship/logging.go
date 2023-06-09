@@ -40,7 +40,7 @@ func objectName(o metav1.Object) string {
 
 func federationRelationshipFields(fr spireapi.FederationRelationship) []interface{} {
 	fields := []interface{}{
-		trustDomainKey, fr.TrustDomain.String(),
+		trustDomainKey, fr.TrustDomain.Name(),
 		bundleEndpointURLKey, fr.BundleEndpointURL,
 		bundleEndpointProfileKey, safeBundleEndpointProfileName(fr.BundleEndpointProfile),
 	}

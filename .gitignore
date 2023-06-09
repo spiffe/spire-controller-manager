@@ -28,3 +28,7 @@ testbin/*
 # oci image builds
 oci/
 *-image.tar
+
+# Ignore go workspaces files
+go.work
+go.work.sum

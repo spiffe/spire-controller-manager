@@ -218,7 +218,7 @@ func entriesFromAPI(ins []*apitypes.Entry) ([]Entry, error) {
 
 func spiffeIDToAPI(in spiffeid.ID) *apitypes.SPIFFEID {
 	return &apitypes.SPIFFEID{
-		TrustDomain: in.TrustDomain().String(),
+		TrustDomain: in.TrustDomain().Name(),
 		Path:        in.Path(),
 	}
 }
@@ -306,7 +306,7 @@ func federationRelationshipToAPI(in FederationRelationship) (*apitypes.Federatio
 	}
 
 	out := &apitypes.FederationRelationship{
-		TrustDomain:       in.TrustDomain.String(),
+		TrustDomain:       in.TrustDomain.Name(),
 		BundleEndpointUrl: in.BundleEndpointURL,
 	}
 
@@ -405,7 +405,7 @@ func trustDomainsToAPI(ins []spiffeid.TrustDomain) []string {
 	if ins != nil {
 		outs = make([]string, 0, len(ins))
 		for _, in := range ins {
-			outs = append(outs, in.String())
+			outs = append(outs, in.Name())
 		}
 	}
 	return outs
@@ -427,7 +427,7 @@ func trustDomainsFromAPI(ins []string) ([]spiffeid.TrustDomain, error) {
 }
 
 func bundleToAPI(in *spiffebundle.Bundle) (*apitypes.Bundle, error) {
-	trustDomain := in.TrustDomain().String()
+	trustDomain := in.TrustDomain().Name()
 	if trustDomain == "" {
 		return nil, errors.New("trust domain is missing")
 	}
