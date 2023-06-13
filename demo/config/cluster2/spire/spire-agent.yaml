@@ -71,6 +71,7 @@ data:
       WorkloadAttestor "k8s" {
         plugin_data {
           skip_kubelet_verification = true
+          node_name_env = "MY_NODE_NAME"
         }
       }
     }
@@ -105,6 +106,11 @@ spec:
           image: ghcr.io/spiffe/spire-agent:1.2.3
           imagePullPolicy: IfNotPresent
           args: ["-config", "/run/spire/config/agent.conf"]
+          env:
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
           volumeMounts:
             - name: spire-config
               mountPath: /run/spire/config
