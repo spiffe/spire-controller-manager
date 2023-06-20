@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.3] - 2023-06-20
+
+### Added
+
+- Auto-detection for the cluster domain name (#90)
+
+### Updated
+
+- Examples to use the downward API to locate the kubelet for Kubernetes workload attestation (#160)
+- Migrated to the latest controller runtime (#151)
+
+### Security
+
+- Enforce TLS1.2 as a minimum version on the webhook server (#128)
+
 ## [0.2.2] - 2023-02-28
 
 ### Added
