@@ -111,7 +111,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 
 		clusterSPIFFEID.NextStatus.Stats.NamespacesSelected += len(namespaces)
 		for i := range namespaces {
-			if r.config.IgnoreNamespaces.In(namespaces[i].Name) {
+			if r.config.IgnoreNamespaces.MatchRegex(namespaces[i].Name) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}

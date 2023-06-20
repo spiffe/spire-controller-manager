@@ -16,11 +16,26 @@ limitations under the License.
 
 package stringset
 
+import (
+	"regexp"
+)
+
 type StringSet []string
 
 func (ss StringSet) In(operand string) bool {
 	for _, s := range ss {
 		if s == operand {
+			return true
+		}
+	}
+	return false
+}
+
+func (ss StringSet) MatchRegex(operand string) bool {
+	for _, s := range ss {
+		match, _ := regexp.MatchString(s, operand)
+
+		if match {
 			return true
 		}
 	}

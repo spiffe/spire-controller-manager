@@ -46,7 +46,7 @@ type PodReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, err error) {
-	if !r.IgnoreNamespaces.In(req.Namespace) {
+	if !r.IgnoreNamespaces.MatchRegex(req.Namespace) {
 		log.FromContext(ctx).V(1).Info("Triggering reconciliation")
 		r.Triggerer.Trigger()
 	}
