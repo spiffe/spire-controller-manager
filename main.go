@@ -24,6 +24,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -60,8 +61,9 @@ const (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme                = runtime.NewScheme()
+	setupLog              = ctrl.Log.WithName("setup")
+	ignoreNamespacesRegex []regexp.Regexp
 )
 
 func init() {
@@ -112,6 +114,15 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig); err != nil {
 			return ctrlConfig, options, fmt.Errorf("unable to load the config file: %w", err)
+		}
+
+		for _, s := range ctrlConfig.IgnoreNamespaces {
+			regex, err := regexp.Compile(s)
+			if err != nil {
+				return ctrlConfig, options, fmt.Errorf("unable to load the config file: %w", err)
+			}
+
+			ignoreNamespacesRegex = append(ignoreNamespacesRegex, *regex)
 		}
 	}
 	// Determine the SPIRE Server socket path
@@ -252,7 +263,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 		ClusterDomain:    ctrlConfig.ClusterDomain,
 		K8sClient:        mgr.GetClient(),
 		EntryClient:      spireClient,
-		IgnoreNamespaces: ctrlConfig.IgnoreNamespaces,
+		IgnoreNamespaces: ignoreNamespacesRegex,
 		GCInterval:       ctrlConfig.GCInterval,
 	})
 
@@ -292,7 +303,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options)
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		Triggerer:        entryReconciler,
-		IgnoreNamespaces: ctrlConfig.IgnoreNamespaces,
+		IgnoreNamespaces: ignoreNamespacesRegex,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Pod")
 		return err
