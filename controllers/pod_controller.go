@@ -49,7 +49,7 @@ type PodReconciler struct {
 // move the current state of the cluster closer to the desired state.
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, err error) {
 	for _, regex := range r.IgnoreNamespaces {
-		if !(regex.FindString(req.Namespace) == "") {
+		if regex.FindString(req.Namespace) != "" {
 			return ctrl.Result{}, nil
 		}
 	}
