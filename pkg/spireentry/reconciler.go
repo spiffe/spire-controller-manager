@@ -45,7 +45,7 @@ type ReconcilerConfig struct {
 	ClusterDomain    string
 	EntryClient      spireapi.EntryClient
 	K8sClient        client.Client
-	IgnoreNamespaces []regexp.Regexp
+	IgnoreNamespaces []*regexp.Regexp
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.

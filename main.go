@@ -63,7 +63,7 @@ const (
 var (
 	scheme                = runtime.NewScheme()
 	setupLog              = ctrl.Log.WithName("setup")
-	ignoreNamespacesRegex []regexp.Regexp
+	ignoreNamespacesRegex []*regexp.Regexp
 )
 
 func init() {
@@ -116,13 +116,13 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 			return ctrlConfig, options, fmt.Errorf("unable to load the config file: %w", err)
 		}
 
-		for _, s := range ctrlConfig.IgnoreNamespaces {
-			regex, err := regexp.Compile(s)
+		for _, ignoredNamespace := range ctrlConfig.IgnoreNamespaces {
+			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
-				return ctrlConfig, options, fmt.Errorf("unable to load the config file: %w", err)
+				return ctrlConfig, options, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
 			}
 
-			ignoreNamespacesRegex = append(ignoreNamespacesRegex, *regex)
+			ignoreNamespacesRegex = append(ignoreNamespacesRegex, regex)
 		}
 	}
 	// Determine the SPIRE Server socket path

@@ -35,7 +35,7 @@ type PodReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	Triggerer        reconciler.Triggerer
-	IgnoreNamespaces []regexp.Regexp
+	IgnoreNamespaces []*regexp.Regexp
 }
 
 //+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterspiffeids,verbs=get;list;watch;create;update;patch;delete
