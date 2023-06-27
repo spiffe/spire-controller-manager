@@ -30,6 +30,41 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func renderStaticEntry(spec *spirev1alpha1.ClusterStaticEntrySpec) (*spireapi.Entry, error) {
+	spiffeID, err := spiffeid.FromString(spec.SPIFFEID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse SPIFFEID: %w", err)
+	}
+	parentID, err := spiffeid.FromString(spec.ParentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ParentID: %w", err)
+	}
+	selectors, err := parseSelectors(spec.Selectors)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Selectors: %w", err)
+	}
+	federatesWith := make([]spiffeid.TrustDomain, 0, len(spec.FederatesWith))
+	for _, value := range spec.FederatesWith {
+		td, err := spiffeid.TrustDomainFromString(value)
+		if err != nil {
+			return nil, fmt.Errorf("invalid federatesWith value: %w", err)
+		}
+		federatesWith = append(federatesWith, td)
+	}
+	return &spireapi.Entry{
+		SPIFFEID:      spiffeID,
+		ParentID:      parentID,
+		Selectors:     selectors,
+		X509SVIDTTL:   spec.X509SVIDTTL.Duration,
+		JWTSVIDTTL:    spec.JWTSVIDTTL.Duration,
+		FederatesWith: federatesWith,
+		DNSNames:      spec.DNSNames,
+		Admin:         spec.Admin,
+		Downstream:    spec.Downstream,
+		Hint:          spec.Hint,
+	}, nil
+}
+
 func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, trustDomain spiffeid.TrustDomain, clusterName, clusterDomain string) (*spireapi.Entry, error) {
 	// We uniquely target the Pod running on the Node. The former is done
 	// via the k8s:pod-uid selector, the latter via the parent ID.
@@ -150,6 +185,18 @@ func renderTemplate(tmpl *template.Template, data *templateData) (string, error)
 func validateDNSName(dnsName string) error {
 	// TODO:
 	return nil
+}
+
+func parseSelectors(selectors []string) ([]spireapi.Selector, error) {
+	ss := make([]spireapi.Selector, 0, len(selectors))
+	for _, selector := range selectors {
+		s, err := parseSelector(selector)
+		if err != nil {
+			return nil, err
+		}
+		ss = append(ss, s)
+	}
+	return ss, nil
 }
 
 func parseSelector(selector string) (spireapi.Selector, error) {

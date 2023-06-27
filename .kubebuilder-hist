@@ -4,3 +4,4 @@ v3.2.0: .scripts/kubebuilder create api --resource --controller --group spire --
 v3.2.0: .scripts/kubebuilder create api --group spire --version v1alpha1 --kind ControllerManagerConfig --resource --controller=false --make=false
 v3.2.0: .scripts/kubebuilder create webhook --programmatic-validation --kind ClusterFederatedTrustDomain --version v1alpha1 --group spire
 v3.2.0: .scripts/kubebuilder create webhook --programmatic-validation --kind ClusterSPIFFEID --version v1alpha1 --group spire
+v3.3.0: .scripts/kubebuilder create api --resource --controller --group spire --version v1alpha1 --namespaced=false --kind ClusterStaticEntry
