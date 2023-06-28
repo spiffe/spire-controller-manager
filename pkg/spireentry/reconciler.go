@@ -113,15 +113,10 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		var ignored = false
 
 		for i := range namespaces {
-			for _, regex := range r.config.IgnoreNamespaces {
-				if !(regex.FindString(namespaces[i].Name) == "") {
-					clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
-					ignored = true
-					break
-				}
-			}
+			ignored = checkIgnoredNamespace(r.config.IgnoreNamespaces, namespaces[i].Name)
 
 			if ignored {
+				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}
 
@@ -216,6 +211,16 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			log.Error(err, "Failed to update status")
 		}
 	}
+}
+
+func checkIgnoredNamespace(ignoredNamespaces []*regexp.Regexp, namespace string) bool {
+	for _, regex := range ignoredNamespaces {
+		if !(regex.FindString(namespace) == "") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
