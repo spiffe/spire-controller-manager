@@ -1,5 +1,5 @@
 /*
-Copyright 2021 SPIRE Authors.
+Copyright 2023 SPIRE Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,11 +28,11 @@ type ClusterStaticEntrySpec struct {
 	SPIFFEID      string          `json:"spiffeID"`
 	ParentID      string          `json:"parentID"`
 	Selectors     []string        `json:"selectors"`
-	FederatesWith []string        `json:"federatesWith"`
-	X509SVIDTTL   metav1.Duration `json:"x509SVIDTTL"`
-	JWTSVIDTTL    metav1.Duration `json:"jwtSVIDTTL"`
-	DNSNames      []string        `json:"dnsNames"`
-	Hint          string          `json:"hint"`
+	FederatesWith []string        `json:"federatesWith,omitempty"`
+	X509SVIDTTL   metav1.Duration `json:"x509SVIDTTL,omitempty"`
+	JWTSVIDTTL    metav1.Duration `json:"jwtSVIDTTL,omitempty"`
+	DNSNames      []string        `json:"dnsNames,omitempty"`
+	Hint          string          `json:"hint,omitempty"`
 	Admin         bool            `json:"admin,omitempty"`
 	Downstream    bool            `json:"downstream,omitempty"`
 }

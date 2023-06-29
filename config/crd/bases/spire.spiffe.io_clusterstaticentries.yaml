@@ -63,14 +63,9 @@ spec:
               x509SVIDTTL:
                 type: string
             required:
-            - dnsNames
-            - federatesWith
-            - hint
-            - jwtSVIDTTL
             - parentID
             - selectors
             - spiffeID
-            - x509SVIDTTL
             type: object
           status:
             description: ClusterStaticEntryStatus defines the observed state of ClusterStaticEntry
