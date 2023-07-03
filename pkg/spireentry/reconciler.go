@@ -110,12 +110,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		}
 
 		clusterSPIFFEID.NextStatus.Stats.NamespacesSelected += len(namespaces)
-		var ignored = false
 
 		for i := range namespaces {
-			ignored = checkIgnoredNamespace(r.config.IgnoreNamespaces, namespaces[i].Name)
-
-			if ignored {
+			if isNamespaceIgnored(r.config.IgnoreNamespaces, namespaces[i].Name) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}
@@ -213,9 +210,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 }
 
-func checkIgnoredNamespace(ignoredNamespaces []*regexp.Regexp, namespace string) bool {
+func isNamespaceIgnored(ignoredNamespaces []*regexp.Regexp, namespace string) bool {
 	for _, regex := range ignoredNamespaces {
-		if !(regex.FindString(namespace) == "") {
+		if !(regex.MatchString(namespace)) {
 			return true
 		}
 	}
