@@ -212,7 +212,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 
 func isNamespaceIgnored(ignoredNamespaces []*regexp.Regexp, namespace string) bool {
 	for _, regex := range ignoredNamespaces {
-		if !(regex.MatchString(namespace)) {
+		if regex.MatchString(namespace) {
 			return true
 		}
 	}
