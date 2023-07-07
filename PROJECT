@@ -34,4 +34,12 @@ resources:
   kind: ControllerManagerConfig
   path: github.com/spiffe/spire-controller-manager/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+  controller: true
+  domain: spiffe.io
+  group: spire
+  kind: ClusterStaticEntry
+  path: github.com/spiffe/spire-controller-manager/api/v1alpha1
+  version: v1alpha1
 version: "3"

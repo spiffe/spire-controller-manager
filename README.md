@@ -24,6 +24,14 @@ The [ClusterFederatedTrustDomain](docs/clusterfederatedtrustdomain-crd.md)
 resource is a cluster scoped CRD that describes a federation relationship for
 the cluster.
 
+### ClusterStaticEntry
+
+The [ClusterStaticEntry](docs/clusterstaticentry-crd.md) resource is a cluster
+scoped CRD that describes a static SPIRE registration entry. It is typically
+used for registering workloads that do not run in the Kubernetes cluster but
+otherwise need to be part of the trust domain (e.g. downstream nested SPIRE
+servers).
+
 ### Reconciliation
 
 #### Workload Registration
@@ -33,12 +41,14 @@ controllers against the following resources:
 
 - [Pods](https://kubernetes.io/docs/concepts/workloads/pods/)
 - [ClusterSPIFFEID](docs/clusterspiffeid-crd.md)
+- [ClusterStaticEntry](docs/clusterstaticentry-crd.md)
 
 When changes are detected on these resources, a workload reconciliation process
 is triggered. This process determines which SPIRE entries should exist based on
-the existing Pods and ClusterSPIFFEID resources which apply to those pods. It
-creates, updates, and deletes entries on SPIRE server as appropriate to match
-the declared state.
+the existing Pods and ClusterSPIFFEID resources which apply to those pods, as
+well as static entries declared via ClusterStaticEntry resources. The
+reconciliation process creates, updates, and deletes entries on SPIRE server as
+appropriate to match the declared state.
 
 #### Federation
 
@@ -63,6 +73,27 @@ for the environment where it is being deployed.
 The [demo](demo) includes [sample configuration](demo/config/cluster1) for
 deploying the SPIRE Controller Manager, SPIRE, and the SPIFFE CSI driver,
 including requisite RBAC and Webhook configuration.
+
+## Compatibility
+
+The SPIRE APIs used by the SPIRE Controller Manager are generally stable and
+supported since at least SPIRE v1.0. However, the API has gained support for
+additional entry fields beyond what was supported in SPIRE v1.0. Notably, these
+include both the `jwt_svid_ttl` and the `hint` fields. The ClusterStaticEntry
+CRD allows these fields to be set, however, a SPIRE server that does not
+support these fields will not retain them. This means if these fields are set
+on a ClusterStaticEntry with an older version of SPIRE, the SPIRE Controller
+Manager will continously try to reconcile SPIRE server. In order to use these
+fields, you must be on a version of SPIRE Server which supports them.
+
+At the moment, SPIRE Controller Manager will silently try and reconcile these
+fields over and over. Future updates may cause the SPIRE Controller Manager
+to fail when an unsupporting SPIRE Server is encounted while these fields
+are set.
+
+The `hint` field is supported as of SPIRE 1.6.3.
+
+The `jwt_svid_ttl` field is supported as of SPIRE 1.5.0.
 
 ## Demo
 

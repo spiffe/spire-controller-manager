@@ -1,0 +1,6 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterStaticEntry
+metadata:
+  name: clusterstaticentry-sample
+spec:
+  # TODO(user): Add fields here

@@ -27,17 +27,21 @@ import (
 )
 
 const (
-	clusterSPIFFEIDLogKey = "clusterSPIFFEID"
-	namespaceLogKey       = "namespace"
-	podLogKey             = "pod"
-	idKey                 = "id"
-	parentIDKey           = "parentID"
-	spiffeIDKey           = "spiffeID"
-	selectorsKey          = "selectors"
-	federatesWithKey      = "federatesWith"
-	dnsNamesKey           = "dnsNames"
-	adminKey              = "admin"
-	downstreamKey         = "downstream"
+	clusterStaticEntryLogKey = "clusterStaticEntry"
+	clusterSPIFFEIDLogKey    = "clusterSPIFFEID"
+	namespaceLogKey          = "namespace"
+	podLogKey                = "pod"
+	idKey                    = "id"
+	parentIDKey              = "parentID"
+	spiffeIDKey              = "spiffeID"
+	selectorsKey             = "selectors"
+	x509SVIDTTLKey           = "x509SVIDTTL"
+	jwtSVIDTTLKey            = "jwtSVIDTTL"
+	federatesWithKey         = "federatesWith"
+	dnsNamesKey              = "dnsNames"
+	adminKey                 = "admin"
+	downstreamKey            = "downstream"
+	hintKey                  = "hint"
 )
 
 func objectName(o metav1.Object) string {
@@ -52,11 +56,14 @@ func entryLogFields(entry spireapi.Entry) []interface{} {
 		idKey, entry.ID,
 		parentIDKey, entry.ParentID.String(),
 		spiffeIDKey, entry.SPIFFEID.String(),
+		x509SVIDTTLKey, entry.X509SVIDTTL.String(),
+		jwtSVIDTTLKey, entry.JWTSVIDTTL.String(),
 		selectorsKey, stringFromSelectors(entry.Selectors),
 		federatesWithKey, stringFromTrustDomains(entry.FederatesWith),
 		dnsNamesKey, stringList(entry.DNSNames),
 		adminKey, entry.Admin,
 		downstreamKey, entry.Downstream,
+		hintKey, entry.Hint,
 	}
 }
 
