@@ -243,6 +243,31 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 
+	foundClusterStaticEntry := false
+	foundClusterSpiffeID := false
+	foundClusterFederatedTrustDomain := false
+
+	_, resources, err := clientset.ServerGroupsAndResources()
+	for _, r := range resources {
+		if r.GroupVersion == "spire.spiffe.io/v1alpha1" {
+			for _, k := range r.APIResources {
+				setupLog.Info(fmt.Sprintf("checking kind %s", k.Kind))
+				if k.Kind == "ClusterSPIFFEID" {
+					setupLog.Info("Found ClusterSPIFFEID CRD")
+					foundClusterSpiffeID = true
+				}
+				if k.Kind == "ClusterFederatedTrustDomain" {
+					setupLog.Info("Found ClusterFederatedTrustDomain CRD")
+					foundClusterFederatedTrustDomain = true
+				}
+				if k.Kind == "ClusterStaticEntry" {
+					setupLog.Info("Found ClusterStaticEntry CRD")
+					foundClusterStaticEntry = true
+				}
+			}
+		}
+	}
+
 	webhookID, _ := spiffeid.FromPath(trustDomain, "/spire-controller-manager-webhook")
 	webhookManager := webhookmanager.New(webhookmanager.Config{
 		ID:            webhookID,
@@ -274,29 +299,46 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		GCInterval:        ctrlConfig.GCInterval,
 	})
 
-	if err = (&controllers.ClusterSPIFFEIDReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Triggerer: entryReconciler,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
-		return err
+	if foundClusterSpiffeID {
+		if err = (&controllers.ClusterSPIFFEIDReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Triggerer: entryReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
+			return err
+		}
+	} else {
+		setupLog.Info("ClusterSPIFFEID CRD was not installed, please install spire-controller-manager CRDs")
+		setupLog.Info("ClusterSPIFFEIDReconciler will not be started")
 	}
-	if err = (&controllers.ClusterFederatedTrustDomainReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Triggerer: federationRelationshipReconciler,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
-		return err
+
+	if foundClusterFederatedTrustDomain {
+		if err = (&controllers.ClusterFederatedTrustDomainReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Triggerer: federationRelationshipReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
+			return err
+		}
+	} else {
+		setupLog.Info("ClusterFederatedTrustDomain CRD was not installed, please install spire-controller-manager CRDs")
+		setupLog.Info("ClusterFederatedTrustDomainReconciler will not be started")
 	}
-	if err = (&controllers.ClusterStaticEntryReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Triggerer: entryReconciler,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
-		return err
+
+	if foundClusterStaticEntry {
+		if err = (&controllers.ClusterStaticEntryReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Triggerer: entryReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
+			return err
+		}
+	} else {
+		setupLog.Info("ClusterStaticEntry CRD was not installed, please install spire-controller-manager CRDs")
+		setupLog.Info("ClusterStaticEntryReconciler will not be started")
 	}
 	if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
