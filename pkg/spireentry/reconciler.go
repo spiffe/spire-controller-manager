@@ -210,16 +210,6 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 }
 
-func isNamespaceIgnored(ignoredNamespaces []*regexp.Regexp, namespace string) bool {
-	for _, regex := range ignoredNamespaces {
-		if regex.MatchString(namespace) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
 	// TODO: cache?
 	return r.config.EntryClient.ListEntries(ctx)
@@ -501,4 +491,14 @@ func idsFromEntries(entries []spireapi.Entry) []string {
 		ids = append(ids, entry.ID)
 	}
 	return ids
+}
+
+func isNamespaceIgnored(ignoredNamespaces []*regexp.Regexp, namespace string) bool {
+	for _, regex := range ignoredNamespaces {
+		if regex.MatchString(namespace) {
+			return true
+		}
+	}
+
+	return false
 }
