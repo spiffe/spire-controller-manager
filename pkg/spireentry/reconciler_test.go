@@ -78,23 +78,24 @@ func TestMakeEntryKey(t *testing.T) {
 }
 
 func TestIsNamespaceIgnored(t *testing.T) {
-	regex1, _ := regexp.Compile("s([a-z]+)re")
-	regex2, _ := regexp.Compile("default")
+	ignoredNamespaces := []*regexp.Regexp{
+		regexp.MustCompile("s([a-z]+)re"),
+		regexp.MustCompile("default"),
+	}
 
 	tests := []struct {
-		ignoredNamespaces []*regexp.Regexp
-		namespace         string
-		expected          bool
+		namespace string
+		expected  bool
 	}{
-		{[]*regexp.Regexp{regex1, regex2}, "spire", true},
-		{[]*regexp.Regexp{regex1, regex2}, "default", true},
-		{[]*regexp.Regexp{regex1, regex2}, "spiffe", false},
-		{[]*regexp.Regexp{regex1, regex2}, "kubernetes", false},
+		{"spire", true},
+		{"default", true},
+		{"spiffe", false},
+		{"kubernetes", false},
 	}
 
 	for _, test := range tests {
-		actual := isNamespaceIgnored(test.ignoredNamespaces, test.namespace)
+		actual := isNamespaceIgnored(ignoredNamespaces, test.namespace)
 		require.Equalf(t, test.expected, actual, "isNamespaceIgnored(%s, %s): expected does not equal actual",
-			test.ignoredNamespaces, test.namespace)
+			ignoredNamespaces, test.namespace)
 	}
 }
