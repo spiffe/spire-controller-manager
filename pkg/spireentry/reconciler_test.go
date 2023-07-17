@@ -78,29 +78,23 @@ func TestMakeEntryKey(t *testing.T) {
 }
 
 func TestIsNamespaceIgnored(t *testing.T) {
+	regex1, _ := regexp.Compile("s([a-z]+)re")
+	regex2, _ := regexp.Compile("default")
+
 	tests := []struct {
-		ignoredNamespaces []string
+		ignoredNamespaces []*regexp.Regexp
 		namespace         string
 		expected          bool
 	}{
-		{[]string{"s([a-z]+)re", "default"}, "spire", true},
-		{[]string{"s([a-z]+)re", "default"}, "default", true},
-		{[]string{"s([a-z]+)re", "default"}, "spiffe", false},
-		{[]string{"s([a-z]+)re", "default"}, "kubernetes", false},
+		{[]*regexp.Regexp{regex1, regex2}, "spire", true},
+		{[]*regexp.Regexp{regex1, regex2}, "default", true},
+		{[]*regexp.Regexp{regex1, regex2}, "spiffe", false},
+		{[]*regexp.Regexp{regex1, regex2}, "kubernetes", false},
 	}
 
 	for _, test := range tests {
-		var regexIgnoredNamespaces []*regexp.Regexp
-		for _, ignoredNamespace := range test.ignoredNamespaces {
-			regex, err := regexp.Compile(ignoredNamespace)
-
-			if err == nil {
-				regexIgnoredNamespaces = append(regexIgnoredNamespaces, regex)
-			}
-		}
-
-		actual := isNamespaceIgnored(regexIgnoredNamespaces, test.namespace)
-		require.Equalf(t, test.expected, actual, "isNamespaceIgnored(%s, %s): expected %t, actual %t",
-			test.ignoredNamespaces, test.namespace, test.expected, actual)
+		actual := isNamespaceIgnored(test.ignoredNamespaces, test.namespace)
+		require.Equalf(t, test.expected, actual, "isNamespaceIgnored(%s, %s): expected does not equal actual",
+			test.ignoredNamespaces, test.namespace)
 	}
 }
