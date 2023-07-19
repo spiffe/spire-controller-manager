@@ -18,10 +18,13 @@ package spireapi
 
 import (
 	"context"
+	"fmt"
 
 	entryv1 "github.com/spiffe/spire-api-sdk/proto/spire/api/server/entry/v1"
+	"github.com/spiffe/spire-api-sdk/proto/spire/api/types"
 	apitypes "github.com/spiffe/spire-api-sdk/proto/spire/api/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 type EntryClient interface {
@@ -29,6 +32,7 @@ type EntryClient interface {
 	CreateEntries(ctx context.Context, entries []Entry) ([]Status, error)
 	UpdateEntries(ctx context.Context, entries []Entry) ([]Status, error)
 	DeleteEntries(ctx context.Context, entryIDs []string) ([]Status, error)
+	GetUnsupportedFields(ctx context.Context, td string) (map[string]struct{}, error)
 }
 
 func NewEntryClient(conn grpc.ClientConnInterface) EntryClient {
@@ -57,6 +61,73 @@ func (c entryClient) ListEntries(ctx context.Context) ([]Entry, error) {
 		}
 	}
 	return entriesFromAPI(entries)
+}
+
+func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[string]struct{}, error) {
+	unsupportedFields := make(map[string]struct{})
+	resp, err := c.api.BatchCreateEntry(ctx, &entryv1.BatchCreateEntryRequest{
+		Entries: []*apitypes.Entry{
+			{
+				ParentId: &types.SPIFFEID{
+					TrustDomain: td,
+					Path:        "/dummyagent",
+				},
+				SpiffeId: &types.SPIFFEID{
+					TrustDomain: td,
+					Path:        "/w1",
+				},
+				Selectors: []*types.Selector{
+					{
+						Type:  "a",
+						Value: "1",
+					},
+				},
+				X509SvidTtl: 60,
+				JwtSvidTtl:  60,
+				Hint:        "hint",
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Results) != 1 {
+		return nil, fmt.Errorf("only one response expected but got %v", len(resp.Results))
+	}
+
+	result := resp.Results[0]
+	if result.Status.Code != int32(codes.OK) {
+		return nil, fmt.Errorf("failed to create entry: %v", result.Status.Message)
+	}
+
+	deleteResponse, err := c.api.BatchDeleteEntry(ctx, &entryv1.BatchDeleteEntryRequest{
+		Ids: []string{
+			result.Entry.Id,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(deleteResponse.Results) != 1 {
+		return nil, fmt.Errorf("only one response expected when deleting entry but got %v", len(resp.Results))
+	}
+
+	deleteResult := deleteResponse.Results[0]
+	if deleteResult.Status.Code != int32(codes.OK) {
+		return nil, fmt.Errorf("failed to create entry: %v", deleteResult.Status.Message)
+	}
+
+	if result.Entry.JwtSvidTtl == 0 {
+		unsupportedFields["jwtSVIDTTL"] = struct{}{}
+	}
+
+	if result.Entry.Hint == "" {
+		unsupportedFields["hint"] = struct{}{}
+	}
+
+	return unsupportedFields, nil
 }
 
 func (c entryClient) CreateEntries(ctx context.Context, entries []Entry) ([]Status, error) {

@@ -23,6 +23,7 @@ import (
 	"io"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
@@ -71,6 +72,20 @@ type entryReconciler struct {
 
 func (r *entryReconciler) reconcile(ctx context.Context) {
 	log := log.FromContext(ctx)
+
+	unsupportedFields, err := r.getUnsupportedFields(ctx)
+	if err != nil {
+		log.Error(err, "Failed to get unsupported fields")
+		return
+	}
+
+	if len(unsupportedFields) > 0 {
+		var fields []string
+		for key := range unsupportedFields {
+			fields = append(fields, key)
+		}
+		log.Info("SPIRE Server version does not support fields", "keys", strings.Join(fields, ","))
+	}
 
 	// Load current entries from SPIRE server.
 	currentEntries, err := r.listEntries(ctx)
@@ -125,7 +140,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 				toCreate = append(toCreate, preferredEntry)
 			} else {
 				preferredEntry.Entry.ID = s.Current[0].ID
-				if outdatedFields := getOutdatedEntryFields(preferredEntry.Entry, s.Current[0]); len(outdatedFields) != 0 {
+				if outdatedFields := getOutdatedEntryFields(preferredEntry.Entry, s.Current[0], unsupportedFields); len(outdatedFields) != 0 {
 					// Current field does not match. Nothing to do.
 					toUpdate = append(toUpdate, preferredEntry)
 				}
@@ -182,6 +197,10 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
 	// TODO: cache?
 	return r.config.EntryClient.ListEntries(ctx)
+}
+
+func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[string]struct{}, error) {
+	return r.config.EntryClient.GetUnsupportedFields(ctx, r.config.TrustDomain.Name())
 }
 
 func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*ClusterStaticEntry, error) {
@@ -477,7 +496,7 @@ func objectCmp(a, b byObject) int {
 	}
 }
 
-func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
+func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry, unsupportedFields map[string]struct{}) []string {
 	// We don't need to bother with the parent ID, the SPIFFE ID, or the
 	// selectors since they are part of the uniqueness check that resulted in
 	// the AlreadyExists error code.
@@ -486,7 +505,9 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
 		outdated = append(outdated, "x509SVIDTTL")
 	}
 	if oldEntry.JWTSVIDTTL != newEntry.JWTSVIDTTL {
-		outdated = append(outdated, "jwtSVIDTTL")
+		if _, ok := unsupportedFields["jwtSVIDTTL"]; !ok {
+			outdated = append(outdated, "jwtSVIDTTL")
+		}
 	}
 	if !trustDomainsMatch(oldEntry.FederatesWith, newEntry.FederatesWith) {
 		outdated = append(outdated, "federatesWith")
@@ -501,7 +522,9 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
 		outdated = append(outdated, "dnsNames")
 	}
 	if oldEntry.Hint != newEntry.Hint {
-		outdated = append(outdated, "hint")
+		if _, ok := unsupportedFields["hint"]; !ok {
+			outdated = append(outdated, "hint")
+		}
 	}
 
 	return outdated
