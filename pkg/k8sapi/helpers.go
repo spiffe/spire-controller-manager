@@ -25,6 +25,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func ListClusterStaticEntries(ctx context.Context, c client.Client) ([]spirev1alpha1.ClusterStaticEntry, error) {
+	var list spirev1alpha1.ClusterStaticEntryList
+	if err := c.List(ctx, &list); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
 func ListClusterSPIFFEIDs(ctx context.Context, c client.Client) ([]spirev1alpha1.ClusterSPIFFEID, error) {
 	var list spirev1alpha1.ClusterSPIFFEIDList
 	if err := c.List(ctx, &list); err != nil {

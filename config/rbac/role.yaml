@@ -81,3 +81,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - spire.spiffe.io
+  resources:
+  - clusterstaticentries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - spire.spiffe.io
+  resources:
+  - clusterstaticentries/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - spire.spiffe.io
+  resources:
+  - clusterstaticentries/status
+  verbs:
+  - get
+  - patch
+  - update

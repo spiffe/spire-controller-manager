@@ -46,8 +46,8 @@ log-info "Building greeter server/client..."
 (cd greeter; make docker-build)
 
 log-info "Pulling docker images..."
-echo ghcr.io/spiffe/spire-server:1.2.3 \
-    ghcr.io/spiffe/spire-agent:1.2.3 \
+echo ghcr.io/spiffe/spire-server:1.7.0 \
+    ghcr.io/spiffe/spire-agent:1.7.0 \
     ghcr.io/spiffe/spiffe-csi-driver:0.2.0 \
     | xargs -n1 docker pull
 
@@ -59,8 +59,8 @@ log-info "Creating cluster2..."
 
 log-info "Loading images into cluster1..."
 echo \
-    ghcr.io/spiffe/spire-server:1.2.3 \
-    ghcr.io/spiffe/spire-agent:1.2.3 \
+    ghcr.io/spiffe/spire-server:1.7.0 \
+    ghcr.io/spiffe/spire-agent:1.7.0 \
     ghcr.io/spiffe/spiffe-csi-driver:0.2.0 \
     ghcr.io/spiffe/spire-controller-manager:nightly \
     greeter-server:demo \
@@ -68,8 +68,8 @@ echo \
 
 log-info "Loading images into cluster2..."
 echo \
-    ghcr.io/spiffe/spire-server:1.2.3 \
-    ghcr.io/spiffe/spire-agent:1.2.3 \
+    ghcr.io/spiffe/spire-server:1.7.0 \
+    ghcr.io/spiffe/spire-agent:1.7.0 \
     ghcr.io/spiffe/spiffe-csi-driver:0.2.0 \
     ghcr.io/spiffe/spire-controller-manager:nightly \
     greeter-client:demo \
@@ -140,6 +140,13 @@ log-info "Configuring the greeter client ID in cluster2..."
 ./cluster2 kubectl apply -f config/greeter-client-id.yaml
 
 ############################################################################
+# Add a static entry
+############################################################################
+
+log-info "Configuring the static entry in cluster1..."
+./cluster1 kubectl apply -f config/static-entry.yaml
+
+############################################################################
 # Check status
 ############################################################################
 
@@ -171,5 +178,20 @@ done
 if [ -z "$SUCCESS" ]; then
     fail-now "Client never received response from server :("
 fi
+
+log-info "Checking for the static entry..."
+SUCCESS=
+for ((i = 0; i < 30; i++)); do
+    if ./cluster1 scripts/show-spire-entries.sh | grep -q static-spiffe-id; then
+        log-info "Static entry created in cluster1"
+        SUCCESS=true
+        break
+    fi
+    sleep 1
+done
+if [ -z "$SUCCESS" ]; then
+    fail-now "Static entry never created :("
+fi
+
 
 log-good "Success."
