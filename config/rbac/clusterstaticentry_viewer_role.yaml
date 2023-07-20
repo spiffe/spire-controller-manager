@@ -1,0 +1,20 @@
+# permissions for end users to view clusterstaticentries.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: clusterstaticentry-viewer-role
+rules:
+- apiGroups:
+  - spire.spiffe.io
+  resources:
+  - clusterstaticentries
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - spire.spiffe.io
+  resources:
+  - clusterstaticentries/status
+  verbs:
+  - get

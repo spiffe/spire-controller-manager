@@ -85,14 +85,158 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		state.AddCurrent(entry)
 	}
 
-	// Load ClusterSPIFFEIDs
+	// Load and add entry state for ClusterStaticEntries
+	clusterStaticEntries, err := r.listClusterStaticEntries(ctx)
+	if err != nil {
+		log.Error(err, "Failed to list ClusterStaticEntries")
+		return
+	}
+	r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
+
+	// Load and add entry state for ClusterSPIFFEIDs
 	clusterSPIFFEIDs, err := r.listClusterSPIFFEIDs(ctx)
 	if err != nil {
 		log.Error(err, "Failed to list ClusterSPIFFEIDs")
 		return
 	}
+	r.addClusterSPIFFEIDEntriesState(ctx, state, clusterSPIFFEIDs)
 
-	// Build up the list of declared entries
+	var toDelete []spireapi.Entry
+	var toCreate []declaredEntry
+	var toUpdate []declaredEntry
+
+	for _, s := range state {
+		// Sort declared entries.
+		sortDeclaredEntriesByPreference(s.Declared)
+		if len(s.Declared) > 0 {
+			// Grab the first to set.
+			preferredEntry := s.Declared[0]
+			preferredEntry.By.IncrementEntriesToSet()
+
+			// Record the remaining as masked.
+			for _, otherEntry := range s.Declared[1:] {
+				otherEntry.By.IncrementEntriesMasked()
+			}
+
+			// Borrow the current entry ID if available, for the update. Then
+			// drop the current entry from the list so it isn't added to the
+			// "to delete" list.
+			if len(s.Current) == 0 {
+				toCreate = append(toCreate, preferredEntry)
+			} else {
+				preferredEntry.Entry.ID = s.Current[0].ID
+				if outdatedFields := getOutdatedEntryFields(preferredEntry.Entry, s.Current[0]); len(outdatedFields) != 0 {
+					// Current field does not match. Nothing to do.
+					toUpdate = append(toUpdate, preferredEntry)
+				}
+				s.Current = s.Current[1:]
+			}
+		}
+
+		// Any remaining current entries should be removed that aren't going
+		// to be reused for the entry update.
+		toDelete = append(toDelete, s.Current...)
+	}
+
+	if len(toDelete) > 0 {
+		r.deleteEntries(ctx, toDelete)
+	}
+	if len(toCreate) > 0 {
+		r.createEntries(ctx, toCreate)
+	}
+	if len(toUpdate) > 0 {
+		r.updateEntries(ctx, toUpdate)
+	}
+
+	// Update the ClusterStaticEntry statuses
+	for _, clusterStaticEntry := range clusterStaticEntries {
+		log := log.WithValues(clusterStaticEntryLogKey, objectName(clusterStaticEntry))
+
+		if clusterStaticEntry.Status == clusterStaticEntry.NextStatus {
+			continue
+		}
+		clusterStaticEntry.Status = clusterStaticEntry.NextStatus
+		if err := r.config.K8sClient.Status().Update(ctx, &clusterStaticEntry.ClusterStaticEntry); err == nil {
+			log.Info("Updated status")
+		} else {
+			log.Error(err, "Failed to update status")
+		}
+	}
+
+	// Update the ClusterSPIFFEID statuses
+	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
+		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterSPIFFEID))
+
+		if clusterSPIFFEID.Status == clusterSPIFFEID.NextStatus {
+			continue
+		}
+		clusterSPIFFEID.Status = clusterSPIFFEID.NextStatus
+		if err := r.config.K8sClient.Status().Update(ctx, &clusterSPIFFEID.ClusterSPIFFEID); err == nil {
+			log.Info("Updated status")
+		} else {
+			log.Error(err, "Failed to update status")
+		}
+	}
+}
+
+func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
+	// TODO: cache?
+	return r.config.EntryClient.ListEntries(ctx)
+}
+
+func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*ClusterStaticEntry, error) {
+	clusterStaticEntries, err := k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*ClusterStaticEntry, 0, len(clusterStaticEntries))
+	for _, clusterStaticEntry := range clusterStaticEntries {
+		out = append(out, &ClusterStaticEntry{
+			ClusterStaticEntry: clusterStaticEntry,
+		})
+	}
+	return out, nil
+}
+
+func (r *entryReconciler) listClusterSPIFFEIDs(ctx context.Context) ([]*ClusterSPIFFEID, error) {
+	clusterSPIFFEIDs, err := k8sapi.ListClusterSPIFFEIDs(ctx, r.config.K8sClient)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*ClusterSPIFFEID, 0, len(clusterSPIFFEIDs))
+	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
+		out = append(out, &ClusterSPIFFEID{
+			ClusterSPIFFEID: clusterSPIFFEID,
+		})
+	}
+	return out, nil
+}
+
+func (r *entryReconciler) listNamespaces(ctx context.Context, namespaceSelector labels.Selector) ([]corev1.Namespace, error) {
+	return k8sapi.ListNamespaces(ctx, r.config.K8sClient, namespaceSelector)
+}
+
+func (r *entryReconciler) listNamespacePods(ctx context.Context, namespace string, podSelector labels.Selector) ([]corev1.Pod, error) {
+	return k8sapi.ListNamespacePods(ctx, r.config.K8sClient, namespace, podSelector)
+}
+
+func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context, state entriesState, clusterStaticEntries []*ClusterStaticEntry) {
+	log := log.FromContext(ctx)
+	for _, clusterStaticEntry := range clusterStaticEntries {
+		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterStaticEntry))
+		entry, err := renderStaticEntry(&clusterStaticEntry.Spec)
+		if err != nil {
+			log.Error(err, "Failed to render ClusterStaticEntry")
+			clusterStaticEntry.NextStatus.Rendered = false
+			continue
+		}
+		clusterStaticEntry.NextStatus.Rendered = true
+		state.AddDeclared(*entry, clusterStaticEntry)
+	}
+}
+
+func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID) {
+	log := log.FromContext(ctx)
 	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
 		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterSPIFFEID))
 
@@ -148,95 +292,6 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			}
 		}
 	}
-
-	var toDelete []spireapi.Entry
-	var toCreate []declaredEntry
-	var toUpdate []declaredEntry
-
-	for _, s := range state {
-		// Sort declared entries.
-		sortDeclaredEntriesByPreference(s.Declared)
-		if len(s.Declared) > 0 {
-			// Grab the first to set.
-			preferredEntry := s.Declared[0]
-			preferredEntry.By.NextStatus.Stats.EntriesToSet++
-
-			// Record the remaining as masked.
-			for _, otherEntry := range s.Declared[1:] {
-				otherEntry.By.NextStatus.Stats.EntriesMasked++
-			}
-
-			// Borrow the current entry ID if available, for the update. Then
-			// drop the current entry from the list so it isn't added to the
-			// "to delete" list.
-			if len(s.Current) == 0 {
-				toCreate = append(toCreate, preferredEntry)
-			} else {
-				preferredEntry.Entry.ID = s.Current[0].ID
-				if outdatedFields := getOutdatedEntryFields(preferredEntry.Entry, s.Current[0]); len(outdatedFields) != 0 {
-					// Current field does not match. Nothing to do.
-					toUpdate = append(toUpdate, preferredEntry)
-				}
-				s.Current = s.Current[1:]
-			}
-		}
-
-		// Any remaining current entries should be removed that aren't going
-		// to be reused for the entry update.
-		toDelete = append(toDelete, s.Current...)
-	}
-
-	if len(toDelete) > 0 {
-		r.deleteEntries(ctx, toDelete)
-	}
-	if len(toCreate) > 0 {
-		r.createEntries(ctx, toCreate)
-	}
-	if len(toUpdate) > 0 {
-		r.updateEntries(ctx, toUpdate)
-	}
-
-	// Update the ClusterSPIFFEID statuses
-	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
-		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterSPIFFEID))
-
-		if clusterSPIFFEID.Status == clusterSPIFFEID.NextStatus {
-			continue
-		}
-		clusterSPIFFEID.Status = clusterSPIFFEID.NextStatus
-		if err := r.config.K8sClient.Status().Update(ctx, &clusterSPIFFEID.ClusterSPIFFEID); err == nil {
-			log.Info("Updated status")
-		} else {
-			log.Error(err, "Failed to update status")
-		}
-	}
-}
-
-func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
-	// TODO: cache?
-	return r.config.EntryClient.ListEntries(ctx)
-}
-
-func (r *entryReconciler) listClusterSPIFFEIDs(ctx context.Context) ([]*ClusterSPIFFEID, error) {
-	clusterSPIFFEIDs, err := k8sapi.ListClusterSPIFFEIDs(ctx, r.config.K8sClient)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]*ClusterSPIFFEID, 0, len(clusterSPIFFEIDs))
-	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
-		out = append(out, &ClusterSPIFFEID{
-			ClusterSPIFFEID: clusterSPIFFEID,
-		})
-	}
-	return out, nil
-}
-
-func (r *entryReconciler) listNamespaces(ctx context.Context, namespaceSelector labels.Selector) ([]corev1.Namespace, error) {
-	return k8sapi.ListNamespaces(ctx, r.config.K8sClient, namespaceSelector)
-}
-
-func (r *entryReconciler) listNamespacePods(ctx context.Context, namespace string, podSelector labels.Selector) ([]corev1.Pod, error) {
-	return k8sapi.ListNamespacePods(ctx, r.config.K8sClient, namespace, podSelector)
 }
 
 func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, pod *corev1.Pod) (*spireapi.Entry, error) {
@@ -254,7 +309,7 @@ func (r *entryReconciler) createEntries(ctx context.Context, declaredEntries []d
 	statuses, err := r.config.EntryClient.CreateEntries(ctx, entriesFromDeclaredEntries(declaredEntries))
 	if err != nil {
 		for _, declaredEntry := range declaredEntries {
-			declaredEntry.By.NextStatus.Stats.EntryFailures++
+			declaredEntry.By.IncrementEntryFailures()
 		}
 		log.Error(err, "Failed to update entries")
 		return
@@ -263,8 +318,9 @@ func (r *entryReconciler) createEntries(ctx context.Context, declaredEntries []d
 		switch status.Code {
 		case codes.OK:
 			log.Info("Created entry", entryLogFields(declaredEntries[i].Entry)...)
+			declaredEntries[i].By.IncrementEntrySuccess()
 		default:
-			declaredEntries[i].By.NextStatus.Stats.EntryFailures++
+			declaredEntries[i].By.IncrementEntryFailures()
 			log.Error(status.Err(), "Failed to create entry", entryLogFields(declaredEntries[i].Entry)...)
 		}
 	}
@@ -275,7 +331,7 @@ func (r *entryReconciler) updateEntries(ctx context.Context, declaredEntries []d
 	statuses, err := r.config.EntryClient.UpdateEntries(ctx, entriesFromDeclaredEntries(declaredEntries))
 	if err != nil {
 		for _, declaredEntry := range declaredEntries {
-			declaredEntry.By.NextStatus.Stats.EntryFailures++
+			declaredEntry.By.IncrementEntryFailures()
 		}
 		log.Error(err, "Failed to update entries")
 		return
@@ -285,7 +341,7 @@ func (r *entryReconciler) updateEntries(ctx context.Context, declaredEntries []d
 		case codes.OK:
 			log.Info("Updated entry", entryLogFields(declaredEntries[i].Entry)...)
 		default:
-			declaredEntries[i].By.NextStatus.Stats.EntryFailures++
+			declaredEntries[i].By.IncrementEntryFailures()
 			log.Error(status.Err(), "Failed to update entry", entryLogFields(declaredEntries[i].Entry)...)
 		}
 	}
@@ -315,11 +371,11 @@ func (es entriesState) AddCurrent(entry spireapi.Entry) {
 	s.Current = append(s.Current, entry)
 }
 
-func (es entriesState) AddDeclared(entry spireapi.Entry, source *ClusterSPIFFEID) {
+func (es entriesState) AddDeclared(entry spireapi.Entry, by byObject) {
 	s := es.stateFor(entry)
 	s.Declared = append(s.Declared, declaredEntry{
 		Entry: entry,
-		By:    source,
+		By:    by,
 	})
 }
 
@@ -333,11 +389,6 @@ func (es entriesState) stateFor(entry spireapi.Entry) *entryState {
 	return s
 }
 
-type ClusterSPIFFEID struct {
-	spirev1alpha1.ClusterSPIFFEID
-	NextStatus spirev1alpha1.ClusterSPIFFEIDStatus
-}
-
 type entryState struct {
 	Current  []spireapi.Entry
 	Declared []declaredEntry
@@ -345,7 +396,7 @@ type entryState struct {
 
 type declaredEntry struct {
 	Entry spireapi.Entry
-	By    *ClusterSPIFFEID
+	By    byObject
 }
 
 type entryKey string
@@ -380,41 +431,50 @@ func sortSelectors(unsorted []spireapi.Selector) []spireapi.Selector {
 func sortDeclaredEntriesByPreference(entries []declaredEntry) {
 	// The most preferred is sorted to the first slot.
 	sort.Slice(entries, func(i, j int) bool {
-		a := entries[i].By.ObjectMeta
-		b := entries[j].By.ObjectMeta
-
-		// Sort ascending by creation timestamp
-		creationDiff := a.CreationTimestamp.UnixNano() - b.CreationTimestamp.UnixNano()
-		switch {
-		case creationDiff < 0:
-			return true
-		case creationDiff > 0:
-			return false
-		}
-
-		// Sort _descending_ by deletion timestamp (those with no timestamp sort first)
-		switch {
-		case a.DeletionTimestamp == nil && b.DeletionTimestamp == nil:
-			// fallthrough to next criteria
-		case a.DeletionTimestamp != nil && b.DeletionTimestamp == nil:
-			return false
-		case a.DeletionTimestamp == nil && b.DeletionTimestamp != nil:
-			return true
-		case a.DeletionTimestamp != nil && b.DeletionTimestamp != nil:
-			deleteDiff := a.DeletionTimestamp.UnixNano() - b.DeletionTimestamp.UnixNano()
-			switch {
-			case deleteDiff < 0:
-				return false
-			case deleteDiff > 0:
-				return true
-			}
-		}
-
-		// At this point, these two entries are more or less equal in
-		// precedence, but we need a stable sorting mechanism, so tie-break
-		// with the UID.
-		return a.UID < b.UID
+		a, b := entries[i].By, entries[j].By
+		return objectCmp(a, b) < 0
 	})
+}
+
+func objectCmp(a, b byObject) int {
+	// Sort ascending by creation timestamp
+	creationDiff := a.GetCreationTimestamp().UnixNano() - b.GetCreationTimestamp().UnixNano()
+	switch {
+	case creationDiff < 0:
+		return -1
+	case creationDiff > 0:
+		return 1
+	}
+
+	// Sort _descending_ by deletion timestamp (those with no timestamp sort first)
+	switch {
+	case a.GetDeletionTimestamp() == nil && b.GetDeletionTimestamp() == nil:
+		// fallthrough to next criteria
+	case a.GetDeletionTimestamp() != nil && b.GetDeletionTimestamp() == nil:
+		return 1
+	case a.GetDeletionTimestamp() == nil && b.GetDeletionTimestamp() != nil:
+		return -1
+	case a.GetDeletionTimestamp() != nil && b.GetDeletionTimestamp() != nil:
+		deleteDiff := a.GetDeletionTimestamp().UnixNano() - b.GetDeletionTimestamp().UnixNano()
+		switch {
+		case deleteDiff < 0:
+			return 1
+		case deleteDiff > 0:
+			return -1
+		}
+	}
+
+	// At this point, these two entries are more or less equal in
+	// precedence, but we need a stable sorting mechanism, so tie-break
+	// with the UID.
+	switch {
+	case a.GetUID() < b.GetUID():
+		return -1
+	case a.GetUID() > b.GetUID():
+		return 1
+	default:
+		return 0
+	}
 }
 
 func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
@@ -424,6 +484,9 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
 	var outdated []string
 	if oldEntry.X509SVIDTTL != newEntry.X509SVIDTTL {
 		outdated = append(outdated, "x509SVIDTTL")
+	}
+	if oldEntry.JWTSVIDTTL != newEntry.JWTSVIDTTL {
+		outdated = append(outdated, "jwtSVIDTTL")
 	}
 	if !trustDomainsMatch(oldEntry.FederatesWith, newEntry.FederatesWith) {
 		outdated = append(outdated, "federatesWith")
@@ -436,6 +499,9 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
 	}
 	if !stringsMatch(oldEntry.DNSNames, newEntry.DNSNames) {
 		outdated = append(outdated, "dnsNames")
+	}
+	if oldEntry.Hint != newEntry.Hint {
+		outdated = append(outdated, "hint")
 	}
 
 	return outdated

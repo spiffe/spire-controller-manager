@@ -1,0 +1,15 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterStaticEntry
+metadata:
+  name: static-entry
+spec:
+  spiffeID: spiffe://cluster1.demo/static-spiffe-id
+  parentID: spiffe://cluster1.demo/static-parent-id
+  selectors: ["static:one", "static:two"]
+  federatesWith: ["cluster1.demo"]
+  x509SVIDTTL: "2h"
+  jwtSVIDTTL: "6m"
+  dnsNames: ["static-dns"]
+  hint: "static-hint-2"
+  admin: true
+  downstream: true

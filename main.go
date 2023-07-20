@@ -290,6 +290,14 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
 		return err
 	}
+	if err = (&controllers.ClusterStaticEntryReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Triggerer: entryReconciler,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
+		return err
+	}
 	if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
 		return err

@@ -1,0 +1,24 @@
+# permissions for end users to edit clusterstaticentries.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: clusterstaticentry-editor-role
+rules:
+- apiGroups:
+  - spire.spiffe.io
+  resources:
+  - clusterstaticentries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - spire.spiffe.io
+  resources:
+  - clusterstaticentries/status
+  verbs:
+  - get
