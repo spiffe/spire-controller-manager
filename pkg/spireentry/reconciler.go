@@ -28,8 +28,10 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
+	"github.com/spiffe/spire-controller-manager/pkg/namespace"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
+
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -112,7 +114,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		clusterSPIFFEID.NextStatus.Stats.NamespacesSelected += len(namespaces)
 
 		for i := range namespaces {
-			if isNamespaceIgnored(r.config.IgnoreNamespaces, namespaces[i].Name) {
+			if namespace.IsIgnored(r.config.IgnoreNamespaces, namespaces[i].Name) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}
@@ -491,14 +493,4 @@ func idsFromEntries(entries []spireapi.Entry) []string {
 		ids = append(ids, entry.ID)
 	}
 	return ids
-}
-
-func isNamespaceIgnored(ignoredNamespaces []*regexp.Regexp, namespace string) bool {
-	for _, regex := range ignoredNamespaces {
-		if regex.MatchString(namespace) {
-			return true
-		}
-	}
-
-	return false
 }

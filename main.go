@@ -61,9 +61,8 @@ const (
 )
 
 var (
-	scheme                = runtime.NewScheme()
-	setupLog              = ctrl.Log.WithName("setup")
-	ignoreNamespacesRegex []*regexp.Regexp
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
@@ -74,18 +73,18 @@ func init() {
 }
 
 func main() {
-	ctrlConfig, options, err := parseConfig()
+	ctrlConfig, options, ignoreNamespacesRegex, err := parseConfig()
 	if err != nil {
 		setupLog.Error(err, "error parsing configuration")
 		os.Exit(1)
 	}
 
-	if err := run(ctrlConfig, options); err != nil {
+	if err := run(ctrlConfig, options, ignoreNamespacesRegex); err != nil {
 		os.Exit(1)
 	}
 }
 
-func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) {
+func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*regexp.Regexp, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
 	flag.StringVar(&configFileFlag, "config", "",
@@ -111,15 +110,17 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 	}
 
 	options := ctrl.Options{Scheme: scheme}
+	var ignoreNamespacesRegex []*regexp.Regexp
+
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig); err != nil {
-			return ctrlConfig, options, fmt.Errorf("unable to load the config file: %w", err)
+			return ctrlConfig, options, ignoreNamespacesRegex, fmt.Errorf("unable to load the config file: %w", err)
 		}
 
 		for _, ignoredNamespace := range ctrlConfig.IgnoreNamespaces {
 			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
-				return ctrlConfig, options, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
+				return ctrlConfig, options, ignoreNamespacesRegex, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
 			}
 
 			ignoreNamespacesRegex = append(ignoreNamespacesRegex, regex)
@@ -162,19 +163,19 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, error) 
 	switch {
 	case ctrlConfig.TrustDomain == "":
 		setupLog.Error(nil, "trust domain is required configuration")
-		return ctrlConfig, options, errors.New("trust domain is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, errors.New("trust domain is required configuration")
 	case ctrlConfig.ClusterName == "":
-		return ctrlConfig, options, errors.New("cluster name is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, errors.New("cluster name is required configuration")
 	case ctrlConfig.ValidatingWebhookConfigurationName == "":
-		return ctrlConfig, options, errors.New("validating webhook configuration name is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, errors.New("validating webhook configuration name is required configuration")
 	case ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir != "":
 		setupLog.Info("certDir configuration is ignored", "certDir", ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir)
 	}
 
-	return ctrlConfig, options, nil
+	return ctrlConfig, options, ignoreNamespacesRegex, nil
 }
 
-func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options) error {
+func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp) error {
 	// It's unfortunate that we have to keep credentials on disk so that the
 	// manager can load them:
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to

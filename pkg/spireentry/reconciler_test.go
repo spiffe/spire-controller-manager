@@ -1,7 +1,6 @@
 package spireentry
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
@@ -75,27 +74,4 @@ func TestMakeEntryKey(t *testing.T) {
 		b := spireapi.Entry{ID: "B", ParentID: id1, SPIFFEID: id2, Selectors: sAABB, DNSNames: []string{"B"}}
 		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
 	})
-}
-
-func TestIsNamespaceIgnored(t *testing.T) {
-	ignoredNamespaces := []*regexp.Regexp{
-		regexp.MustCompile("s([a-z]+)re"),
-		regexp.MustCompile("default"),
-	}
-
-	tests := []struct {
-		namespace string
-		expected  bool
-	}{
-		{"spire", true},
-		{"default", true},
-		{"spiffe", false},
-		{"kubernetes", false},
-	}
-
-	for _, test := range tests {
-		actual := isNamespaceIgnored(ignoredNamespaces, test.namespace)
-		require.Equalf(t, test.expected, actual, "isNamespaceIgnored(%s, %s): expected does not equal actual",
-			ignoredNamespaces, test.namespace)
-	}
 }
