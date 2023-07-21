@@ -25,6 +25,17 @@ import (
 	apitypes "github.com/spiffe/spire-api-sdk/proto/spire/api/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	AdminField         = "admin"
+	DNSNamesField      = "dnsNames"
+	DownstreamField    = "downstream"
+	FederatesWithField = "federatesWith"
+	HintField          = "hint"
+	JWTSVIDTTLField    = "jwtSVIDTTL"
+	X509SVIDTTL        = "x509SVIDTTL"
 )
 
 type EntryClient interface {
@@ -101,30 +112,22 @@ func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[s
 		return nil, fmt.Errorf("failed to create entry: %v", result.Status.Message)
 	}
 
-	deleteResponse, err := c.api.BatchDeleteEntry(ctx, &entryv1.BatchDeleteEntryRequest{
+	_, err = c.api.BatchDeleteEntry(ctx, &entryv1.BatchDeleteEntryRequest{
 		Ids: []string{
 			result.Entry.Id,
 		},
 	})
 	if err != nil {
-		return nil, err
-	}
-
-	if len(deleteResponse.Results) != 1 {
-		return nil, fmt.Errorf("only one response expected when deleting entry but got %v", len(resp.Results))
-	}
-
-	deleteResult := deleteResponse.Results[0]
-	if deleteResult.Status.Code != int32(codes.OK) {
-		return nil, fmt.Errorf("failed to create entry: %v", deleteResult.Status.Message)
+		log := log.FromContext(ctx)
+		log.Error(err, "failed to delete dummy entry", "entry_id", result.Entry.Id)
 	}
 
 	if result.Entry.JwtSvidTtl == 0 {
-		unsupportedFields["jwtSVIDTTL"] = struct{}{}
+		unsupportedFields[JWTSVIDTTLField] = struct{}{}
 	}
 
 	if result.Entry.Hint == "" {
-		unsupportedFields["hint"] = struct{}{}
+		unsupportedFields[HintField] = struct{}{}
 	}
 
 	return unsupportedFields, nil

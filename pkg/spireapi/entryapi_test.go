@@ -157,6 +157,64 @@ func TestCreateEntries(t *testing.T) {
 	}
 }
 
+func TestGetUnsupportedFields(t *testing.T) {
+	for _, tc := range []struct {
+		desc                   string
+		cleanUnsupportedFields bool
+		createEntryErr         error
+		deleteEntryErr         error
+
+		expectErr    error
+		expectFields map[string]struct{}
+	}{
+		{
+			desc:         "no old fields",
+			expectFields: make(map[string]struct{}),
+		},
+		{
+			desc:                   "old fields found",
+			cleanUnsupportedFields: true,
+			expectFields: map[string]struct{}{
+				"hint":       {},
+				"jwtSVIDTTL": {},
+			},
+		},
+		{
+			desc:           "failed to create entry",
+			createEntryErr: status.Error(codes.Internal, "oh no"),
+			expectErr:      status.Error(codes.Internal, "oh no"),
+		},
+		{
+			desc:                   "failed to delete entry",
+			cleanUnsupportedFields: true,
+			deleteEntryErr:         status.Error(codes.Internal, "oh no"),
+			expectFields: map[string]struct{}{
+				"hint":       {},
+				"jwtSVIDTTL": {},
+			},
+		},
+	} {
+		t.Run(tc.desc, func(t *testing.T) {
+			server, client := startEntryAPIServer(t)
+
+			server.batchCreateEntriesErr = tc.createEntryErr
+			server.batchDeleteEntriesErr = tc.deleteEntryErr
+			server.cleanUnsupportedFields = tc.cleanUnsupportedFields
+
+			resp, err := client.GetUnsupportedFields(ctx, "domain.test")
+			if tc.expectErr != nil {
+				assertErrorIs(t, err, tc.expectErr)
+				assert.Empty(t, resp)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expectFields, resp)
+		})
+	}
+}
+
 func TestUpdateEntries(t *testing.T) {
 	server, client := startEntryAPIServer(t)
 
@@ -309,6 +367,8 @@ type entryServer struct {
 	mtx     sync.RWMutex
 	entries []*apitypes.Entry
 
+	cleanUnsupportedFields bool
+
 	listEntriesErr        error
 	batchCreateEntriesErr error
 	batchUpdateEntriesErr error
@@ -336,6 +396,12 @@ func (s *entryServer) BatchCreateEntry(ctx context.Context, req *entryv1.BatchCr
 	resp := new(entryv1.BatchCreateEntryResponse)
 
 	for _, entry := range req.Entries {
+		//  Remove values from new fields to emulate an old server is used
+		if s.cleanUnsupportedFields {
+			entry.JwtSvidTtl = 0
+			entry.Hint = ""
+		}
+
 		st := status.Convert(s.createEntry(entry))
 		result := &entryv1.BatchCreateEntryResponse_Result{
 			Status: &apitypes.Status{

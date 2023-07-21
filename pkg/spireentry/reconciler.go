@@ -502,28 +502,28 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry, unsupportedFields
 	// the AlreadyExists error code.
 	var outdated []string
 	if oldEntry.X509SVIDTTL != newEntry.X509SVIDTTL {
-		outdated = append(outdated, "x509SVIDTTL")
+		outdated = append(outdated, spireapi.X509SVIDTTL)
 	}
 	if oldEntry.JWTSVIDTTL != newEntry.JWTSVIDTTL {
-		if _, ok := unsupportedFields["jwtSVIDTTL"]; !ok {
-			outdated = append(outdated, "jwtSVIDTTL")
+		if _, ok := unsupportedFields[spireapi.JWTSVIDTTLField]; !ok {
+			outdated = append(outdated, spireapi.JWTSVIDTTLField)
 		}
 	}
 	if !trustDomainsMatch(oldEntry.FederatesWith, newEntry.FederatesWith) {
-		outdated = append(outdated, "federatesWith")
+		outdated = append(outdated, spireapi.FederatesWithField)
 	}
 	if oldEntry.Admin != newEntry.Admin {
-		outdated = append(outdated, "admin")
+		outdated = append(outdated, spireapi.AdminField)
 	}
 	if oldEntry.Downstream != newEntry.Downstream {
-		outdated = append(outdated, "downstream")
+		outdated = append(outdated, spireapi.DownstreamField)
 	}
 	if !stringsMatch(oldEntry.DNSNames, newEntry.DNSNames) {
-		outdated = append(outdated, "dnsNames")
+		outdated = append(outdated, spireapi.DNSNamesField)
 	}
 	if oldEntry.Hint != newEntry.Hint {
-		if _, ok := unsupportedFields["hint"]; !ok {
-			outdated = append(outdated, "hint")
+		if _, ok := unsupportedFields[spireapi.HintField]; !ok {
+			outdated = append(outdated, spireapi.HintField)
 		}
 	}
 
