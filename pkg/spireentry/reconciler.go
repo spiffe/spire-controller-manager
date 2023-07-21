@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
@@ -68,24 +69,18 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 
 type entryReconciler struct {
 	config ReconcilerConfig
+
+	unsupportedFields        map[string]struct{}
+	nextGetUnsupportedFields time.Time
 }
 
 func (r *entryReconciler) reconcile(ctx context.Context) {
 	log := log.FromContext(ctx)
 
-	unsupportedFields, err := r.getUnsupportedFields(ctx)
-	if err != nil {
-		log.Error(err, "Failed to get unsupported fields")
-		return
+	if time.Now().After(r.nextGetUnsupportedFields) {
+		r.recalculateUnsupportField(ctx, log)
 	}
-
-	if len(unsupportedFields) > 0 {
-		var fields []string
-		for key := range unsupportedFields {
-			fields = append(fields, key)
-		}
-		log.Info("SPIRE Server version does not support fields", "keys", strings.Join(fields, ","))
-	}
+	unsupportedFields := r.unsupportedFields
 
 	// Load current entries from SPIRE server.
 	currentEntries, err := r.listEntries(ctx)
@@ -192,6 +187,25 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			log.Error(err, "Failed to update status")
 		}
 	}
+}
+
+func (r *entryReconciler) recalculateUnsupportField(ctx context.Context, log logr.Logger) {
+	unsupportedFields, err := r.getUnsupportedFields(ctx)
+	if err != nil {
+		log.Error(err, "failed to get unsupported fields")
+		return
+	}
+
+	if len(unsupportedFields) > 0 {
+		var fields []string
+		for key := range unsupportedFields {
+			fields = append(fields, key)
+		}
+		log.Info("SPIRE Server version does not support fields", "keys", strings.Join(fields, ","))
+	}
+
+	r.unsupportedFields = unsupportedFields
+	r.nextGetUnsupportedFields = time.Now().Add(10 * time.Minute)
 }
 
 func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
