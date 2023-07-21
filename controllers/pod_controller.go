@@ -19,8 +19,11 @@ package controllers
 import (
 	"context"
 
+	"regexp"
+
+	"github.com/spiffe/spire-controller-manager/pkg/namespace"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
-	"github.com/spiffe/spire-controller-manager/pkg/stringset"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,7 +36,7 @@ type PodReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	Triggerer        reconciler.Triggerer
-	IgnoreNamespaces stringset.StringSet
+	IgnoreNamespaces []*regexp.Regexp
 }
 
 //+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterspiffeids,verbs=get;list;watch;create;update;patch;delete
@@ -46,10 +49,13 @@ type PodReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, err error) {
-	if !r.IgnoreNamespaces.In(req.Namespace) {
-		log.FromContext(ctx).V(1).Info("Triggering reconciliation")
-		r.Triggerer.Trigger()
+	if namespace.IsIgnored(r.IgnoreNamespaces, req.Namespace) {
+		return ctrl.Result{}, nil
 	}
+
+	log.FromContext(ctx).V(1).Info("Triggering reconciliation")
+	r.Triggerer.Trigger()
+
 	return ctrl.Result{}, nil
 }
 
