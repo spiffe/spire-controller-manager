@@ -156,9 +156,6 @@ func renderDNSName(tmpl *template.Template, data *templateData) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	if err := validateDNSName(rendered); err != nil {
-		return "", fmt.Errorf("invalid DNS name %q: %w", rendered, err)
-	}
 	return rendered, nil
 }
 
@@ -180,11 +177,6 @@ func renderTemplate(tmpl *template.Template, data *templateData) (string, error)
 		return "", fmt.Errorf("failed to execute template: %w", err)
 	}
 	return buf.String(), nil
-}
-
-func validateDNSName(dnsName string) error {
-	// TODO:
-	return nil
 }
 
 func parseSelectors(selectors []string) ([]spireapi.Selector, error) {
