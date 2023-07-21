@@ -21,15 +21,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"regexp"
 	"sort"
 	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
+	"github.com/spiffe/spire-controller-manager/pkg/namespace"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
-	"github.com/spiffe/spire-controller-manager/pkg/stringset"
+
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,7 +47,7 @@ type ReconcilerConfig struct {
 	ClusterDomain    string
 	EntryClient      spireapi.EntryClient
 	K8sClient        client.Client
-	IgnoreNamespaces stringset.StringSet
+	IgnoreNamespaces []*regexp.Regexp
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -254,11 +256,13 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 		}
 
 		clusterSPIFFEID.NextStatus.Stats.NamespacesSelected += len(namespaces)
+
 		for i := range namespaces {
-			if r.config.IgnoreNamespaces.In(namespaces[i].Name) {
+			if namespace.IsIgnored(r.config.IgnoreNamespaces, namespaces[i].Name) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}
+
 			log := log.WithValues(namespaceLogKey, objectName(&namespaces[i]))
 
 			pods, err := r.listNamespacePods(ctx, namespaces[i].Name, spec.PodSelector)
