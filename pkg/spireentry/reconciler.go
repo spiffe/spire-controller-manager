@@ -23,7 +23,6 @@ import (
 	"io"
 	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -98,15 +97,10 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	// Load and add entry state for ClusterStaticEntries
 	clusterStaticEntries, err := r.listClusterStaticEntries(ctx)
 	if err != nil {
-		if !strings.Contains(err.Error(), "no matches for kind") {
-			log.Error(err, "Failed to list ClusterStaticEntries")
-			return
-		} else {
-			log.Info("ClusterStaticEntry CRD not installed")
-		}
-	} else {
-		r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
+		log.Error(err, "Failed to list ClusterStaticEntries")
+		return
 	}
+	r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
 
 	// Load and add entry state for ClusterSPIFFEIDs
 	clusterSPIFFEIDs, err := r.listClusterSPIFFEIDs(ctx)

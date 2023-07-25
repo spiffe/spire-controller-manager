@@ -21,13 +21,14 @@ import (
 
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func ListClusterStaticEntries(ctx context.Context, c client.Client) ([]spirev1alpha1.ClusterStaticEntry, error) {
 	var list spirev1alpha1.ClusterStaticEntryList
-	if err := c.List(ctx, &list); err != nil {
+	if err := listObjectsIgnoreNoMatch(ctx, c, &list); err != nil {
 		return nil, err
 	}
 	return list.Items, nil
@@ -35,7 +36,7 @@ func ListClusterStaticEntries(ctx context.Context, c client.Client) ([]spirev1al
 
 func ListClusterSPIFFEIDs(ctx context.Context, c client.Client) ([]spirev1alpha1.ClusterSPIFFEID, error) {
 	var list spirev1alpha1.ClusterSPIFFEIDList
-	if err := c.List(ctx, &list); err != nil {
+	if err := listObjectsIgnoreNoMatch(ctx, c, &list); err != nil {
 		return nil, err
 	}
 	return list.Items, nil
@@ -43,7 +44,7 @@ func ListClusterSPIFFEIDs(ctx context.Context, c client.Client) ([]spirev1alpha1
 
 func ListClusterFederatedTrustDomains(ctx context.Context, c client.Client) ([]spirev1alpha1.ClusterFederatedTrustDomain, error) {
 	var list spirev1alpha1.ClusterFederatedTrustDomainList
-	if err := c.List(ctx, &list); err != nil {
+	if err := listObjectsIgnoreNoMatch(ctx, c, &list); err != nil {
 		return nil, err
 	}
 	return list.Items, nil
@@ -73,4 +74,12 @@ func ListNamespacePods(ctx context.Context, c client.Client, namespace string, p
 		return nil, err
 	}
 	return list.Items, nil
+}
+
+func listObjectsIgnoreNoMatch(ctx context.Context, c client.Client, objectList client.ObjectList, opts ...client.ListOption) error {
+	err := c.List(ctx, objectList, opts...)
+	if meta.IsNoMatchError(err) {
+		err = nil
+	}
+	return err
 }

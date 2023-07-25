@@ -17,16 +17,28 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/tools/cache"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -61,9 +73,20 @@ const (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme                 = runtime.NewScheme()
+	setupLog               = ctrl.Log.WithName("setup")
+	customResourcesPresent RequiredCustomResources
 )
+
+type RequiredCustomResources struct {
+	ClusterStaticEntryPresent          bool
+	ClusterSpiffeIDPresent             bool
+	ClusterFederatedTrustDomainPresent bool
+}
+
+func (r *RequiredCustomResources) fullyInitialized() bool {
+	return r.ClusterSpiffeIDPresent && r.ClusterStaticEntryPresent && r.ClusterFederatedTrustDomainPresent
+}
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -243,10 +266,6 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 
-	foundClusterStaticEntry := false
-	foundClusterSpiffeID := false
-	foundClusterFederatedTrustDomain := false
-
 	_, resources, err := clientset.ServerGroupsAndResources()
 	for _, r := range resources {
 		if r.GroupVersion == "spire.spiffe.io/v1alpha1" {
@@ -254,18 +273,62 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 				setupLog.Info(fmt.Sprintf("checking kind %s", k.Kind))
 				if k.Kind == "ClusterSPIFFEID" {
 					setupLog.Info("Found ClusterSPIFFEID CRD")
-					foundClusterSpiffeID = true
+					customResourcesPresent.ClusterSpiffeIDPresent = true
 				}
 				if k.Kind == "ClusterFederatedTrustDomain" {
 					setupLog.Info("Found ClusterFederatedTrustDomain CRD")
-					foundClusterFederatedTrustDomain = true
+					customResourcesPresent.ClusterFederatedTrustDomainPresent = true
 				}
 				if k.Kind == "ClusterStaticEntry" {
 					setupLog.Info("Found ClusterStaticEntry CRD")
-					foundClusterStaticEntry = true
+					customResourcesPresent.ClusterStaticEntryPresent = true
 				}
 			}
 		}
+	}
+
+	if !customResourcesPresent.fullyInitialized() {
+		setupLog.Info("CRDs missing watching for future creation of spire-controller-manager CRDs")
+		dyn, err := dynamic.NewForConfig(config)
+		if err != nil {
+			return err
+		}
+		fac := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dyn, time.Minute, metav1.NamespaceAll, nil)
+		informer := fac.ForResource(schema.GroupVersionResource{
+			Group:    apiextensions.GroupName,
+			Version:  "v1",
+			Resource: "customresourcedefinitions",
+		}).Informer()
+
+		informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				typedObj := obj.(*unstructured.Unstructured)
+				bytes, _ := typedObj.MarshalJSON()
+
+				crd := v1.CustomResourceDefinition{}
+				json.Unmarshal(bytes, &crd)
+				setupLog.Info(fmt.Sprintf("CRD added %+s", crd.Spec.Names.Kind))
+				if crd.Spec.Names.Kind == "ClusterStaticEntry" {
+					setupLog.Info("ClusterStaticEntry CRD added")
+					customResourcesPresent.ClusterStaticEntryPresent = true
+				} else if crd.Spec.Names.Kind == "ClusterFederatedTrustDomain" {
+					setupLog.Info("ClusterFederatedTrustDomain CRD added")
+					customResourcesPresent.ClusterFederatedTrustDomainPresent = true
+				} else if crd.Spec.Names.Kind == "ClusterSPIFFEID" {
+					setupLog.Info("ClusterSPIFFEID CRD added")
+					customResourcesPresent.ClusterSpiffeIDPresent = true
+				}
+
+				if customResourcesPresent.fullyInitialized() {
+					setupLog.Info("CRDs added restarting spire-manager-controller")
+					os.Exit(0)
+				}
+			},
+		})
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer cancel()
+
+		go informer.Run(ctx.Done())
 	}
 
 	webhookID, _ := spiffeid.FromPath(trustDomain, "/spire-controller-manager-webhook")
@@ -299,7 +362,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		GCInterval:        ctrlConfig.GCInterval,
 	})
 
-	if foundClusterSpiffeID {
+	if customResourcesPresent.ClusterSpiffeIDPresent {
 		if err = (&controllers.ClusterSPIFFEIDReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -313,7 +376,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Info("ClusterSPIFFEIDReconciler will not be started")
 	}
 
-	if foundClusterFederatedTrustDomain {
+	if customResourcesPresent.ClusterFederatedTrustDomainPresent {
 		if err = (&controllers.ClusterFederatedTrustDomainReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -327,7 +390,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Info("ClusterFederatedTrustDomainReconciler will not be started")
 	}
 
-	if foundClusterStaticEntry {
+	if customResourcesPresent.ClusterStaticEntryPresent {
 		if err = (&controllers.ClusterStaticEntryReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
