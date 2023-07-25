@@ -29,21 +29,23 @@ import (
 )
 
 const (
-	AdminField         = "admin"
-	DNSNamesField      = "dnsNames"
-	DownstreamField    = "downstream"
-	FederatesWithField = "federatesWith"
-	HintField          = "hint"
-	JWTSVIDTTLField    = "jwtSVIDTTL"
-	X509SVIDTTL        = "x509SVIDTTL"
+	AdminField         Field = "admin"
+	DNSNamesField            = "dnsNames"
+	DownstreamField          = "downstream"
+	FederatesWithField       = "federatesWith"
+	HintField                = "hint"
+	JWTSVIDTTLField          = "jwtSVIDTTL"
+	X509SVIDTTL              = "x509SVIDTTL"
 )
+
+type Field string
 
 type EntryClient interface {
 	ListEntries(ctx context.Context) ([]Entry, error)
 	CreateEntries(ctx context.Context, entries []Entry) ([]Status, error)
 	UpdateEntries(ctx context.Context, entries []Entry) ([]Status, error)
 	DeleteEntries(ctx context.Context, entryIDs []string) ([]Status, error)
-	GetUnsupportedFields(ctx context.Context, td string) (map[string]struct{}, error)
+	GetUnsupportedFields(ctx context.Context, td string) (map[Field]struct{}, error)
 }
 
 func NewEntryClient(conn grpc.ClientConnInterface) EntryClient {
@@ -74,18 +76,17 @@ func (c entryClient) ListEntries(ctx context.Context) ([]Entry, error) {
 	return entriesFromAPI(entries)
 }
 
-func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[string]struct{}, error) {
-	unsupportedFields := make(map[string]struct{})
+func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[Field]struct{}, error) {
 	resp, err := c.api.BatchCreateEntry(ctx, &entryv1.BatchCreateEntryRequest{
 		Entries: []*apitypes.Entry{
 			{
 				ParentId: &types.SPIFFEID{
 					TrustDomain: td,
-					Path:        "/dummyagent",
+					Path:        "/spire-controller-manager/unsupported-fields-test",
 				},
 				SpiffeId: &types.SPIFFEID{
 					TrustDomain: td,
-					Path:        "/w1",
+					Path:        "/spire-controller-manager/unsupported-fields-test",
 				},
 				Selectors: []*types.Selector{
 					{
@@ -122,6 +123,7 @@ func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[s
 		log.Error(err, "failed to delete dummy entry", "entry_id", result.Entry.Id)
 	}
 
+	unsupportedFields := make(map[Field]struct{})
 	if result.Entry.JwtSvidTtl == 0 {
 		unsupportedFields[JWTSVIDTTLField] = struct{}{}
 	}

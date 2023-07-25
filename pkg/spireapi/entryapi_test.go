@@ -165,18 +165,18 @@ func TestGetUnsupportedFields(t *testing.T) {
 		deleteEntryErr         error
 
 		expectErr    error
-		expectFields map[string]struct{}
+		expectFields map[Field]struct{}
 	}{
 		{
 			desc:         "no old fields",
-			expectFields: make(map[string]struct{}),
+			expectFields: make(map[Field]struct{}),
 		},
 		{
 			desc:                   "old fields found",
 			cleanUnsupportedFields: true,
-			expectFields: map[string]struct{}{
-				"hint":       {},
-				"jwtSVIDTTL": {},
+			expectFields: map[Field]struct{}{
+				HintField:       {},
+				JWTSVIDTTLField: {},
 			},
 		},
 		{
@@ -188,9 +188,9 @@ func TestGetUnsupportedFields(t *testing.T) {
 			desc:                   "failed to delete entry",
 			cleanUnsupportedFields: true,
 			deleteEntryErr:         status.Error(codes.Internal, "oh no"),
-			expectFields: map[string]struct{}{
-				"hint":       {},
-				"jwtSVIDTTL": {},
+			expectFields: map[Field]struct{}{
+				HintField:       {},
+				JWTSVIDTTLField: {},
 			},
 		},
 	} {
@@ -199,7 +199,7 @@ func TestGetUnsupportedFields(t *testing.T) {
 
 			server.batchCreateEntriesErr = tc.createEntryErr
 			server.batchDeleteEntriesErr = tc.deleteEntryErr
-			server.cleanUnsupportedFields = tc.cleanUnsupportedFields
+			server.clearUnsupportedFields = tc.cleanUnsupportedFields
 
 			resp, err := client.GetUnsupportedFields(ctx, "domain.test")
 			if tc.expectErr != nil {
@@ -367,7 +367,7 @@ type entryServer struct {
 	mtx     sync.RWMutex
 	entries []*apitypes.Entry
 
-	cleanUnsupportedFields bool
+	clearUnsupportedFields bool
 
 	listEntriesErr        error
 	batchCreateEntriesErr error
@@ -397,7 +397,7 @@ func (s *entryServer) BatchCreateEntry(ctx context.Context, req *entryv1.BatchCr
 
 	for _, entry := range req.Entries {
 		//  Remove values from new fields to emulate an old server is used
-		if s.cleanUnsupportedFields {
+		if s.clearUnsupportedFields {
 			entry.JwtSvidTtl = 0
 			entry.Hint = ""
 		}

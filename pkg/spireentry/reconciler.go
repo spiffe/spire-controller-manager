@@ -70,7 +70,7 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 type entryReconciler struct {
 	config ReconcilerConfig
 
-	unsupportedFields        map[string]struct{}
+	unsupportedFields        map[spireapi.Field]struct{}
 	nextGetUnsupportedFields time.Time
 }
 
@@ -78,7 +78,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	log := log.FromContext(ctx)
 
 	if time.Now().After(r.nextGetUnsupportedFields) {
-		r.recalculateUnsupportField(ctx, log)
+		r.recalculateUnsupportFields(ctx, log)
 	}
 	unsupportedFields := r.unsupportedFields
 
@@ -189,19 +189,33 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 }
 
-func (r *entryReconciler) recalculateUnsupportField(ctx context.Context, log logr.Logger) {
+func (r *entryReconciler) recalculateUnsupportFields(ctx context.Context, log logr.Logger) {
 	unsupportedFields, err := r.getUnsupportedFields(ctx)
 	if err != nil {
 		log.Error(err, "failed to get unsupported fields")
 		return
 	}
 
-	if len(unsupportedFields) > 0 {
-		var fields []string
-		for key := range unsupportedFields {
-			fields = append(fields, key)
+	// Get the list of new fields that are marked as unsupported
+	var newUnsupportedFields []string
+	for key := range unsupportedFields {
+		if _, ok := r.unsupportedFields[key]; !ok {
+			newUnsupportedFields = append(newUnsupportedFields, string(key))
 		}
-		log.Info("SPIRE Server version does not support fields", "keys", strings.Join(fields, ","))
+	}
+	if len(newUnsupportedFields) > 0 {
+		log.Info("New fields unsupported in SPIRE server found", "fields", strings.Join(newUnsupportedFields, ","))
+	}
+
+	// Get the list of fields that used to be unsupported but now are supported
+	var supportedFields []string
+	for key := range r.unsupportedFields {
+		if _, ok := unsupportedFields[key]; !ok {
+			supportedFields = append(supportedFields, string(key))
+		}
+	}
+	if len(supportedFields) > 0 {
+		log.Info("Fields previously unsupported are now supported on SPIRE server", "fields", strings.Join(supportedFields, ","))
 	}
 
 	r.unsupportedFields = unsupportedFields
@@ -213,7 +227,7 @@ func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, er
 	return r.config.EntryClient.ListEntries(ctx)
 }
 
-func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[string]struct{}, error) {
+func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[spireapi.Field]struct{}, error) {
 	return r.config.EntryClient.GetUnsupportedFields(ctx, r.config.TrustDomain.Name())
 }
 
@@ -510,11 +524,11 @@ func objectCmp(a, b byObject) int {
 	}
 }
 
-func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry, unsupportedFields map[string]struct{}) []string {
+func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry, unsupportedFields map[spireapi.Field]struct{}) []spireapi.Field {
 	// We don't need to bother with the parent ID, the SPIFFE ID, or the
 	// selectors since they are part of the uniqueness check that resulted in
 	// the AlreadyExists error code.
-	var outdated []string
+	var outdated []spireapi.Field
 	if oldEntry.X509SVIDTTL != newEntry.X509SVIDTTL {
 		outdated = append(outdated, spireapi.X509SVIDTTL)
 	}
