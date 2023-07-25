@@ -204,7 +204,7 @@ func (r *entryReconciler) recalculateUnsupportFields(ctx context.Context, log lo
 		}
 	}
 	if len(newUnsupportedFields) > 0 {
-		log.Info("New fields unsupported in SPIRE server found", "fields", strings.Join(newUnsupportedFields, ","))
+		log.Info("New unsupported fields in SPIRE server found", "fields", strings.Join(newUnsupportedFields, ","))
 	}
 
 	// Get the list of fields that used to be unsupported but now are supported
