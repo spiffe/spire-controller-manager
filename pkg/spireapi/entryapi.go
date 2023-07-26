@@ -30,12 +30,12 @@ import (
 
 const (
 	AdminField         Field = "admin"
-	DNSNamesField            = "dnsNames"
-	DownstreamField          = "downstream"
-	FederatesWithField       = "federatesWith"
-	HintField                = "hint"
-	JWTSVIDTTLField          = "jwtSVIDTTL"
-	X509SVIDTTL              = "x509SVIDTTL"
+	DNSNamesField      Field = "dnsNames"
+	DownstreamField    Field = "downstream"
+	FederatesWithField Field = "federatesWith"
+	HintField          Field = "hint"
+	JWTSVIDTTLField    Field = "jwtSVIDTTL"
+	X509SVIDTTL        Field = "x509SVIDTTL"
 )
 
 type Field string
