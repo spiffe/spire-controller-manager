@@ -32,9 +32,13 @@ type ClusterSPIFFEIDSpec struct {
 	// available to the template under .NodeSpec, .PodSpec respectively.
 	SPIFFEIDTemplate string `json:"spiffeIDTemplate"`
 
-	// TTL indicates an upper-bound time-to-live for SVIDs minted for this
+	// TTL indicates an upper-bound time-to-live for X509 SVIDs minted for this
 	// ClusterSPIFFEID. If unset, a default will be chosen.
 	TTL metav1.Duration `json:"ttl,omitempty"`
+
+	// JWTTTL indicates an upper-bound time-to-live for JWT SVIDs minted for this
+	// ClusterSPIFFEID.
+	JWTTTL metav1.Duration `json:"jwtTtl,omitempty"`
 
 	// DNSNameTemplate represents templates for extra DNS names that are
 	// applicable to SVIDs minted for this ClusterSPIFFEID.

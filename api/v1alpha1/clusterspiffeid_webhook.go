@@ -86,6 +86,7 @@ type ParsedClusterSPIFFEIDSpec struct {
 	NamespaceSelector         labels.Selector
 	PodSelector               labels.Selector
 	TTL                       time.Duration
+	JWTTTL                    time.Duration
 	FederatesWith             []spiffeid.TrustDomain
 	DNSNameTemplates          []*template.Template
 	WorkloadSelectorTemplates []*template.Template
@@ -152,6 +153,7 @@ func ParseClusterSPIFFEIDSpec(spec *ClusterSPIFFEIDSpec) (*ParsedClusterSPIFFEID
 		NamespaceSelector:         namespaceSelector,
 		PodSelector:               podSelector,
 		TTL:                       spec.TTL.Duration,
+		JWTTTL:                    spec.JWTTTL.Duration,
 		FederatesWith:             federatesWith,
 		DNSNameTemplates:          dnsNameTemplates,
 		WorkloadSelectorTemplates: workloadSelectorTemplates,
