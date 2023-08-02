@@ -17,14 +17,12 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
 	"net"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -84,8 +82,16 @@ type RequiredCustomResources struct {
 	ClusterFederatedTrustDomainPresent bool
 }
 
+// fullyInitialized returns true if all resources are present
 func (r *RequiredCustomResources) fullyInitialized() bool {
 	return r.ClusterSpiffeIDPresent && r.ClusterStaticEntryPresent && r.ClusterFederatedTrustDomainPresent
+}
+
+// isEqual compares RequiredCustomResources for equality
+func (r *RequiredCustomResources) isEqual(other RequiredCustomResources) bool {
+	return r.ClusterSpiffeIDPresent == other.ClusterSpiffeIDPresent &&
+		r.ClusterStaticEntryPresent == other.ClusterStaticEntryPresent &&
+		r.ClusterFederatedTrustDomainPresent == other.ClusterFederatedTrustDomainPresent
 }
 
 func init() {
@@ -266,24 +272,21 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 
-	_, resources, err := clientset.ServerGroupsAndResources()
-	for _, r := range resources {
-		if r.GroupVersion == "spire.spiffe.io/v1alpha1" {
-			for _, k := range r.APIResources {
-				setupLog.Info(fmt.Sprintf("checking kind %s", k.Kind))
-				if k.Kind == "ClusterSPIFFEID" {
-					setupLog.Info("Found ClusterSPIFFEID CRD")
-					customResourcesPresent.ClusterSpiffeIDPresent = true
-				}
-				if k.Kind == "ClusterFederatedTrustDomain" {
-					setupLog.Info("Found ClusterFederatedTrustDomain CRD")
-					customResourcesPresent.ClusterFederatedTrustDomainPresent = true
-				}
-				if k.Kind == "ClusterStaticEntry" {
-					setupLog.Info("Found ClusterStaticEntry CRD")
-					customResourcesPresent.ClusterStaticEntryPresent = true
-				}
-			}
+	resources, err := clientset.ServerResourcesForGroupVersion(spirev1alpha1.GroupVersion.String())
+	if err != nil {
+		setupLog.Error(err, "failed to list server resources for spire-controller-manager")
+	}
+	for _, r := range resources.APIResources {
+		switch r.Kind {
+		case "ClusterSPIFFEID":
+			setupLog.Info(fmt.Sprintf("Found %s CRD", r.Kind))
+			customResourcesPresent.ClusterSpiffeIDPresent = true
+		case "ClusterFederatedTrustDomain":
+			setupLog.Info(fmt.Sprintf("Found %s CRD", r.Kind))
+			customResourcesPresent.ClusterFederatedTrustDomainPresent = true
+		case "ClusterStaticEntry":
+			setupLog.Info(fmt.Sprintf("Found %s CRD", r.Kind))
+			customResourcesPresent.ClusterStaticEntryPresent = true
 		}
 	}
 
@@ -308,25 +311,26 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 				crd := v1.CustomResourceDefinition{}
 				json.Unmarshal(bytes, &crd)
 				setupLog.Info(fmt.Sprintf("CRD added %+s", crd.Spec.Names.Kind))
-				if crd.Spec.Names.Kind == "ClusterStaticEntry" {
-					setupLog.Info("ClusterStaticEntry CRD added")
-					customResourcesPresent.ClusterStaticEntryPresent = true
-				} else if crd.Spec.Names.Kind == "ClusterFederatedTrustDomain" {
-					setupLog.Info("ClusterFederatedTrustDomain CRD added")
-					customResourcesPresent.ClusterFederatedTrustDomainPresent = true
-				} else if crd.Spec.Names.Kind == "ClusterSPIFFEID" {
-					setupLog.Info("ClusterSPIFFEID CRD added")
-					customResourcesPresent.ClusterSpiffeIDPresent = true
+
+				updatedResources := customResourcesPresent
+				switch crd.Spec.Names.Kind {
+				case "ClusterStaticEntry":
+					setupLog.Info(fmt.Sprintf("%s CRD Added", crd.Spec.Names.Kind))
+					updatedResources.ClusterStaticEntryPresent = true
+				case "ClusterFederatedTrustDomain":
+					setupLog.Info(fmt.Sprintf("%s CRD Added", crd.Spec.Names.Kind))
+					updatedResources.ClusterFederatedTrustDomainPresent = true
+				case "ClusterSPIFFEID":
+					setupLog.Info(fmt.Sprintf("%s CRD Added", crd.Spec.Names.Kind))
+					updatedResources.ClusterSpiffeIDPresent = true
 				}
 
-				if customResourcesPresent.fullyInitialized() {
-					setupLog.Info("CRDs added restarting spire-manager-controller")
+				if !customResourcesPresent.isEqual(updatedResources) {
+					setupLog.Info("Available CRDs have been modified, restarting spire-manager-controller")
 					os.Exit(0)
 				}
 			},
 		})
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer cancel()
 
 		go informer.Run(ctx.Done())
 	}
