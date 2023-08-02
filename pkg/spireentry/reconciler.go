@@ -23,8 +23,10 @@ import (
 	"io"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
@@ -67,10 +69,18 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 
 type entryReconciler struct {
 	config ReconcilerConfig
+
+	unsupportedFields        map[spireapi.Field]struct{}
+	nextGetUnsupportedFields time.Time
 }
 
 func (r *entryReconciler) reconcile(ctx context.Context) {
 	log := log.FromContext(ctx)
+
+	if time.Now().After(r.nextGetUnsupportedFields) {
+		r.recalculateUnsupportFields(ctx, log)
+	}
+	unsupportedFields := r.unsupportedFields
 
 	// Load current entries from SPIRE server.
 	currentEntries, err := r.listEntries(ctx)
@@ -125,7 +135,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 				toCreate = append(toCreate, preferredEntry)
 			} else {
 				preferredEntry.Entry.ID = s.Current[0].ID
-				if outdatedFields := getOutdatedEntryFields(preferredEntry.Entry, s.Current[0]); len(outdatedFields) != 0 {
+				if outdatedFields := getOutdatedEntryFields(preferredEntry.Entry, s.Current[0], unsupportedFields); len(outdatedFields) != 0 {
 					// Current field does not match. Nothing to do.
 					toUpdate = append(toUpdate, preferredEntry)
 				}
@@ -179,9 +189,46 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 }
 
+func (r *entryReconciler) recalculateUnsupportFields(ctx context.Context, log logr.Logger) {
+	unsupportedFields, err := r.getUnsupportedFields(ctx)
+	if err != nil {
+		log.Error(err, "failed to get unsupported fields")
+		return
+	}
+
+	// Get the list of new fields that are marked as unsupported
+	var newUnsupportedFields []string
+	for key := range unsupportedFields {
+		if _, ok := r.unsupportedFields[key]; !ok {
+			newUnsupportedFields = append(newUnsupportedFields, string(key))
+		}
+	}
+	if len(newUnsupportedFields) > 0 {
+		log.Info("New unsupported fields in SPIRE server found", "fields", strings.Join(newUnsupportedFields, ","))
+	}
+
+	// Get the list of fields that used to be unsupported but now are supported
+	var supportedFields []string
+	for key := range r.unsupportedFields {
+		if _, ok := unsupportedFields[key]; !ok {
+			supportedFields = append(supportedFields, string(key))
+		}
+	}
+	if len(supportedFields) > 0 {
+		log.Info("Fields previously unsupported are now supported on SPIRE server", "fields", strings.Join(supportedFields, ","))
+	}
+
+	r.unsupportedFields = unsupportedFields
+	r.nextGetUnsupportedFields = time.Now().Add(10 * time.Minute)
+}
+
 func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
 	// TODO: cache?
 	return r.config.EntryClient.ListEntries(ctx)
+}
+
+func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[spireapi.Field]struct{}, error) {
+	return r.config.EntryClient.GetUnsupportedFields(ctx, r.config.TrustDomain.Name())
 }
 
 func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*ClusterStaticEntry, error) {
@@ -477,31 +524,35 @@ func objectCmp(a, b byObject) int {
 	}
 }
 
-func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry) []string {
+func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry, unsupportedFields map[spireapi.Field]struct{}) []spireapi.Field {
 	// We don't need to bother with the parent ID, the SPIFFE ID, or the
 	// selectors since they are part of the uniqueness check that resulted in
 	// the AlreadyExists error code.
-	var outdated []string
+	var outdated []spireapi.Field
 	if oldEntry.X509SVIDTTL != newEntry.X509SVIDTTL {
-		outdated = append(outdated, "x509SVIDTTL")
+		outdated = append(outdated, spireapi.X509SVIDTTL)
 	}
 	if oldEntry.JWTSVIDTTL != newEntry.JWTSVIDTTL {
-		outdated = append(outdated, "jwtSVIDTTL")
+		if _, ok := unsupportedFields[spireapi.JWTSVIDTTLField]; !ok {
+			outdated = append(outdated, spireapi.JWTSVIDTTLField)
+		}
 	}
 	if !trustDomainsMatch(oldEntry.FederatesWith, newEntry.FederatesWith) {
-		outdated = append(outdated, "federatesWith")
+		outdated = append(outdated, spireapi.FederatesWithField)
 	}
 	if oldEntry.Admin != newEntry.Admin {
-		outdated = append(outdated, "admin")
+		outdated = append(outdated, spireapi.AdminField)
 	}
 	if oldEntry.Downstream != newEntry.Downstream {
-		outdated = append(outdated, "downstream")
+		outdated = append(outdated, spireapi.DownstreamField)
 	}
 	if !stringsMatch(oldEntry.DNSNames, newEntry.DNSNames) {
-		outdated = append(outdated, "dnsNames")
+		outdated = append(outdated, spireapi.DNSNamesField)
 	}
 	if oldEntry.Hint != newEntry.Hint {
-		outdated = append(outdated, "hint")
+		if _, ok := unsupportedFields[spireapi.HintField]; !ok {
+			outdated = append(outdated, spireapi.HintField)
+		}
 	}
 
 	return outdated
