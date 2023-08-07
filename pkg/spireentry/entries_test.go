@@ -2,7 +2,6 @@ package spireentry
 
 import (
 	"testing"
-
 	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
