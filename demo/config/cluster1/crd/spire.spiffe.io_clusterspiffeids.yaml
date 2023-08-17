@@ -57,6 +57,10 @@ spec:
                 items:
                   type: string
                 type: array
+              jwtTtl:
+                description: JWTTTL indicates an upper-bound time-to-live for JWT
+                  SVIDs minted for this ClusterSPIFFEID.
+                type: string
               namespaceSelector:
                 description: NamespaceSelector selects the namespaces that are targetted
                   by this CRD.

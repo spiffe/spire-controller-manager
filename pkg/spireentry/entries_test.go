@@ -2,6 +2,7 @@ package spireentry
 
 import (
 	"testing"
+	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
@@ -63,4 +64,37 @@ func TestRenderPodEntry(t *testing.T) {
 	require.Len(t, entry.DNSNames, len(spec.DNSNameTemplates)-1)
 	require.Contains(t, entry.DNSNames, pod.Name+"."+pod.Namespace+".svc."+clusterDomain)
 	require.Contains(t, entry.DNSNames, pod.Name+"."+trustDomain+".svc")
+}
+
+func TestJWTTTLInRenderPodEntry(t *testing.T) {
+	spec := &spirev1alpha1.ClusterSPIFFEIDSpec{
+		SPIFFEIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}",
+		JWTTTL:           metav1.Duration{Duration: time.Duration(60)},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			UID: "uid",
+		},
+		Spec: corev1.NodeSpec{},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "namespace",
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "test",
+		},
+	}
+
+	parsedSpec, err := spirev1alpha1.ParseClusterSPIFFEIDSpec(spec)
+	require.NoError(t, err)
+	td, err := spiffeid.TrustDomainFromString(trustDomain)
+	require.NoError(t, err)
+
+	entry, err := renderPodEntry(parsedSpec, node, pod, td, clusterName, clusterDomain)
+	require.NoError(t, err)
+
+	require.Equal(t, entry.JWTSVIDTTL.Nanoseconds(), spec.JWTTTL.Nanoseconds())
 }
