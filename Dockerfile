@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 #FROM gcr.io/distroless/static:nonroot
-FROM gcr.io/distroless/base AS spire-controller-manager
+FROM gcr.io/distroless/static AS spire-controller-manager
 WORKDIR /
 ENTRYPOINT ["/spire-controller-manager"]
 CMD []
