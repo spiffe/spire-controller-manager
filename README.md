@@ -74,6 +74,12 @@ The [demo](demo) includes [sample configuration](demo/config/cluster1) for
 deploying the SPIRE Controller Manager, SPIRE, and the SPIFFE CSI driver,
 including requisite RBAC and Webhook configuration.
 
+### Upgrade
+
+The SPIRE Controller Manager depends on have the correct set of [Custom Resources](#custom-resources) 
+corresponding to the version to be installed.
+Before upgrading, upgrade custom resources in [config/crd](/config/crd)
+
 ## Compatibility
 
 The SPIRE APIs used by the SPIRE Controller Manager are generally stable and
