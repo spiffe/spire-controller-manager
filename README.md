@@ -76,7 +76,7 @@ including requisite RBAC and Webhook configuration.
 
 ### Upgrade
 
-The SPIRE Controller Manager depends on have the correct set of [Custom Resources](#custom-resources) 
+The SPIRE Controller Manager depends to have the correct set of [Custom Resources](#custom-resources) 
 corresponding to the version to be installed.
 Before upgrading, upgrade custom resources in [config/crd](/config/crd)
 
