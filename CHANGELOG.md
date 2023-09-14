@@ -2,9 +2,9 @@
 
 ## [0.3.0] - 2023-09-14
 
-### Important Notes
+<font size='6'>_PLEASE READ BEFORE UPGRADING_</font>
 
- __PLEASE READ:__ This version contains changes in the `ClusterSPIFFEID` CRD. It also adds a new `ClusterStaticEntry` CRD. Before upgrading you __MUST__ do the following, in order:
+ This version contains changes in the `ClusterSPIFFEID` CRD. It also adds a new `ClusterStaticEntry` CRD. Before upgrading you __MUST__ do the following, in order:
 
 - Update/install those CRDs into your cluster (see [here](./config/crd/bases/spire.spiffe.io_clusterstaticentries.yaml) and [here](./config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml)).
 - Update the the `manager-role` ClusterRole, which includes additional permissions for the new `ClusterStaticEntry` CRD (see [here](./config/rbac/role.yaml))
