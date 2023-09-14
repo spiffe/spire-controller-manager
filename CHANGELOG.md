@@ -2,7 +2,7 @@
 
 ## [0.3.0] - 2023-09-14
 
-<font size='7'>&#1F6A8; ***PLEASE READ BEFORE UPGRADING*** &#1F6A8;</font>
+<pre>&#1F6A8;</pre><font size='7'>***PLEASE READ BEFORE UPGRADING***</font><pre>&#1F6A8;</pre>
 
  This version contains changes in the `ClusterSPIFFEID` CRD. It also adds a new `ClusterStaticEntry` CRD. Before upgrading you __MUST__ do the following, in order:
 
