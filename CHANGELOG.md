@@ -4,13 +4,15 @@
 
 ### Important Notes
 
-- This version contains changes in ClusterSPIFFEID and the new ClusterStaticEntry CRD, before upgrading it is required to have those CRDs installed
+ __PLEASE READ:__ This version contains changes in the `ClusterSPIFFEID` CRD. It also adds a new `ClusterStaticEntry` CRD. Before upgrading you __MUST__ do the following, in order:
+- Update/install those CRDs into your cluster (see [here](./config/crd/bases/spire.spiffe.io_clusterstaticentries.yaml) and [here](./config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml)).
+- Update the the `manager-role` ClusterRole, which includes additional permissions for the new `ClusterStaticEntry` CRD (see [here](./config/rbac/role.yaml))
 
 ### Added
 
-- Ignore namespaces can use regex (#170)
 - ClusterStaticEntry CRD for registering workloads that live outside the cluster (#149)
 - ClusterSPIFFEID CRD can configure JWT-SVID TTL (#189)
+- The namespaces to ignore can now be defined using a regex (#170)
 
 ### Updated
 
@@ -18,7 +20,6 @@
 
 ### Changed
 
-- Filter unsupported fields when creating entries in spire-server instance (#185)
 - Use distroless static image as base (#198)
 
 ## [0.2.3] - 2023-06-20
