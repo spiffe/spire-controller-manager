@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0] - 2023-09-14
+
+### Important
+
+- This version contains changes in ClusterSPIFFEID and the new ClusterStaticEntry CRD, before upgrading it is required to have those CRDs installed
+
+### Added
+
+- Ignoring namespaces can use regex (#170)
+- ClusterStaticEntry CRD for registering workloads that live outside the cluster (#149)
+- ClusterSPIFFEID CRD can configure JWT TTL (#189)
+
+### Updated
+
+- Minor documentation changes (#213)
+
+### Changed
+
+- Filter unsupported fields in spire-server instance (#185)
+- Use distroless static image as base (#198)
+
 ## [0.2.3] - 2023-06-20
 
 ### Added
