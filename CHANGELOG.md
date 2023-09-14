@@ -2,7 +2,7 @@
 
 ## [0.3.0] - 2023-09-14
 
-<font size='6'>_PLEASE READ BEFORE UPGRADING_</font>
+<font size='6'>***PLEASE READ BEFORE UPGRADING***</font>
 
  This version contains changes in the `ClusterSPIFFEID` CRD. It also adds a new `ClusterStaticEntry` CRD. Before upgrading you __MUST__ do the following, in order:
 
