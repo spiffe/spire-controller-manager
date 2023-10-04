@@ -65,10 +65,9 @@ func (r *PodReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) 
 	// Index endpoints by UID. Later when we reconcile the Pod this will make it easy to find the associated endpoints
 	// and auto populate DNS names.
 	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.Endpoints{}, reconciler.EndpointUID, func(rawObj client.Object) []string {
-		log := log.FromContext(ctx)
 		endpoints, ok := rawObj.(*corev1.Endpoints)
 		if !ok {
-			log.Error(nil, "unexpected type indexing fields", "type", fmt.Sprintf("%T", rawObj), "expecteed", "*corev1.Endpoints")
+			log.FromContext(ctx).Error(nil, "unexpected type indexing fields", "type", fmt.Sprintf("%T", rawObj), "expecteed", "*corev1.Endpoints")
 			return nil
 		}
 		var podUIDs []string
