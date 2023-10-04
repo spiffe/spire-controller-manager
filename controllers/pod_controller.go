@@ -35,7 +35,7 @@ type PodReconciler struct {
 	client.Client
 	Scheme               *runtime.Scheme
 	Triggerer            reconciler.Triggerer
-	IgnoreNamespaces     stringset.StringSet
+	IgnoreNamespaces     []*regexp.Regexp
 	AutoPopulateDNSNames bool
 }
 

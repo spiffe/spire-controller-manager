@@ -49,7 +49,7 @@ type ReconcilerConfig struct {
 	ClusterDomain        string
 	EntryClient          spireapi.EntryClient
 	K8sClient            client.Client
-	IgnoreNamespaces     stringset.StringSet
+	IgnoreNamespaces     []*regexp.Regexp
 	AutoPopulateDNSNames bool
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
