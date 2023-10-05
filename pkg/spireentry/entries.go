@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -65,7 +66,7 @@ func renderStaticEntry(spec *spirev1alpha1.ClusterStaticEntrySpec) (*spireapi.En
 	}, nil
 }
 
-func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, trustDomain spiffeid.TrustDomain, clusterName, clusterDomain string) (*spireapi.Entry, error) {
+func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, endpointsList *corev1.EndpointsList, trustDomain spiffeid.TrustDomain, clusterName, clusterDomain string) (*spireapi.Entry, error) {
 	// We uniquely target the Pod running on the Node. The former is done
 	// via the k8s:pod-uid selector, the latter via the parent ID.
 	selectors := []spireapi.Selector{
@@ -91,20 +92,12 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 		return nil, fmt.Errorf("failed to render SPIFFE ID: %w", err)
 	}
 
-	var dnsNames []string
 	dnsNamesSet := make(map[string]struct{})
-	for _, dnsNameTemplate := range spec.DNSNameTemplates {
-		dnsName, err := renderDNSName(dnsNameTemplate, data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to render DNS name: %w", err)
-		}
-
-		// Only add the DNS name if it doesn't already exist
-		if _, exists := dnsNamesSet[dnsName]; !exists {
-			dnsNamesSet[dnsName] = struct{}{}
-			dnsNames = append(dnsNames, dnsName)
-		}
+	dnsNames, err := renderDNSNames(dnsNamesSet, spec.DNSNameTemplates, data)
+	if err != nil {
+		return nil, err
 	}
+	dnsNames = appendIfNotExists(dnsNames, dnsNamesSet, dnsNamesFromEndpoints(endpointsList, clusterDomain)...)
 
 	for _, workloadSelectorTemplate := range spec.WorkloadSelectorTemplates {
 		selector, err := renderSelector(workloadSelectorTemplate, data)
@@ -152,12 +145,44 @@ func renderSPIFFEID(tmpl *template.Template, data *templateData, expectTD spiffe
 	return id, nil
 }
 
+func renderDNSNames(dnsNamesSet map[string]struct{}, dnsNameTemplates []*template.Template, data *templateData) (dnsNames []string, err error) {
+	for _, dnsNameTemplate := range dnsNameTemplates {
+		dnsName, err := renderDNSName(dnsNameTemplate, data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to render DNS name: %w", err)
+		}
+
+		dnsNames = appendIfNotExists(dnsNames, dnsNamesSet, dnsName)
+	}
+
+	return dnsNames, nil
+}
+
 func renderDNSName(tmpl *template.Template, data *templateData) (string, error) {
 	rendered, err := renderTemplate(tmpl, data)
 	if err != nil {
 		return "", err
 	}
 	return rendered, nil
+}
+
+func dnsNamesFromEndpoints(endpointsList *corev1.EndpointsList, clusterDomain string) []string {
+	var dnsNames []string
+	for _, endpoint := range endpointsList.Items {
+		dnsNames = append(dnsNames,
+			endpoint.Name,
+			endpoint.Name+"."+endpoint.Namespace,
+			endpoint.Name+"."+endpoint.Namespace+".svc",
+		)
+		if clusterDomain != "" {
+			dnsNames = append(dnsNames, endpoint.Name+"."+endpoint.Namespace+".svc."+clusterDomain)
+		}
+	}
+
+	// Sort the list to provide consistent results
+	sort.Strings(dnsNames)
+
+	return dnsNames
 }
 
 func renderSelector(tmpl *template.Template, data *templateData) (spireapi.Selector, error) {
@@ -206,4 +231,15 @@ func parseSelector(selector string) (spireapi.Selector, error) {
 		Type:  parts[0],
 		Value: parts[1],
 	}, nil
+}
+
+func appendIfNotExists(slice []string, sliceSet map[string]struct{}, items ...string) []string {
+	for _, item := range items {
+		if _, exists := sliceSet[item]; !exists {
+			sliceSet[item] = struct{}{}
+			slice = append(slice, item)
+		}
+	}
+
+	return slice
 }

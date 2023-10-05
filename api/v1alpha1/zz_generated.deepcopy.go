@@ -196,6 +196,7 @@ func (in *ClusterSPIFFEIDList) DeepCopyObject() runtime.Object {
 func (in *ClusterSPIFFEIDSpec) DeepCopyInto(out *ClusterSPIFFEIDSpec) {
 	*out = *in
 	out.TTL = in.TTL
+	out.JWTTTL = in.JWTTTL
 	if in.DNSNameTemplates != nil {
 		in, out := &in.DNSNameTemplates, &out.DNSNameTemplates
 		*out = make([]string, len(*in))

@@ -1,5 +1,5 @@
 /*
-Copyright 2021 SPIRE Authors.
+Copyright 2023 SPIRE Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 
 	"github.com/spiffe/spire-controller-manager/pkg/namespace"
@@ -30,13 +29,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// PodReconciler reconciles a Pod object
-type PodReconciler struct {
+// EndpointReconciler reconciles a Pod object
+type EndpointsReconciler struct {
 	client.Client
-	Scheme               *runtime.Scheme
-	Triggerer            reconciler.Triggerer
-	IgnoreNamespaces     []*regexp.Regexp
-	AutoPopulateDNSNames bool
+	Scheme           *runtime.Scheme
+	Triggerer        reconciler.Triggerer
+	IgnoreNamespaces []*regexp.Regexp
 }
 
 //+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterspiffeids,verbs=get;list;watch;create;update;patch;delete
@@ -49,7 +47,7 @@ type PodReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, err error) {
+func (r *EndpointsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, err error) {
 	if namespace.IsIgnored(r.IgnoreNamespaces, req.Namespace) {
 		return ctrl.Result{}, nil
 	}
@@ -61,36 +59,8 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PodReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
-	// Index endpoints by UID. Later when we reconcile the Pod this will make it easy to find the associated endpoints
-	// and auto populate DNS names.
-	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.Endpoints{}, reconciler.EndpointUID, func(rawObj client.Object) []string {
-		endpoints, ok := rawObj.(*corev1.Endpoints)
-		if !ok {
-			log.FromContext(ctx).Error(nil, "unexpected type indexing fields", "type", fmt.Sprintf("%T", rawObj), "expecteed", "*corev1.Endpoints")
-			return nil
-		}
-		var podUIDs []string
-		for _, subset := range endpoints.Subsets {
-			for _, address := range subset.Addresses {
-				if address.TargetRef != nil && address.TargetRef.Kind == "Pod" {
-					podUIDs = append(podUIDs, string(address.TargetRef.UID))
-				}
-			}
-			for _, address := range subset.NotReadyAddresses {
-				if address.TargetRef != nil && address.TargetRef.Kind == "Pod" {
-					podUIDs = append(podUIDs, string(address.TargetRef.UID))
-				}
-			}
-		}
-
-		return podUIDs
-	})
-	if err != nil {
-		return err
-	}
-
+func (r *EndpointsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Pod{}).
+		For(&corev1.Endpoints{}).
 		Complete(r)
 }
