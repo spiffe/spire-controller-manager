@@ -77,6 +77,10 @@ type ClusterSPIFFEIDSpec struct {
 
 	// AutoPopulateDNSNames indicates whether or not to auto populate service DNS names.
 	AutoPopulateDNSNames bool `json:"autoPopulateDNSNames,omitempty"`
+
+	// Set which Controller Class will act on this object
+	// +kubebuilder:validation:Optional
+	ClassName string `json:"className,omitempty"`
 }
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID

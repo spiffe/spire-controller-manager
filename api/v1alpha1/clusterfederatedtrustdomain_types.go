@@ -37,6 +37,10 @@ type ClusterFederatedTrustDomainSpec struct {
 	// domain. This field is optional when the resource is created.
 	// +kubebuilder:validation:Optional
 	TrustDomainBundle string `json:"trustDomainBundle,omitempty"`
+
+	// Set which Controller Class will act on this object
+	// +kubebuilder:validation:Optional
+	ClassName string `json:"className,omitempty"`
 }
 
 // BundleEndpointProfile is the profile for the federated trust domain

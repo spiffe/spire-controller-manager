@@ -34,6 +34,8 @@ import (
 type ReconcilerConfig struct {
 	TrustDomainClient spireapi.TrustDomainClient
 	K8sClient         client.Client
+	ClassName         string
+	MissingClassName  bool
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.

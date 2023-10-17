@@ -105,6 +105,16 @@ type ControllerManagerConfigurationSpec struct {
 	// Webhook contains the controllers webhook configuration
 	// +optional
 	Webhook ControllerWebhook `json:"webhook,omitempty"`
+
+	// ClassName contains the name of a class to watch CRs for. Others will be ignored.
+	// If unset all will be watched.
+	// +optional
+	ClassName string `json:"className,omitempty"`
+
+	// If MissingClassName is set and ClassName is set, any CR without a ClassName
+	// specified will also be handled by this controller.
+	// +optional
+	MissingClassName bool `json:"missingClassName,omitempty"`
 }
 
 // ControllerConfigurationSpec defines the global configuration for

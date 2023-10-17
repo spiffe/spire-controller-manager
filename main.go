@@ -158,7 +158,9 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 		"trust domain", ctrlConfig.TrustDomain,
 		"ignore namespaces", ctrlConfig.IgnoreNamespaces,
 		"gc interval", ctrlConfig.GCInterval,
-		"spire server socket path", ctrlConfig.SPIREServerSocketPath)
+		"spire server socket path", ctrlConfig.SPIREServerSocketPath,
+		"class name", ctrlConfig.ClassName,
+		"handle crs without class name", ctrlConfig.MissingClassName)
 
 	switch {
 	case ctrlConfig.TrustDomain == "":
@@ -266,12 +268,16 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		EntryClient:      spireClient,
 		IgnoreNamespaces: ignoreNamespacesRegex,
 		GCInterval:       ctrlConfig.GCInterval,
+		ClassName:        ctrlConfig.ClassName,
+		MissingClassName: ctrlConfig.MissingClassName,
 	})
 
 	federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
 		K8sClient:         mgr.GetClient(),
 		TrustDomainClient: spireClient,
 		GCInterval:        ctrlConfig.GCInterval,
+		ClassName:         ctrlConfig.ClassName,
+		MissingClassName:  ctrlConfig.MissingClassName,
 	})
 
 	if err = (&controllers.ClusterSPIFFEIDReconciler{
