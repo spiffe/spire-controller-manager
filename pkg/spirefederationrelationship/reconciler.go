@@ -46,16 +46,18 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	return reconciler.New(reconciler.Config{
 		Kind: "federation relationship",
 		Reconcile: func(ctx context.Context) {
-			Reconcile(ctx, config.TrustDomainClient, config.K8sClient)
+			Reconcile(ctx, config.TrustDomainClient, config.K8sClient, config.ClassName, config.MissingClassName)
 		},
 		GCInterval: config.GCInterval,
 	})
 }
 
-func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client) {
+func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client, className string, missingClassName bool) {
 	r := &federationRelationshipReconciler{
 		trustDomainClient: trustDomainClient,
 		k8sClient:         k8sClient,
+		className:         className,
+		missingClassName:  missingClassName,
 	}
 	r.reconcile(ctx)
 }
@@ -63,6 +65,8 @@ func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient
 type federationRelationshipReconciler struct {
 	trustDomainClient spireapi.TrustDomainClient
 	k8sClient         client.Client
+	className         string
+	missingClassName  bool
 }
 
 func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
@@ -74,7 +78,7 @@ func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
 		return
 	}
 
-	clusterFederatedTrustDomains, err := r.listClusterFederatedTrustDomains(ctx)
+	clusterFederatedTrustDomains, err := r.listClusterFederatedTrustDomains(ctx, r.className, r.missingClassName)
 	if err != nil {
 		log.Error(err, "Failed to list ClusterFederatedTrustDomains")
 		return
@@ -124,7 +128,7 @@ func (r *federationRelationshipReconciler) listFederationRelationships(ctx conte
 	return out, nil
 }
 
-func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx context.Context) (map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, error) {
+func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx context.Context, className string, missingClassName bool) (map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, error) {
 	log := log.FromContext(ctx)
 
 	clusterFederatedTrustDomains, err := k8sapi.ListClusterFederatedTrustDomains(ctx, r.k8sClient)
@@ -140,6 +144,9 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 
 	out := make(map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, len(clusterFederatedTrustDomains))
 	for i := range clusterFederatedTrustDomains {
+		if !((clusterFederatedTrustDomains[i].Spec.ClassName == "" && missingClassName) || clusterFederatedTrustDomains[i].Spec.ClassName == className) {
+			continue
+		}
 		log := log.WithValues(clusterFederatedTrustDomainLogKey, objectName(&clusterFederatedTrustDomains[i]))
 
 		federationRelationship, err := spirev1alpha1.ParseClusterFederatedTrustDomainSpec(&clusterFederatedTrustDomains[i].Spec)
