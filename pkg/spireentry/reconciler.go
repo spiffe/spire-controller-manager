@@ -99,7 +99,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 
 	// Load and add entry state for ClusterStaticEntries
-	clusterStaticEntries, err := r.listClusterStaticEntries(ctx, r.config.ClassName, r.config.MissingClassName)
+	clusterStaticEntries, err := r.listClusterStaticEntries(ctx)
 	if err != nil {
 		log.Error(err, "Failed to list ClusterStaticEntries")
 		return
@@ -107,7 +107,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
 
 	// Load and add entry state for ClusterSPIFFEIDs
-	clusterSPIFFEIDs, err := r.listClusterSPIFFEIDs(ctx, r.config.ClassName, r.config.MissingClassName)
+	clusterSPIFFEIDs, err := r.listClusterSPIFFEIDs(ctx)
 	if err != nil {
 		log.Error(err, "Failed to list ClusterSPIFFEIDs")
 		return
@@ -192,6 +192,10 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 }
 
+func (r *entryReconciler) reconcileClass(className string) bool {
+	return (className == "" && r.config.MissingClassName) || className == r.config.ClassName
+}
+
 func (r *entryReconciler) recalculateUnsupportFields(ctx context.Context, log logr.Logger) {
 	unsupportedFields, err := r.getUnsupportedFields(ctx)
 	if err != nil {
@@ -234,14 +238,14 @@ func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[spireap
 	return r.config.EntryClient.GetUnsupportedFields(ctx, r.config.TrustDomain.Name())
 }
 
-func (r *entryReconciler) listClusterStaticEntries(ctx context.Context, className string, missingClassName bool) ([]*ClusterStaticEntry, error) {
+func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*ClusterStaticEntry, error) {
 	clusterStaticEntries, err := k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]*ClusterStaticEntry, 0, len(clusterStaticEntries))
 	for _, clusterStaticEntry := range clusterStaticEntries {
-		if (clusterStaticEntry.Spec.ClassName == "" && missingClassName) || clusterStaticEntry.Spec.ClassName == className {
+		if r.reconcileClass(clusterStaticEntry.Spec.ClassName) {
 			out = append(out, &ClusterStaticEntry{
 				ClusterStaticEntry: clusterStaticEntry,
 			})
@@ -250,14 +254,14 @@ func (r *entryReconciler) listClusterStaticEntries(ctx context.Context, classNam
 	return out, nil
 }
 
-func (r *entryReconciler) listClusterSPIFFEIDs(ctx context.Context, className string, missingClassName bool) ([]*ClusterSPIFFEID, error) {
+func (r *entryReconciler) listClusterSPIFFEIDs(ctx context.Context) ([]*ClusterSPIFFEID, error) {
 	clusterSPIFFEIDs, err := k8sapi.ListClusterSPIFFEIDs(ctx, r.config.K8sClient)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]*ClusterSPIFFEID, 0, len(clusterSPIFFEIDs))
 	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
-		if (clusterSPIFFEID.Spec.ClassName == "" && missingClassName) || clusterSPIFFEID.Spec.ClassName == className {
+		if r.reconcileClass(clusterSPIFFEID.Spec.ClassName) {
 			out = append(out, &ClusterSPIFFEID{
 				ClusterSPIFFEID: clusterSPIFFEID,
 			})

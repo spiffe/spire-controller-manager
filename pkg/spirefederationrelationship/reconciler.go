@@ -78,7 +78,7 @@ func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
 		return
 	}
 
-	clusterFederatedTrustDomains, err := r.listClusterFederatedTrustDomains(ctx, r.className, r.missingClassName)
+	clusterFederatedTrustDomains, err := r.listClusterFederatedTrustDomains(ctx)
 	if err != nil {
 		log.Error(err, "Failed to list ClusterFederatedTrustDomains")
 		return
@@ -116,6 +116,10 @@ func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
 	// TODO: Status updates
 }
 
+func (r *federationRelationshipReconciler) reconcileClass(className string) bool {
+	return (className == "" && r.missingClassName) || className == r.className
+}
+
 func (r *federationRelationshipReconciler) listFederationRelationships(ctx context.Context) (map[spiffeid.TrustDomain]spireapi.FederationRelationship, error) {
 	federationRelationships, err := r.trustDomainClient.ListFederationRelationships(ctx)
 	if err != nil {
@@ -128,7 +132,7 @@ func (r *federationRelationshipReconciler) listFederationRelationships(ctx conte
 	return out, nil
 }
 
-func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx context.Context, className string, missingClassName bool) (map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, error) {
+func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx context.Context) (map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, error) {
 	log := log.FromContext(ctx)
 
 	clusterFederatedTrustDomains, err := k8sapi.ListClusterFederatedTrustDomains(ctx, r.k8sClient)
@@ -144,7 +148,7 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 
 	out := make(map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, len(clusterFederatedTrustDomains))
 	for i := range clusterFederatedTrustDomains {
-		if !((clusterFederatedTrustDomains[i].Spec.ClassName == "" && missingClassName) || clusterFederatedTrustDomains[i].Spec.ClassName == className) {
+		if !(r.reconcileClass(clusterFederatedTrustDomains[i].Spec.ClassName)) {
 			continue
 		}
 		log := log.WithValues(clusterFederatedTrustDomainLogKey, objectName(&clusterFederatedTrustDomains[i]))
