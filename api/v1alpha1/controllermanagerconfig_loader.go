@@ -47,7 +47,7 @@ func addOptionsFromConfigSpec(o *ctrl.Options, configSpec ControllerManagerConfi
 	}
 
 	if len(o.Cache.DefaultNamespaces) == 0 && configSpec.CacheNamespace != "" {
-		o.Cache.DefaultNamespaces[configSpec.CacheNamespace] = cache.Config{}
+		o.Cache.DefaultNamespaces = map[string]cache.Config{configSpec.CacheNamespace: {}}
 	}
 
 	if o.Metrics.BindAddress == "" && configSpec.Metrics.BindAddress != "" {
