@@ -8,9 +8,9 @@ COPY go.* ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
 # Copy the go source
-COPY main.go main.go
+COPY cmd/main.go cmd/main.go
 COPY api/ api/
-COPY controllers/ controllers/
+COPY internal/ internal/
 COPY pkg/ pkg/
 
 # xx is a helper for cross-compilation
@@ -28,7 +28,7 @@ COPY --link --from=xx / /
 RUN xx-go --wrap
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    go build -o bin/spire-controller-manager main.go
+    go build -o bin/spire-controller-manager cmd/main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
