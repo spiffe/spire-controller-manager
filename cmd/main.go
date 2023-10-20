@@ -16,7 +16,6 @@ limitations under the License.
 
 package main
 
-// TODO: UPDATE THIS!!!!!!!!!!!!!!!!!!
 import (
 	"crypto/tls"
 	"errors"
