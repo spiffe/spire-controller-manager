@@ -1,5 +1,5 @@
 /*
-Copyright 2021 SPIRE Authors.
+Copyright 2023 SPIRE Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ limitations under the License.
 
 package main
 
+// TODO: UPDATE THIS!!!!!!!!!!!!!!!!!!
 import (
 	"crypto/tls"
 	"errors"
@@ -44,9 +45,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
-
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
-	"github.com/spiffe/spire-controller-manager/controllers"
+	"github.com/spiffe/spire-controller-manager/internal/controller"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/spiffe/spire-controller-manager/pkg/spireentry"
 	"github.com/spiffe/spire-controller-manager/pkg/spirefederationrelationship"
@@ -178,6 +178,24 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 }
 
 func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp) error {
+	var metricsAddr string
+	var enableLeaderElection bool
+	var probeAddr string
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
+	flag.Parse()
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	// FROM OLD MAIN!!!! >>>
+
 	// It's unfortunate that we have to keep credentials on disk so that the
 	// manager can load them:
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to
@@ -222,6 +240,14 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 	defer spireClient.Close()
+
+	// <<<<< END
+
+	// TODO: may we add?
+	// options.Metrics: metricsserver.Options{BindAddress: metricsAddr}
+	// options.LeaderElection =enableLeaderElection
+	// options.HealthProbeBindAddress = probeAddr
+	// options.LeaderElectionID= "98c9c988.spiffe.io"
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
@@ -280,7 +306,9 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		WatchClassless:    ctrlConfig.WatchClassless,
 	})
 
-	if err = (&controllers.ClusterSPIFFEIDReconciler{
+	// FROM generated code
+
+	if err = (&controller.ClusterSPIFFEIDReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		Triggerer: entryReconciler,
@@ -288,7 +316,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
 		return err
 	}
-	if err = (&controllers.ClusterFederatedTrustDomainReconciler{
+	if err = (&controller.ClusterFederatedTrustDomainReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		Triggerer: federationRelationshipReconciler,
@@ -296,7 +324,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
 		return err
 	}
-	if err = (&controllers.ClusterStaticEntryReconciler{
+	if err = (&controller.ClusterStaticEntryReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		Triggerer: entryReconciler,
@@ -304,17 +332,21 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
 		return err
 	}
-	if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
-		return err
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
+			return err
+		}
 	}
-	if err = (&spirev1alpha1.ClusterSPIFFEID{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSPIFFEID")
-		return err
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&spirev1alpha1.ClusterSPIFFEID{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSPIFFEID")
+			return err
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
-	if err = (&controllers.PodReconciler{
+	if err = (&controller.PodReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		Triggerer:        entryReconciler,
@@ -324,7 +356,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 
-	if err = (&controllers.EndpointsReconciler{
+	if err = (&controller.EndpointsReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		Triggerer:        entryReconciler,
@@ -348,7 +380,6 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to manage federation relationship reconciler")
 		return err
 	}
-
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		return err
@@ -359,7 +390,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctx); err != nil {
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		return err
 	}

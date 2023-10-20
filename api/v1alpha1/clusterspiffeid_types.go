@@ -1,5 +1,5 @@
 /*
-Copyright 2021 SPIRE Authors.
+Copyright 2023 SPIRE Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,9 +85,6 @@ type ClusterSPIFFEIDSpec struct {
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID
 type ClusterSPIFFEIDStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
 	// Stats produced by the last entry reconciliation run
 	// +kubebuilder:validation:Optional
 	Stats ClusterSPIFFEIDStats `json:"stats"`

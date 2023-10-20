@@ -1,5 +1,5 @@
 /*
-Copyright 2021 SPIRE Authors.
+Copyright 2023 SPIRE Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controller
 
 import (
 	"context"
@@ -39,6 +39,15 @@ type ClusterStaticEntryReconciler struct {
 //+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterstaticentries/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterstaticentries/finalizers,verbs=update
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the ClusterStaticEntry object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.16.0/pkg/reconcile
 func (r *ClusterStaticEntryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.FromContext(ctx).V(1).Info("Triggering reconciliation")
 	r.Triggerer.Trigger()
