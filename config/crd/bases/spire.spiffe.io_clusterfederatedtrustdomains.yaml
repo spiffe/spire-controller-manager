@@ -14,7 +14,14 @@ spec:
     singular: clusterfederatedtrustdomain
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.trustDomain
+      name: Trust Domain
+      type: string
+    - jsonPath: .spec.bundleEndpointURL
+      name: Endpoint URL
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: ClusterFederatedTrustDomain is the Schema for the clusterfederatedtrustdomains

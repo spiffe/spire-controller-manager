@@ -223,8 +223,6 @@ spec:
                     description: How many pods were selected out of the namespaces.
                     type: integer
                 type: object
-            required:
-            - stats
             type: object
         type: object
     served: true

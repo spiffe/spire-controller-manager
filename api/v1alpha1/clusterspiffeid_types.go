@@ -20,9 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // ClusterSPIFFEIDSpec defines the desired state of ClusterSPIFFEID
 type ClusterSPIFFEIDSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -139,7 +136,8 @@ type ClusterSPIFFEID struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterSPIFFEIDSpec   `json:"spec,omitempty"`
+	Spec ClusterSPIFFEIDSpec `json:"spec,omitempty"`
+	// +optional
 	Status ClusterSPIFFEIDStatus `json:"status,omitempty"`
 }
 

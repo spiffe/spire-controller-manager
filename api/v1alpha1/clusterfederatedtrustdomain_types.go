@@ -20,9 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // ClusterFederatedTrustDomainSpec defines the desired state of ClusterFederatedTrustDomain
 type ClusterFederatedTrustDomainSpec struct {
 	// TrustDomain is the name of the trust domain to federate with (e.g. example.org)
@@ -76,6 +73,8 @@ type ClusterFederatedTrustDomainStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
 
+// +kubebuilder:printcolumn:name="Trust Domain",type=string,JSONPath=`.spec.trustDomain`
+// +kubebuilder:printcolumn:name="Endpoint URL",type=string,JSONPath=`.spec.bundleEndpointURL`
 // ClusterFederatedTrustDomain is the Schema for the clusterfederatedtrustdomains API
 type ClusterFederatedTrustDomain struct {
 	metav1.TypeMeta   `json:",inline"`
