@@ -111,10 +111,10 @@ type ControllerManagerConfigurationSpec struct {
 	// +optional
 	ClassName string `json:"className,omitempty"`
 
-	// If MissingClassName is set and ClassName is set, any CR without a ClassName
+	// If WatchClassless is set and ClassName is set, any CR without a ClassName
 	// specified will also be handled by this controller.
 	// +optional
-	MissingClassName bool `json:"missingClassName,omitempty"`
+	WatchClassless bool `json:"watchClassless,omitempty"`
 }
 
 // ControllerConfigurationSpec defines the global configuration for

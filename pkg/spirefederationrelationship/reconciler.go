@@ -35,7 +35,7 @@ type ReconcilerConfig struct {
 	TrustDomainClient spireapi.TrustDomainClient
 	K8sClient         client.Client
 	ClassName         string
-	MissingClassName  bool
+	WatchClassless    bool
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -46,18 +46,18 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	return reconciler.New(reconciler.Config{
 		Kind: "federation relationship",
 		Reconcile: func(ctx context.Context) {
-			Reconcile(ctx, config.TrustDomainClient, config.K8sClient, config.ClassName, config.MissingClassName)
+			Reconcile(ctx, config.TrustDomainClient, config.K8sClient, config.ClassName, config.WatchClassless)
 		},
 		GCInterval: config.GCInterval,
 	})
 }
 
-func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client, className string, missingClassName bool) {
+func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client, className string, watchClassless bool) {
 	r := &federationRelationshipReconciler{
 		trustDomainClient: trustDomainClient,
 		k8sClient:         k8sClient,
 		className:         className,
-		missingClassName:  missingClassName,
+		watchClassless:    watchClassless,
 	}
 	r.reconcile(ctx)
 }
@@ -66,7 +66,7 @@ type federationRelationshipReconciler struct {
 	trustDomainClient spireapi.TrustDomainClient
 	k8sClient         client.Client
 	className         string
-	missingClassName  bool
+	watchClassless    bool
 }
 
 func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
@@ -117,7 +117,7 @@ func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
 }
 
 func (r *federationRelationshipReconciler) reconcileClass(className string) bool {
-	return (className == "" && r.missingClassName) || className == r.className
+	return (className == "" && r.watchClassless) || className == r.className
 }
 
 func (r *federationRelationshipReconciler) listFederationRelationships(ctx context.Context) (map[spiffeid.TrustDomain]spireapi.FederationRelationship, error) {

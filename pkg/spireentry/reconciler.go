@@ -52,7 +52,7 @@ type ReconcilerConfig struct {
 	IgnoreNamespaces     []*regexp.Regexp
 	AutoPopulateDNSNames bool
 	ClassName            string
-	MissingClassName     bool
+	WatchClassless       bool
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -193,7 +193,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 }
 
 func (r *entryReconciler) reconcileClass(className string) bool {
-	return (className == "" && r.config.MissingClassName) || className == r.config.ClassName
+	return (className == "" && r.config.WatchClassless) || className == r.config.ClassName
 }
 
 func (r *entryReconciler) recalculateUnsupportFields(ctx context.Context, log logr.Logger) {
