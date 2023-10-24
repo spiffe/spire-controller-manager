@@ -4,12 +4,12 @@ go 1.20
 
 require (
 	github.com/go-logr/logr v1.2.4
-	github.com/google/go-cmp v0.5.9
+	github.com/google/go-cmp v0.6.0
 	github.com/jpillora/backoff v1.0.0
-	github.com/onsi/ginkgo/v2 v2.12.1
+	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.28.0
 	github.com/spiffe/go-spiffe/v2 v2.1.6
-	github.com/spiffe/spire-api-sdk v1.8.0
+	github.com/spiffe/spire-api-sdk v1.8.1
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
