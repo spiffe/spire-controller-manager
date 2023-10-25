@@ -51,6 +51,8 @@ type ReconcilerConfig struct {
 	K8sClient            client.Client
 	IgnoreNamespaces     []*regexp.Regexp
 	AutoPopulateDNSNames bool
+	ClassName            string
+	WatchClassless       bool
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -190,6 +192,10 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 }
 
+func (r *entryReconciler) reconcileClass(className string) bool {
+	return (className == "" && r.config.WatchClassless) || className == r.config.ClassName
+}
+
 func (r *entryReconciler) recalculateUnsupportFields(ctx context.Context, log logr.Logger) {
 	unsupportedFields, err := r.getUnsupportedFields(ctx)
 	if err != nil {
@@ -239,9 +245,11 @@ func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*Clus
 	}
 	out := make([]*ClusterStaticEntry, 0, len(clusterStaticEntries))
 	for _, clusterStaticEntry := range clusterStaticEntries {
-		out = append(out, &ClusterStaticEntry{
-			ClusterStaticEntry: clusterStaticEntry,
-		})
+		if r.reconcileClass(clusterStaticEntry.Spec.ClassName) {
+			out = append(out, &ClusterStaticEntry{
+				ClusterStaticEntry: clusterStaticEntry,
+			})
+		}
 	}
 	return out, nil
 }
@@ -253,9 +261,11 @@ func (r *entryReconciler) listClusterSPIFFEIDs(ctx context.Context) ([]*ClusterS
 	}
 	out := make([]*ClusterSPIFFEID, 0, len(clusterSPIFFEIDs))
 	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
-		out = append(out, &ClusterSPIFFEID{
-			ClusterSPIFFEID: clusterSPIFFEID,
-		})
+		if r.reconcileClass(clusterSPIFFEID.Spec.ClassName) {
+			out = append(out, &ClusterSPIFFEID{
+				ClusterSPIFFEID: clusterSPIFFEID,
+			})
+		}
 	}
 	return out, nil
 }

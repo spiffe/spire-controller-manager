@@ -35,6 +35,7 @@ type ClusterStaticEntrySpec struct {
 	Hint          string          `json:"hint,omitempty"`
 	Admin         bool            `json:"admin,omitempty"`
 	Downstream    bool            `json:"downstream,omitempty"`
+	ClassName     string          `json:"className,omitempty"`
 }
 
 // ClusterStaticEntryStatus defines the observed state of ClusterStaticEntry

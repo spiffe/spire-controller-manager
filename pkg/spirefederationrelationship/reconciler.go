@@ -34,6 +34,8 @@ import (
 type ReconcilerConfig struct {
 	TrustDomainClient spireapi.TrustDomainClient
 	K8sClient         client.Client
+	ClassName         string
+	WatchClassless    bool
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -44,16 +46,18 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	return reconciler.New(reconciler.Config{
 		Kind: "federation relationship",
 		Reconcile: func(ctx context.Context) {
-			Reconcile(ctx, config.TrustDomainClient, config.K8sClient)
+			Reconcile(ctx, config.TrustDomainClient, config.K8sClient, config.ClassName, config.WatchClassless)
 		},
 		GCInterval: config.GCInterval,
 	})
 }
 
-func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client) {
+func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client, className string, watchClassless bool) {
 	r := &federationRelationshipReconciler{
 		trustDomainClient: trustDomainClient,
 		k8sClient:         k8sClient,
+		className:         className,
+		watchClassless:    watchClassless,
 	}
 	r.reconcile(ctx)
 }
@@ -61,6 +65,8 @@ func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient
 type federationRelationshipReconciler struct {
 	trustDomainClient spireapi.TrustDomainClient
 	k8sClient         client.Client
+	className         string
+	watchClassless    bool
 }
 
 func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
@@ -110,6 +116,10 @@ func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
 	// TODO: Status updates
 }
 
+func (r *federationRelationshipReconciler) reconcileClass(className string) bool {
+	return (className == "" && r.watchClassless) || className == r.className
+}
+
 func (r *federationRelationshipReconciler) listFederationRelationships(ctx context.Context) (map[spiffeid.TrustDomain]spireapi.FederationRelationship, error) {
 	federationRelationships, err := r.trustDomainClient.ListFederationRelationships(ctx)
 	if err != nil {
@@ -138,6 +148,9 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 
 	out := make(map[spiffeid.TrustDomain]*clusterFederatedTrustDomainState, len(clusterFederatedTrustDomains))
 	for i := range clusterFederatedTrustDomains {
+		if !(r.reconcileClass(clusterFederatedTrustDomains[i].Spec.ClassName)) {
+			continue
+		}
 		log := log.WithValues(clusterFederatedTrustDomainLogKey, objectName(&clusterFederatedTrustDomains[i]))
 
 		federationRelationship, err := spirev1alpha1.ParseClusterFederatedTrustDomainSpec(&clusterFederatedTrustDomains[i].Spec)
