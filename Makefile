@@ -127,7 +127,6 @@ lint-code: $(golangci_lint_bin)
 
 ##@ Build
 
-# TODO: VERIFY BUILD KEEP WORKING WIHT NEW MAIN!!!!!!!!!!!!!!!
 .PHONY: build
 build: $(addprefix bin,/$(BINARIES)) ## Build manager binary.
 

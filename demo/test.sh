@@ -37,7 +37,7 @@ cleanup() {
     echo "Done."
 }
 
-# trap cleanup EXIT
+trap cleanup EXIT
 
 log-info "Tagging devel image as nightly..."
 docker tag ghcr.io/spiffe/spire-controller-manager:{devel,nightly}
