@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0] - 2023-11-02
+
+<font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
+
+ This version contains changes in the `ClusterSPIFFEID` CRD, `ClusterFederatedTrustDomain` CRD and `ClusterStaticEntry` CRD. Before upgrading you __MUST__ do the following, in order:
+
+- Update those CRDs into your cluster (see [here](./config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml), [here](./config/crd/bases/spire.spiffe.io_clusterfederatedtrustdomains.yaml) and [here](.config/crd/bases/spire.spiffe.io_clusterstaticentries.yaml)).
+- Update the `manager-role` ClusterRole, which includes additional permissions for `endpoints` CRD (see [here](./config/rbac/role.yaml))
+
+### Security
+
+- Updated to google.golang.org/grpc v1.59.0 to address CVE-2023-44487 (#231)
+
+### Added
+
+- ClusterSPIFFEID CRD support for DNS name auto-population (#122)
+- Support for multiple SPIRE clusters running in the same K8S cluster using ClassName's (#230)
+
+### Fixed
+
+- Missing status subresource definitions (#223)
+
 ## [0.3.0] - 2023-09-14
 
 <font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
@@ -7,7 +29,7 @@
  This version contains changes in the `ClusterSPIFFEID` CRD. It also adds a new `ClusterStaticEntry` CRD. Before upgrading you __MUST__ do the following, in order:
 
 - Update/install those CRDs into your cluster (see [here](./config/crd/bases/spire.spiffe.io_clusterstaticentries.yaml) and [here](./config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml)).
-- Update the the `manager-role` ClusterRole, which includes additional permissions for the new `ClusterStaticEntry` CRD (see [here](./config/rbac/role.yaml))
+- Update the `manager-role` ClusterRole, which includes additional permissions for the new `ClusterStaticEntry` CRD (see [here](./config/rbac/role.yaml))
 
 ### Added
 
