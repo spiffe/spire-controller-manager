@@ -11,13 +11,16 @@
 
 ### Security
 
-- Updated to google.golang.org/grpc v1.59.0 to address CVE-2023-44487
+- Updated to google.golang.org/grpc v1.59.0 to address CVE-2023-44487 (#231)
 
 ### Added
 
-- ClusterSPIFFEID CRD can configure to Autopopulate DNS (#122)
-- Support to run multiple spire clusters within a k8s cluster (#230)
-- Status subresource definitions (#223)
+- ClusterSPIFFEID CRD support for DNS name auto-population (#122)
+- Support for multiple SPIRE clusters running in the same K8S cluster using ClassName's (#230)
+
+### Fixed
+
+- Missing status subresource definitions (#223)
 
 ## [0.3.0] - 2023-09-14
 
