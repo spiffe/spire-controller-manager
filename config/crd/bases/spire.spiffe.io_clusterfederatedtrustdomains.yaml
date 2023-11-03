@@ -64,7 +64,7 @@ spec:
                   It must be an HTTPS URL and cannot contain userinfo (i.e. username/password).
                 type: string
               className:
-                description: Set the class of controller to handle this object.
+                description: Set which Controller Class will act on this object
                 type: string
               trustDomain:
                 description: TrustDomain is the name of the trust domain to federate
@@ -96,4 +96,3 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
-

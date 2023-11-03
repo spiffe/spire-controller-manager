@@ -37,6 +37,9 @@ spec:
             properties:
               admin:
                 type: boolean
+              className:
+                description: Set which Controller Class will act on this object
+                type: string
               dnsNames:
                 items:
                   type: string
