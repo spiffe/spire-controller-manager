@@ -92,21 +92,6 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 			"Command-line flags override configuration from this file.")
 	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
 
-	// TODO: may we get metric, probeAdrr and leader?
-	// var metricsAddr string
-	// var enableLeaderElection bool
-	// var probeAddr string
-	// flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	// flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	// flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-	// "Enable leader election for controller manager. "+
-	// "Enabling this will ensure there is only one active controller manager.")
-	//
-	// options.Metrics: metricsserver.Options{BindAddress: metricsAddr}
-	// options.LeaderElection =enableLeaderElection
-	// options.HealthProbeBindAddress = probeAddr
-	// options.LeaderElectionID= "98c9c988.spiffe.io"
-
 	// Parse log flags
 	opts := zap.Options{
 		Development: true,
@@ -293,8 +278,6 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		ClassName:         ctrlConfig.ClassName,
 		WatchClassless:    ctrlConfig.WatchClassless,
 	})
-
-	// FROM generated code
 
 	if err = (&controller.ClusterSPIFFEIDReconciler{
 		Client:    mgr.GetClient(),
