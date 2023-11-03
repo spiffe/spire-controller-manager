@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: daily
     open-pull-requests-limit: 5
+    groups:
+      k8s.io:
+        patterns:
+          - "k8s.io/*"
   - package-ecosystem: github-actions
     directory: /
     schedule:
