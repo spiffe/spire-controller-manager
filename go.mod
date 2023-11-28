@@ -9,14 +9,14 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
 	github.com/spiffe/go-spiffe/v2 v2.1.6
-	github.com/spiffe/spire-api-sdk v1.8.1
+	github.com/spiffe/spire-api-sdk v1.8.3
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
 	k8s.io/client-go v0.28.3
-	k8s.io/component-base v0.28.2
+	k8s.io/component-base v0.28.3
 	k8s.io/utils v0.0.0-20230505201702-9f6742963106
 	sigs.k8s.io/controller-runtime v0.15.1
 )
