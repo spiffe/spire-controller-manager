@@ -37,6 +37,13 @@ ignoreNamespaces:
   - spire-system
   - local-path-storage
 `
+
+	fileContentExpandEnv = `
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ControllerManagerConfig
+clusterName: cluster2
+trustDomain: $TRUST_DOMAIN
+`
 )
 
 func TestLoadOptionsFromFileReplaceDefaultValues(t *testing.T) {
@@ -56,7 +63,7 @@ func TestLoadOptionsFromFileReplaceDefaultValues(t *testing.T) {
 		ValidatingWebhookConfigurationName: "foo-webhook",
 	}
 
-	err := spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig)
+	err := spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig, false)
 	require.NoError(t, err)
 
 	ok := true
@@ -107,10 +114,43 @@ func TestLoadOptionsFromFileInvalidPath(t *testing.T) {
 		ValidatingWebhookConfigurationName: "foo-webhook",
 	}
 
-	err := spirev1alpha1.LoadOptionsFromFile("", scheme, &options, &ctrlConfig)
+	err := spirev1alpha1.LoadOptionsFromFile("", scheme, &options, &ctrlConfig, false)
 	require.EqualError(t, err, "could not read file at : open : no such file or directory")
 
-	err = spirev1alpha1.LoadOptionsFromFile("foo.yaml", scheme, &options, &ctrlConfig)
+	err = spirev1alpha1.LoadOptionsFromFile("foo.yaml", scheme, &options, &ctrlConfig, false)
 	fmt.Printf("err :%v\n", err)
 	require.EqualError(t, err, "could not read file at foo.yaml: open foo.yaml: no such file or directory")
+}
+
+func TestLoadOptionsFromFileExpandEnv(t *testing.T) {
+	require.NoError(t, os.Setenv("TRUST_DOMAIN", "example.org"))
+
+	tempDir := t.TempDir()
+	path := filepath.Join(tempDir, "config.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(fileContentExpandEnv), 0600))
+
+	scheme := runtime.NewScheme()
+	options := ctrl.Options{Scheme: scheme}
+
+	ctrlConfig := spirev1alpha1.ControllerManagerConfig{}
+
+	tests := []struct {
+		expandEnv     bool
+		expectedValue string
+	}{
+		{
+			expandEnv:     true,
+			expectedValue: "example.org",
+		},
+		{
+			expandEnv:     false,
+			expectedValue: "$TRUST_DOMAIN",
+		},
+	}
+
+	for _, test := range tests {
+		err := spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig, test.expandEnv)
+		require.NoError(t, err)
+		require.Equal(t, test.expectedValue, ctrlConfig.TrustDomain)
+	}
 }

@@ -87,11 +87,13 @@ func main() {
 func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*regexp.Regexp, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
+	var expandEnvFlag bool
 	flag.StringVar(&configFileFlag, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
 	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
+	flag.BoolVar(&expandEnvFlag, "expandEnv", false, "Expand environment variables in SPIRE Controller Manager config file")
 
 	// Parse log flags
 	opts := zap.Options{
@@ -113,7 +115,7 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 	var ignoreNamespacesRegex []*regexp.Regexp
 
 	if configFileFlag != "" {
-		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig); err != nil {
+		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig, expandEnvFlag); err != nil {
 			return ctrlConfig, options, ignoreNamespacesRegex, fmt.Errorf("unable to load the config file: %w", err)
 		}
 

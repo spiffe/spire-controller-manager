@@ -11,8 +11,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func LoadOptionsFromFile(path string, scheme *runtime.Scheme, options *ctrl.Options, config *ControllerManagerConfig) error {
-	if err := loadFile(path, scheme, config); err != nil {
+func LoadOptionsFromFile(path string, scheme *runtime.Scheme, options *ctrl.Options, config *ControllerManagerConfig, expandEnv bool) error {
+	if err := loadFile(path, scheme, config, expandEnv); err != nil {
 		return err
 	}
 
@@ -21,10 +21,14 @@ func LoadOptionsFromFile(path string, scheme *runtime.Scheme, options *ctrl.Opti
 	return nil
 }
 
-func loadFile(path string, scheme *runtime.Scheme, config *ControllerManagerConfig) error {
+func loadFile(path string, scheme *runtime.Scheme, config *ControllerManagerConfig, expandEnv bool) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("could not read file at %s: %w", path, err)
+	}
+
+	if expandEnv {
+		content = []byte(os.ExpandEnv(string(content)))
 	}
 
 	codecs := serializer.NewCodecFactory(scheme)
