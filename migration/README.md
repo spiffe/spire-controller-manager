@@ -224,7 +224,7 @@ For each [ClusterSPIFFEID][1] you want to auto populate DNS names for, set the `
 
 
 > **Note**
-> Spire Controller Manager 0.3.1 or later is required to auto populate DNS names.
+> Spire Controller Manager 0.4.0 or later is required to auto populate DNS names.
 
 ### Can SPIRE Controller Manager be deployed in a different Pod from SPIRE Server?
 
