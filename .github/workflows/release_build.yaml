@@ -27,7 +27,7 @@ jobs:
       - name: Export image
         run: tar -czvf images.tar.gz *-image.tar
       - name: Archive image
-        uses: actions/upload-artifact@v3.1.3
+        uses: actions/upload-artifact@v4.0.0
         with:
           name: images
           path: images.tar.gz
@@ -46,7 +46,7 @@ jobs:
       - name: Install regctl
         uses: regclient/actions/regctl-installer@main
       - name: Download archived image
-        uses: actions/download-artifact@v3.0.2
+        uses: actions/download-artifact@v4.0.0
         with:
           name: images
           path: .
@@ -75,7 +75,7 @@ jobs:
       - name: Install regctl
         uses: regclient/actions/regctl-installer@main
       - name: Download archived image
-        uses: actions/download-artifact@v3.0.2
+        uses: actions/download-artifact@v4.0.0
         with:
           name: images
           path: .
