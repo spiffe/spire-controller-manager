@@ -94,7 +94,7 @@ func TestLoadOptionsFromFileReplaceDefaultValues(t *testing.T) {
 	require.Equal(t, "spire-system", options.LeaderElectionNamespace)
 	require.True(t, true, options.LeaderElection)
 	require.Equal(t, "98c9c988.spiffe.io", options.LeaderElectionID)
-	require.Equal(t, "127.0.0.1:8082", options.MetricsBindAddress)
+	require.Equal(t, "127.0.0.1:8082", options.Metrics.BindAddress)
 }
 
 func TestLoadOptionsFromFileInvalidPath(t *testing.T) {
