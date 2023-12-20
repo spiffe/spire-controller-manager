@@ -44,9 +44,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
-
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
-	"github.com/spiffe/spire-controller-manager/controllers"
+	"github.com/spiffe/spire-controller-manager/internal/controller"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/spiffe/spire-controller-manager/pkg/spireentry"
 	"github.com/spiffe/spire-controller-manager/pkg/spirefederationrelationship"
@@ -280,7 +279,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		WatchClassless:    ctrlConfig.WatchClassless,
 	})
 
-	if err = (&controllers.ClusterSPIFFEIDReconciler{
+	if err = (&controller.ClusterSPIFFEIDReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		Triggerer: entryReconciler,
@@ -288,7 +287,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
 		return err
 	}
-	if err = (&controllers.ClusterFederatedTrustDomainReconciler{
+	if err = (&controller.ClusterFederatedTrustDomainReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		Triggerer: federationRelationshipReconciler,
@@ -296,7 +295,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
 		return err
 	}
-	if err = (&controllers.ClusterStaticEntryReconciler{
+	if err = (&controller.ClusterStaticEntryReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
 		Triggerer: entryReconciler,
@@ -304,17 +303,21 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
 		return err
 	}
-	if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
-		return err
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
+			return err
+		}
 	}
-	if err = (&spirev1alpha1.ClusterSPIFFEID{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSPIFFEID")
-		return err
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&spirev1alpha1.ClusterSPIFFEID{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSPIFFEID")
+			return err
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
-	if err = (&controllers.PodReconciler{
+	if err = (&controller.PodReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		Triggerer:        entryReconciler,
@@ -324,7 +327,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 
-	if err = (&controllers.EndpointsReconciler{
+	if err = (&controller.EndpointsReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		Triggerer:        entryReconciler,
@@ -348,7 +351,6 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to manage federation relationship reconciler")
 		return err
 	}
-
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		return err

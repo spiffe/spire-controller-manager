@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controller
 
 import (
 	"context"
@@ -28,28 +28,31 @@ import (
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 )
 
-// ClusterFederatedTrustDomainReconciler reconciles a ClusterFederatedTrustDomain object
-type ClusterFederatedTrustDomainReconciler struct {
+// ClusterSPIFFEIDReconciler reconciles a ClusterSPIFFEID object
+type ClusterSPIFFEIDReconciler struct {
 	client.Client
 	Scheme    *runtime.Scheme
 	Triggerer reconciler.Triggerer
 }
 
-//+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterfederatedtrustdomains,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterfederatedtrustdomains/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterfederatedtrustdomains/finalizers,verbs=update
+//+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterspiffeids,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterspiffeids/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=spire.spiffe.io,resources=clusterspiffeids/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *ClusterFederatedTrustDomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ClusterSPIFFEIDReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log.FromContext(ctx).V(1).Info("Triggering reconciliation")
 	r.Triggerer.Trigger()
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ClusterFederatedTrustDomainReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClusterSPIFFEIDReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&spirev1alpha1.ClusterFederatedTrustDomain{}).
+		For(&spirev1alpha1.ClusterSPIFFEID{}).
 		Complete(r)
 }
