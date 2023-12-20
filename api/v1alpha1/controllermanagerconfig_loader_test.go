@@ -10,11 +10,14 @@ import (
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/component-base/config/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 )
 
 const (
@@ -43,6 +46,25 @@ apiVersion: spire.spiffe.io/v1alpha1
 kind: ControllerManagerConfig
 clusterName: cluster2
 trustDomain: $TRUST_DOMAIN
+`
+
+	cacheNamespace = `
+cacheNamespace: default
+`
+	multiNamespaces = `
+multiNamespaces:
+   default:
+   nsWithLabel:
+      labelSelectors:
+         lName: l1
+   nsWithField:
+      fieldSelectors:
+         fName: f1
+   nsWithBoth:
+      labelSelectors:
+         lName: l1
+      fieldSelectors:
+         fName: f1
 `
 )
 
@@ -152,5 +174,86 @@ func TestLoadOptionsFromFileExpandEnv(t *testing.T) {
 		err := spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig, test.expandEnv)
 		require.NoError(t, err)
 		require.Equal(t, test.expectedValue, ctrlConfig.TrustDomain)
+	}
+}
+
+func TestLoadOptionsWithCacheNamespaces(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
+
+	for _, tt := range []struct {
+		name             string
+		cacheNamespace   string
+		expectErr        string
+		expectNamespaces map[string]cache.Config
+	}{
+		{
+			name:             "no namespace",
+			expectNamespaces: nil,
+		},
+		{
+			name:           "using namespaces",
+			cacheNamespace: cacheNamespace,
+			expectNamespaces: map[string]cache.Config{
+				"default": {},
+			},
+		},
+		{
+			name:           "with multiNamespaces",
+			cacheNamespace: multiNamespaces,
+			expectNamespaces: map[string]cache.Config{
+				"default": {},
+				"nsWithLabel": {
+					LabelSelector: labels.SelectorFromSet(labels.Set{
+						"lName": "l1",
+					}),
+				},
+				"nsWithField": {
+					FieldSelector: fields.SelectorFromSet(fields.Set{
+						"fName": "f1",
+					}),
+				},
+				"nsWithBoth": {
+					LabelSelector: labels.SelectorFromSet(labels.Set{
+						"lName": "l1",
+					}),
+					FieldSelector: fields.SelectorFromSet(fields.Set{
+						"fName": "f1",
+					}),
+				},
+			},
+		},
+		{
+			name:           "with cacheNamespace and multiNamespaces",
+			cacheNamespace: cacheNamespace + multiNamespaces,
+			expectErr:      "cacheNamespace or multiCacheNamespaces can be used, but not both",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+			path := filepath.Join(tempDir, "config.yaml")
+
+			config := fileContent + tt.cacheNamespace
+			require.NoError(t, os.WriteFile(path, []byte(config), 0600))
+
+			options := ctrl.Options{Scheme: scheme}
+
+			ctrlConfig := spirev1alpha1.ControllerManagerConfig{
+				IgnoreNamespaces:                   []string{"kube-system", "kube-public", "spire-system", "foo"},
+				GCInterval:                         time.Minute,
+				ValidatingWebhookConfigurationName: "foo-webhook",
+			}
+
+			err := spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig, false)
+			if tt.expectErr != "" {
+				require.EqualError(t, err, tt.expectErr)
+				return
+			}
+
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expectNamespaces, options.Cache.DefaultNamespaces)
+		})
 	}
 }
