@@ -93,7 +93,7 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
 	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
-	flag.BoolVar(&expandEnvFlag, "expandEnv", false, "Expand environment variables in SPIRE Controller Manager config file")
+	flag.BoolVar(&expandEnvFlag, "expand-env", false, "Expand environment variables in SPIRE Controller Manager config file")
 
 	// Parse log flags
 	opts := zap.Options{
