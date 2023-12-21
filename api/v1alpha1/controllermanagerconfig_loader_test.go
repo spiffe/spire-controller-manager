@@ -123,7 +123,7 @@ func TestLoadOptionsFromFileInvalidPath(t *testing.T) {
 }
 
 func TestLoadOptionsFromFileExpandEnv(t *testing.T) {
-	require.NoError(t, os.Setenv("TRUST_DOMAIN", "example.org"))
+	t.Setenv("TRUST_DOMAIN", "example.org")
 
 	tempDir := t.TempDir()
 	path := filepath.Join(tempDir, "config.yaml")
