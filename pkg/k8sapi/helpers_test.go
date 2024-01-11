@@ -168,6 +168,6 @@ type failList struct {
 	client.Client
 }
 
-func (c failList) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+func (c failList) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	return errList
 }

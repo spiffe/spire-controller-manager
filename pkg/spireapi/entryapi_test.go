@@ -375,7 +375,7 @@ type entryServer struct {
 	batchDeleteEntriesErr error
 }
 
-func (s *entryServer) ListEntries(ctx context.Context, req *entryv1.ListEntriesRequest) (*entryv1.ListEntriesResponse, error) {
+func (s *entryServer) ListEntries(_ context.Context, req *entryv1.ListEntriesRequest) (*entryv1.ListEntriesResponse, error) {
 	resp := new(entryv1.ListEntriesResponse)
 
 	s.mtx.RLock()
@@ -392,7 +392,7 @@ func (s *entryServer) ListEntries(ctx context.Context, req *entryv1.ListEntriesR
 	return resp, s.listEntriesErr
 }
 
-func (s *entryServer) BatchCreateEntry(ctx context.Context, req *entryv1.BatchCreateEntryRequest) (*entryv1.BatchCreateEntryResponse, error) {
+func (s *entryServer) BatchCreateEntry(_ context.Context, req *entryv1.BatchCreateEntryRequest) (*entryv1.BatchCreateEntryResponse, error) {
 	resp := new(entryv1.BatchCreateEntryResponse)
 
 	for _, entry := range req.Entries {
@@ -418,7 +418,7 @@ func (s *entryServer) BatchCreateEntry(ctx context.Context, req *entryv1.BatchCr
 	return resp, s.batchCreateEntriesErr
 }
 
-func (s *entryServer) BatchUpdateEntry(ctx context.Context, req *entryv1.BatchUpdateEntryRequest) (*entryv1.BatchUpdateEntryResponse, error) {
+func (s *entryServer) BatchUpdateEntry(_ context.Context, req *entryv1.BatchUpdateEntryRequest) (*entryv1.BatchUpdateEntryResponse, error) {
 	resp := new(entryv1.BatchUpdateEntryResponse)
 
 	for _, entry := range req.Entries {
@@ -437,7 +437,7 @@ func (s *entryServer) BatchUpdateEntry(ctx context.Context, req *entryv1.BatchUp
 	return resp, s.batchUpdateEntriesErr
 }
 
-func (s *entryServer) BatchDeleteEntry(ctx context.Context, req *entryv1.BatchDeleteEntryRequest) (*entryv1.BatchDeleteEntryResponse, error) {
+func (s *entryServer) BatchDeleteEntry(_ context.Context, req *entryv1.BatchDeleteEntryRequest) (*entryv1.BatchDeleteEntryResponse, error) {
 	resp := new(entryv1.BatchDeleteEntryResponse)
 
 	for _, id := range req.Ids {

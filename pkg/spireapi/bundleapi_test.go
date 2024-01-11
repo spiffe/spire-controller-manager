@@ -73,7 +73,7 @@ type bundleServer struct {
 	bundle *apitypes.Bundle
 }
 
-func (s *bundleServer) GetBundle(ctx context.Context, req *bundlev1.GetBundleRequest) (*apitypes.Bundle, error) {
+func (s *bundleServer) GetBundle(_ context.Context, _ *bundlev1.GetBundleRequest) (*apitypes.Bundle, error) {
 	s.mtx.RLock()
 	bundle := s.bundle
 	s.mtx.RUnlock()
