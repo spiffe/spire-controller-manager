@@ -20,11 +20,7 @@ func LoadOptionsFromFile(path string, scheme *runtime.Scheme, options *ctrl.Opti
 		return err
 	}
 
-	if err := addOptionsFromConfigSpec(options, config.ControllerManagerConfigurationSpec); err != nil {
-		return err
-	}
-
-	return nil
+	return addOptionsFromConfigSpec(options, config.ControllerManagerConfigurationSpec)
 }
 
 func loadFile(path string, scheme *runtime.Scheme, config *ControllerManagerConfig, expandEnv bool) error {
