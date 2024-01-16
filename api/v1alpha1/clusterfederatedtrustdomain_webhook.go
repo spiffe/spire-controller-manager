@@ -53,7 +53,7 @@ func (r *ClusterFederatedTrustDomain) ValidateCreate() (admission.Warnings, erro
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomain) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+func (r *ClusterFederatedTrustDomain) ValidateUpdate(runtime.Object) (admission.Warnings, error) {
 	clusterfederatedtrustdomainlog.Info("validate update", "name", r.Name)
 	return r.validate()
 }
