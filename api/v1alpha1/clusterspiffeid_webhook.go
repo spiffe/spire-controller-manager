@@ -62,7 +62,7 @@ func (r *ClusterSPIFFEID) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+func (r *ClusterSPIFFEID) ValidateUpdate(runtime.Object) (admission.Warnings, error) {
 	clusterspiffeidlog.Info("validate update", "name", r.Name)
 
 	return r.validate()
