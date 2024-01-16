@@ -142,7 +142,7 @@ type svidServer struct {
 	mutateResponse func(*svidv1.MintX509SVIDResponse) error
 }
 
-func (s *svidServer) MintX509SVID(ctx context.Context, req *svidv1.MintX509SVIDRequest) (*svidv1.MintX509SVIDResponse, error) {
+func (s *svidServer) MintX509SVID(_ context.Context, req *svidv1.MintX509SVIDRequest) (*svidv1.MintX509SVIDResponse, error) {
 	csr, err := x509.ParseCertificateRequest(req.Csr)
 	if err != nil {
 		return nil, err

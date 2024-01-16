@@ -310,7 +310,7 @@ type trustDomainServer struct {
 	batchDeleteFederationRelationshipsErr error
 }
 
-func (s *trustDomainServer) ListFederationRelationships(ctx context.Context, req *trustdomainv1.ListFederationRelationshipsRequest) (*trustdomainv1.ListFederationRelationshipsResponse, error) {
+func (s *trustDomainServer) ListFederationRelationships(_ context.Context, req *trustdomainv1.ListFederationRelationshipsRequest) (*trustdomainv1.ListFederationRelationshipsResponse, error) {
 	resp := new(trustdomainv1.ListFederationRelationshipsResponse)
 
 	s.mtx.RLock()
@@ -327,7 +327,7 @@ func (s *trustDomainServer) ListFederationRelationships(ctx context.Context, req
 	return resp, s.listFederationRelationshipsErr
 }
 
-func (s *trustDomainServer) BatchCreateFederationRelationship(ctx context.Context, req *trustdomainv1.BatchCreateFederationRelationshipRequest) (*trustdomainv1.BatchCreateFederationRelationshipResponse, error) {
+func (s *trustDomainServer) BatchCreateFederationRelationship(_ context.Context, req *trustdomainv1.BatchCreateFederationRelationshipRequest) (*trustdomainv1.BatchCreateFederationRelationshipResponse, error) {
 	resp := new(trustdomainv1.BatchCreateFederationRelationshipResponse)
 
 	for _, fr := range req.FederationRelationships {
@@ -347,7 +347,7 @@ func (s *trustDomainServer) BatchCreateFederationRelationship(ctx context.Contex
 	return resp, s.batchCreateFederationRelationshipsErr
 }
 
-func (s *trustDomainServer) BatchUpdateFederationRelationship(ctx context.Context, req *trustdomainv1.BatchUpdateFederationRelationshipRequest) (*trustdomainv1.BatchUpdateFederationRelationshipResponse, error) {
+func (s *trustDomainServer) BatchUpdateFederationRelationship(_ context.Context, req *trustdomainv1.BatchUpdateFederationRelationshipRequest) (*trustdomainv1.BatchUpdateFederationRelationshipResponse, error) {
 	resp := new(trustdomainv1.BatchUpdateFederationRelationshipResponse)
 
 	for _, fr := range req.FederationRelationships {
@@ -366,7 +366,7 @@ func (s *trustDomainServer) BatchUpdateFederationRelationship(ctx context.Contex
 	return resp, s.batchUpdateFederationRelationshipsErr
 }
 
-func (s *trustDomainServer) BatchDeleteFederationRelationship(ctx context.Context, req *trustdomainv1.BatchDeleteFederationRelationshipRequest) (*trustdomainv1.BatchDeleteFederationRelationshipResponse, error) {
+func (s *trustDomainServer) BatchDeleteFederationRelationship(_ context.Context, req *trustdomainv1.BatchDeleteFederationRelationshipRequest) (*trustdomainv1.BatchDeleteFederationRelationshipResponse, error) {
 	resp := new(trustdomainv1.BatchDeleteFederationRelationshipResponse)
 
 	for _, td := range req.TrustDomains {

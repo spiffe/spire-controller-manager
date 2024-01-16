@@ -217,14 +217,14 @@ func newTrustDomainClient() *trustDomainClient {
 	}
 }
 
-func (t *trustDomainClient) ListFederationRelationships(ctx context.Context) ([]spireapi.FederationRelationship, error) {
+func (t *trustDomainClient) ListFederationRelationships(context.Context) ([]spireapi.FederationRelationship, error) {
 	if t.listError != nil {
 		return nil, t.listError
 	}
 	return t.getFederationRelationships(), nil
 }
 
-func (t *trustDomainClient) CreateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error) {
+func (t *trustDomainClient) CreateFederationRelationships(_ context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error) {
 	if t.createError != nil {
 		return nil, t.createError
 	}
@@ -244,7 +244,7 @@ func (t *trustDomainClient) CreateFederationRelationships(ctx context.Context, f
 	return out, nil
 }
 
-func (t *trustDomainClient) UpdateFederationRelationships(ctx context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error) {
+func (t *trustDomainClient) UpdateFederationRelationships(_ context.Context, federationRelationships []spireapi.FederationRelationship) ([]spireapi.Status, error) {
 	if t.updateError != nil {
 		return nil, t.updateError
 	}
@@ -264,7 +264,7 @@ func (t *trustDomainClient) UpdateFederationRelationships(ctx context.Context, f
 	return out, nil
 }
 
-func (t *trustDomainClient) DeleteFederationRelationships(ctx context.Context, tds []spiffeid.TrustDomain) ([]spireapi.Status, error) {
+func (t *trustDomainClient) DeleteFederationRelationships(_ context.Context, tds []spiffeid.TrustDomain) ([]spireapi.Status, error) {
 	if t.deleteError != nil {
 		return nil, t.deleteError
 	}
