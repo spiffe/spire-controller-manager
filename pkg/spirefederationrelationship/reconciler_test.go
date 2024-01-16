@@ -217,7 +217,7 @@ func newTrustDomainClient() *trustDomainClient {
 	}
 }
 
-func (t *trustDomainClient) ListFederationRelationships(_ context.Context) ([]spireapi.FederationRelationship, error) {
+func (t *trustDomainClient) ListFederationRelationships(context.Context) ([]spireapi.FederationRelationship, error) {
 	if t.listError != nil {
 		return nil, t.listError
 	}
