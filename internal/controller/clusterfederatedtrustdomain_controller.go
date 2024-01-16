@@ -41,7 +41,7 @@ type ClusterFederatedTrustDomainReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *ClusterFederatedTrustDomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ClusterFederatedTrustDomainReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	log.FromContext(ctx).V(1).Info("Triggering reconciliation")
 	r.Triggerer.Trigger()
 	return ctrl.Result{}, nil
