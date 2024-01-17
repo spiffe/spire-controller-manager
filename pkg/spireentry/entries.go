@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var defaultParentIDTemplate *template.Template = template.Must(template.New("defaultParentIDTemplate").Parse("spiffe://{{ .TrustDomain }}/spire/agent/k8s_psat/{{ .ClusterName }}/{{ .NodeMeta.UID }}"))
+var defaultParentIDTemplate  = template.Must(template.New("defaultParentIDTemplate").Parse("spiffe://{{ .TrustDomain }}/spire/agent/k8s_psat/{{ .ClusterName }}/{{ .NodeMeta.UID }}"))
 
 func renderStaticEntry(spec *spirev1alpha1.ClusterStaticEntrySpec) (*spireapi.Entry, error) {
 	spiffeID, err := spiffeid.FromString(spec.SPIFFEID)

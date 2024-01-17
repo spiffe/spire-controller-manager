@@ -156,7 +156,7 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 	}
 
 	if ctrlConfig.ParentIDTemplate != "" {
-		parentIDTemplate, err := template.New("customParentIDTemplate").Parse(ctrlConfig.ParentIDTemplate)
+		parentIDTemplate, err = template.New("customParentIDTemplate").Parse(ctrlConfig.ParentIDTemplate)
 		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to parse parent ID template: %w", err)
 	}
 
