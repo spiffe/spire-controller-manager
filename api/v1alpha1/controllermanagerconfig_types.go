@@ -76,12 +76,18 @@ type ControllerManagerConfigurationSpec struct {
 
 	// CacheNamespace if specified restricts the manager's cache to watch objects in
 	// the desired namespace Defaults to all namespaces
+	// Deprecated: use multiNamespaces instead
 	//
 	// Note: If a namespace is specified, controllers can still Watch for a
 	// cluster-scoped resource (e.g Node).  For namespaced resources the cache
 	// will only hold objects from the desired namespace.
 	// +optional
 	CacheNamespace string `json:"cacheNamespace,omitempty"`
+
+	// MultiCacheNamespaces if specified restricts the manager's cache to watch objects in
+	// the desired namespace Defaults to all namespaces
+	// +optional
+	MultiCacheNamespaces map[string]*NamespaceConfig `json:"multiNamespaces,omitempty"`
 
 	// GracefulShutdownTimeout is the duration given to runnable to stop before the manager actually returns on stop.
 	// To disable graceful shutdown, set to time.Duration(0)
@@ -115,6 +121,17 @@ type ControllerManagerConfigurationSpec struct {
 	// specified will also be handled by this controller.
 	// +optional
 	WatchClassless bool `json:"watchClassless,omitempty"`
+}
+
+// NamespaceConfig configuration used to filter cached namespaces
+type NamespaceConfig struct {
+	// LabelSelectors map of Labels selectors
+	// +optional
+	LabelSelectors map[string]string `json:"labelSelectors,omitempty"`
+
+	// FieldSelectors map of Fields selectors
+	// +optional
+	FieldSelectors map[string]string `json:"fieldSelectors,omitempty"`
 }
 
 // ControllerConfigurationSpec defines the global configuration for

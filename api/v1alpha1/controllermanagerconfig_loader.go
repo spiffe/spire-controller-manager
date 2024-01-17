@@ -1,11 +1,14 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -17,9 +20,7 @@ func LoadOptionsFromFile(path string, scheme *runtime.Scheme, options *ctrl.Opti
 		return err
 	}
 
-	addOptionsFromConfigSpec(options, config.ControllerManagerConfigurationSpec)
-
-	return nil
+	return addOptionsFromConfigSpec(options, config.ControllerManagerConfigurationSpec)
 }
 
 func loadFile(path string, scheme *runtime.Scheme, config *ControllerManagerConfig, expandEnv bool) error {
@@ -43,15 +44,38 @@ func loadFile(path string, scheme *runtime.Scheme, config *ControllerManagerConf
 	return nil
 }
 
-func addOptionsFromConfigSpec(o *ctrl.Options, configSpec ControllerManagerConfigurationSpec) {
+func addOptionsFromConfigSpec(o *ctrl.Options, configSpec ControllerManagerConfigurationSpec) error {
 	setLeaderElectionConfig(o, configSpec)
 
 	if o.Cache.SyncPeriod == nil && configSpec.SyncPeriod != nil {
 		o.Cache.SyncPeriod = &configSpec.SyncPeriod.Duration
 	}
 
-	if len(o.Cache.DefaultNamespaces) == 0 && configSpec.CacheNamespace != "" {
-		o.Cache.DefaultNamespaces = map[string]cache.Config{configSpec.CacheNamespace: {}}
+	if len(o.Cache.DefaultNamespaces) == 0 {
+		switch {
+		case configSpec.CacheNamespace != "" && len(configSpec.MultiCacheNamespaces) > 0:
+			return errors.New("cacheNamespace or multiCacheNamespaces can be used, but not both")
+		case configSpec.CacheNamespace != "":
+			o.Cache.DefaultNamespaces = map[string]cache.Config{
+				configSpec.CacheNamespace: {},
+			}
+
+		case len(configSpec.MultiCacheNamespaces) > 0:
+			o.Cache.DefaultNamespaces = make(map[string]cache.Config, len(configSpec.MultiCacheNamespaces))
+			for namespace, opts := range configSpec.MultiCacheNamespaces {
+				cacheConfig := cache.Config{}
+				if opts != nil {
+					if len(opts.LabelSelectors) > 0 {
+						cacheConfig.LabelSelector = labels.SelectorFromSet(opts.LabelSelectors)
+					}
+					if len(opts.FieldSelectors) > 0 {
+						cacheConfig.FieldSelector = fields.SelectorFromSet(opts.FieldSelectors)
+					}
+				}
+
+				o.Cache.DefaultNamespaces[namespace] = cacheConfig
+			}
+		}
 	}
 
 	if o.Metrics.BindAddress == "" && configSpec.Metrics.BindAddress != "" {
@@ -79,6 +103,8 @@ func addOptionsFromConfigSpec(o *ctrl.Options, configSpec ControllerManagerConfi
 			o.Controller.GroupKindConcurrency = configSpec.Controller.GroupKindConcurrency
 		}
 	}
+
+	return nil
 }
 
 func setLeaderElectionConfig(o *ctrl.Options, obj ControllerManagerConfigurationSpec) {
