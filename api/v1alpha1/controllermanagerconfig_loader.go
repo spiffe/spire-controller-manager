@@ -53,16 +53,16 @@ func addOptionsFromConfigSpec(o *ctrl.Options, configSpec ControllerManagerConfi
 
 	if len(o.Cache.DefaultNamespaces) == 0 {
 		switch {
-		case configSpec.CacheNamespace != "" && len(configSpec.MultiCacheNamespaces) > 0:
-			return errors.New("cacheNamespace or multiCacheNamespaces can be used, but not both")
+		case configSpec.CacheNamespace != "" && len(configSpec.CacheNamespaces) > 0:
+			return errors.New("cacheNamespace or cacheNamespaces can be used, but not both")
 		case configSpec.CacheNamespace != "":
 			o.Cache.DefaultNamespaces = map[string]cache.Config{
 				configSpec.CacheNamespace: {},
 			}
 
-		case len(configSpec.MultiCacheNamespaces) > 0:
-			o.Cache.DefaultNamespaces = make(map[string]cache.Config, len(configSpec.MultiCacheNamespaces))
-			for namespace, opts := range configSpec.MultiCacheNamespaces {
+		case len(configSpec.CacheNamespaces) > 0:
+			o.Cache.DefaultNamespaces = make(map[string]cache.Config, len(configSpec.CacheNamespaces))
+			for namespace, opts := range configSpec.CacheNamespaces {
 				cacheConfig := cache.Config{}
 				if opts != nil {
 					if len(opts.LabelSelectors) > 0 {
