@@ -113,7 +113,7 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 
 	options := ctrl.Options{Scheme: scheme}
 	var ignoreNamespacesRegex []*regexp.Regexp
-	var parentIDTemplate *template.Template = nil
+	var parentIDTemplate *template.Template
 
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig, expandEnvFlag); err != nil {
