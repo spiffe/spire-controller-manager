@@ -460,8 +460,8 @@ func (in *ControllerManagerConfigurationSpec) DeepCopyInto(out *ControllerManage
 		*out = new(configv1alpha1.LeaderElectionConfiguration)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.MultiCacheNamespaces != nil {
-		in, out := &in.MultiCacheNamespaces, &out.MultiCacheNamespaces
+	if in.CacheNamespaces != nil {
+		in, out := &in.CacheNamespaces, &out.CacheNamespaces
 		*out = make(map[string]*NamespaceConfig, len(*in))
 		for key, val := range *in {
 			var outVal *NamespaceConfig

@@ -70,13 +70,13 @@ type ControllerManagerConfigurationSpec struct {
 	SyncPeriod *metav1.Duration `json:"syncPeriod,omitempty"`
 
 	// LeaderElection is the LeaderElection config to be used when configuring
-	// the manager.Manager leader election
+	// the manager.Manager leader election.
 	// +optional
 	LeaderElection *configv1alpha1.LeaderElectionConfiguration `json:"leaderElection,omitempty"`
 
 	// CacheNamespace if specified restricts the manager's cache to watch objects in
-	// the desired namespace Defaults to all namespaces
-	// Deprecated: use multiNamespaces instead
+	// the desired namespace. Defaults to all namespaces.
+	// Deprecated: use cacheNamespaces instead
 	//
 	// Note: If a namespace is specified, controllers can still Watch for a
 	// cluster-scoped resource (e.g Node).  For namespaced resources the cache
@@ -84,10 +84,10 @@ type ControllerManagerConfigurationSpec struct {
 	// +optional
 	CacheNamespace string `json:"cacheNamespace,omitempty"`
 
-	// MultiCacheNamespaces if specified restricts the manager's cache to watch objects in
-	// the desired namespace Defaults to all namespaces
+	// CacheNamespaces if specified restricts the manager's cache to watch objects in
+	// the desired namespaces. Defaults to all namespaces.
 	// +optional
-	MultiCacheNamespaces map[string]*NamespaceConfig `json:"multiNamespaces,omitempty"`
+	CacheNamespaces map[string]*NamespaceConfig `json:"cacheNamespaces,omitempty"`
 
 	// GracefulShutdownTimeout is the duration given to runnable to stop before the manager actually returns on stop.
 	// To disable graceful shutdown, set to time.Duration(0)

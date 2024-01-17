@@ -51,8 +51,8 @@ trustDomain: $TRUST_DOMAIN
 	cacheNamespace = `
 cacheNamespace: default
 `
-	multiNamespaces = `
-multiNamespaces:
+	cacheNamespaces = `
+cacheNamespaces:
    default:
    nsWithLabel:
       labelSelectors:
@@ -200,8 +200,8 @@ func TestLoadOptionsWithCacheNamespaces(t *testing.T) {
 			},
 		},
 		{
-			name:           "with multiNamespaces",
-			cacheNamespace: multiNamespaces,
+			name:           "with cacheNamespaces",
+			cacheNamespace: cacheNamespaces,
 			expectNamespaces: map[string]cache.Config{
 				"default": {},
 				"nsWithLabel": {
@@ -225,9 +225,9 @@ func TestLoadOptionsWithCacheNamespaces(t *testing.T) {
 			},
 		},
 		{
-			name:           "with cacheNamespace and multiNamespaces",
-			cacheNamespace: cacheNamespace + multiNamespaces,
-			expectErr:      "cacheNamespace or multiCacheNamespaces can be used, but not both",
+			name:           "with cacheNamespace and cacheNamespaces",
+			cacheNamespace: cacheNamespace + cacheNamespaces,
+			expectErr:      "cacheNamespace or cacheNamespaces can be used, but not both",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
