@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1] - 2024-01-17
+
+### Added
+
+- Support for caching multiple namespaces instead of one or all (#271,#286)
+- Support for expanding environment variables in the controller configuration (#256)
+- Support for disabling webhooks by setting the environment variable ENABLE_WEBHOOKS=false (#234)
+
 ## [0.4.0] - 2023-11-02
 
 <font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
