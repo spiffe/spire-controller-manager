@@ -121,6 +121,10 @@ type ControllerManagerConfigurationSpec struct {
 	// specified will also be handled by this controller.
 	// +optional
 	WatchClassless bool `json:"watchClassless,omitempty"`
+
+	// If specified, uses a different parent id template for linking pods to nodes
+	// +optional
+	ParentIDTemplate string `json:"parentIDTemplate,omitempty"`
 }
 
 // NamespaceConfig configuration used to filter cached namespaces

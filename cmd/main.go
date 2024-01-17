@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -72,18 +73,18 @@ func init() {
 }
 
 func main() {
-	ctrlConfig, options, ignoreNamespacesRegex, err := parseConfig()
+	ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, err := parseConfig()
 	if err != nil {
 		setupLog.Error(err, "error parsing configuration")
 		os.Exit(1)
 	}
 
-	if err := run(ctrlConfig, options, ignoreNamespacesRegex); err != nil {
+	if err := run(ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate); err != nil {
 		os.Exit(1)
 	}
 }
 
-func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*regexp.Regexp, error) {
+func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*regexp.Regexp, *template.Template, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
 	var expandEnvFlag bool
@@ -112,16 +113,17 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 
 	options := ctrl.Options{Scheme: scheme}
 	var ignoreNamespacesRegex []*regexp.Regexp
+	var parentIDTemplate *template.Template = nil
 
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig, expandEnvFlag); err != nil {
-			return ctrlConfig, options, ignoreNamespacesRegex, fmt.Errorf("unable to load the config file: %w", err)
+			return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to load the config file: %w", err)
 		}
 
 		for _, ignoredNamespace := range ctrlConfig.IgnoreNamespaces {
 			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
-				return ctrlConfig, options, ignoreNamespacesRegex, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
+				return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
 			}
 
 			ignoreNamespacesRegex = append(ignoreNamespacesRegex, regex)
@@ -153,6 +155,11 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 		ctrlConfig.ClusterDomain = clusterDomain
 	}
 
+	if ctrlConfig.ParentIDTemplate != "" {
+		parentIDTemplate, err := template.New("customParentIDTemplate").Parse(ctrlConfig.ParentIDTemplate)
+		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to parse parent ID template: %w", err)
+	}
+
 	setupLog.Info("Config loaded",
 		"cluster name", ctrlConfig.ClusterName,
 		"cluster domain", ctrlConfig.ClusterDomain,
@@ -166,19 +173,19 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 	switch {
 	case ctrlConfig.TrustDomain == "":
 		setupLog.Error(nil, "trust domain is required configuration")
-		return ctrlConfig, options, ignoreNamespacesRegex, errors.New("trust domain is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("trust domain is required configuration")
 	case ctrlConfig.ClusterName == "":
-		return ctrlConfig, options, ignoreNamespacesRegex, errors.New("cluster name is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("cluster name is required configuration")
 	case ctrlConfig.ValidatingWebhookConfigurationName == "":
-		return ctrlConfig, options, ignoreNamespacesRegex, errors.New("validating webhook configuration name is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("validating webhook configuration name is required configuration")
 	case ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir != "":
 		setupLog.Info("certDir configuration is ignored", "certDir", ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir)
 	}
 
-	return ctrlConfig, options, ignoreNamespacesRegex, nil
+	return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, nil
 }
 
-func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp) error {
+func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp, parentIDTemplate *template.Template) error {
 	// It's unfortunate that we have to keep credentials on disk so that the
 	// manager can load them:
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to
@@ -271,6 +278,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		GCInterval:       ctrlConfig.GCInterval,
 		ClassName:        ctrlConfig.ClassName,
 		WatchClassless:   ctrlConfig.WatchClassless,
+		ParentIDTemplate: parentIDTemplate,
 	})
 
 	federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{

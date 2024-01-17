@@ -63,7 +63,7 @@ func TestRenderPodEntry(t *testing.T) {
 	td, err := spiffeid.TrustDomainFromString(trustDomain)
 	require.NoError(t, err)
 
-	entry, err := renderPodEntry(parsedSpec, node, pod, endpointsList, td, clusterName, clusterDomain)
+	entry, err := renderPodEntry(parsedSpec, node, pod, endpointsList, td, clusterName, clusterDomain, nil)
 	require.NoError(t, err)
 
 	// SPIFFE ID rendered correctly
@@ -127,7 +127,7 @@ func TestJWTTTLInRenderPodEntry(t *testing.T) {
 	td, err := spiffeid.TrustDomainFromString(trustDomain)
 	require.NoError(t, err)
 
-	entry, err := renderPodEntry(parsedSpec, node, pod, &corev1.EndpointsList{}, td, clusterName, clusterDomain)
+	entry, err := renderPodEntry(parsedSpec, node, pod, &corev1.EndpointsList{}, td, clusterName, clusterDomain, nil)
 	require.NoError(t, err)
 
 	require.Equal(t, entry.JWTSVIDTTL.Nanoseconds(), spec.JWTTTL.Nanoseconds())
