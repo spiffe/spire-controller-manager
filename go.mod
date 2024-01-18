@@ -6,7 +6,7 @@ require (
 	github.com/go-logr/logr v1.4.1
 	github.com/google/go-cmp v0.6.0
 	github.com/jpillora/backoff v1.0.0
-	github.com/onsi/ginkgo/v2 v2.14.0
+	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.30.0
 	github.com/spiffe/go-spiffe/v2 v2.1.7
 	github.com/spiffe/spire-api-sdk v1.8.7
