@@ -1,7 +1,9 @@
 package spireentry
 
 import (
+	"fmt"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
@@ -131,4 +133,40 @@ func TestJWTTTLInRenderPodEntry(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, entry.JWTSVIDTTL.Nanoseconds(), spec.JWTTTL.Nanoseconds())
+}
+
+func TestParentIDTemplateRenderPodEntry(t *testing.T) {
+	spec := &spirev1alpha1.ClusterSPIFFEIDSpec{
+		SPIFFEIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}",
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:  "uid",
+			Name: "test.example.org",
+		},
+		Spec: corev1.NodeSpec{},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "namespace",
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "test",
+		},
+	}
+
+	defaultParentIDTemplate, err := template.New("testParentIDTemplate").Parse("spiffe://{{ .TrustDomain }}/spire/agent/x509pop/{{ .NodeMeta.Name }}")
+	require.NoError(t, err)
+
+	parsedSpec, err := spirev1alpha1.ParseClusterSPIFFEIDSpec(spec)
+	require.NoError(t, err)
+	td, err := spiffeid.TrustDomainFromString(trustDomain)
+	require.NoError(t, err)
+
+	entry, err := renderPodEntry(parsedSpec, node, pod, &corev1.EndpointsList{}, td, clusterName, clusterDomain, defaultParentIDTemplate)
+	require.NoError(t, err)
+
+	require.Equal(t, entry.ParentID.String(), fmt.Sprintf("spiffe://%s/spire/agent/x509pop/test.example.org", td))
 }
