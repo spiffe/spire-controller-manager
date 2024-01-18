@@ -188,44 +188,17 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 	return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, nil
 }
 
-func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp, parentIDTemplate *template.Template) error {
-	// It's unfortunate that we have to keep credentials on disk so that the
-	// manager can load them:
-	// TODO: upstream a change to the WebhookServer so it can use callbacks to
-	// obtain the certificates so we don't have to touch disk.
-	certDir, err := os.MkdirTemp("", "spire-controller-manager-")
-	if err != nil {
-		setupLog.Error(err, "failed to create temporary cert directory")
-		return err
-	}
-	defer func() {
-		if err := os.RemoveAll(certDir); err != nil {
-			setupLog.Error(err, "failed to remove temporary cert directory", "certDir", certDir)
-			os.Exit(1)
-		}
-	}()
-
-	// webhook server credentials are stored in a single file to keep rotation
-	// simple.
-	const keyPairName = "keypair.pem"
-	options.WebhookServer = webhook.NewServer(webhook.Options{
-		CertDir:  certDir,
-		CertName: keyPairName,
-		KeyName:  keyPairName,
-		TLSOpts: []func(*tls.Config){
-			func(s *tls.Config) {
-				s.MinVersion = tls.VersionTLS12
-			},
-		},
-	})
-
-	ctx := ctrl.SetupSignalHandler()
+func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp, parentIDTemplate *template.Template) (err error) {
+	webhookEnabled := os.Getenv("ENABLE_WEBHOOKS") != "false"
 
 	trustDomain, err := spiffeid.TrustDomainFromString(ctrlConfig.TrustDomain)
 	if err != nil {
 		setupLog.Error(err, "invalid trust domain name")
 		return err
 	}
+
+	ctx := ctrl.SetupSignalHandler()
+
 	setupLog.Info("Dialing SPIRE Server socket")
 	spireClient, err := spireapi.DialSocket(ctx, ctrlConfig.SPIREServerSocketPath)
 	if err != nil {
@@ -234,40 +207,71 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 	}
 	defer spireClient.Close()
 
+	// It's unfortunate that we have to keep credentials on disk so that the
+	// manager can load them. Webhook server credentials are stored in a single
+	// file to keep rotation simple.
+	// TODO: upstream a change to the WebhookServer so it can use callbacks to
+	// obtain the certificates so we don't have to touch disk.
+	var webhookRunnable manager.Runnable
+	if webhookEnabled {
+		const keyPairName = "keypair.pem"
+		certDir, err := os.MkdirTemp("", "spire-controller-manager-")
+		if err != nil {
+			setupLog.Error(err, "failed to create temporary cert directory")
+			return err
+		}
+		defer func() {
+			if err := os.RemoveAll(certDir); err != nil {
+				setupLog.Error(err, "failed to remove temporary cert directory", "certDir", certDir)
+				os.Exit(1)
+			}
+		}()
+		options.WebhookServer = webhook.NewServer(webhook.Options{
+			CertDir:  certDir,
+			CertName: keyPairName,
+			KeyName:  keyPairName,
+			TLSOpts: []func(*tls.Config){
+				func(s *tls.Config) {
+					s.MinVersion = tls.VersionTLS12
+				},
+			},
+		})
+		// We need a direct client to query and patch up the webhook. We can't use
+		// the controller runtime client for this because we can't start the manager
+		// without the webhook credentials being in place, and the webhook credentials
+		// need the DNS name of the webhook service from the configuration.
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			setupLog.Error(err, "failed to get in cluster configuration")
+			return err
+		}
+		// creates the clientset
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			setupLog.Error(err, "failed to create an API client")
+			return err
+		}
+
+		webhookManager := webhookmanager.New(webhookmanager.Config{
+			ID:            spiffeid.RequireFromPath(trustDomain, "/spire-controller-manager-webhook"),
+			KeyPairPath:   filepath.Join(certDir, keyPairName),
+			WebhookName:   ctrlConfig.ValidatingWebhookConfigurationName,
+			WebhookClient: clientset.AdmissionregistrationV1().ValidatingWebhookConfigurations(),
+			SVIDClient:    spireClient,
+			BundleClient:  spireClient,
+		})
+
+		if err := webhookManager.Init(ctx); err != nil {
+			setupLog.Error(err, "failed to mint initial webhook certificate")
+			return err
+		}
+
+		webhookRunnable = webhookManager
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		return err
-	}
-
-	// We need a direct client to query and patch up the webhook. We can't use
-	// the controller runtime client for this because we can't start the manager
-	// without the webhook credentials being in place, and the webhook credentials
-	// need the DNS name of the webhook service from the configuration.
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		setupLog.Error(err, "failed to get in cluster configuration")
-		return err
-	}
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		setupLog.Error(err, "failed to create an API client")
-		return err
-	}
-
-	webhookID, _ := spiffeid.FromPath(trustDomain, "/spire-controller-manager-webhook")
-	webhookManager := webhookmanager.New(webhookmanager.Config{
-		ID:            webhookID,
-		KeyPairPath:   filepath.Join(certDir, keyPairName),
-		WebhookName:   ctrlConfig.ValidatingWebhookConfigurationName,
-		WebhookClient: clientset.AdmissionregistrationV1().ValidatingWebhookConfigurations(),
-		SVIDClient:    spireClient,
-		BundleClient:  spireClient,
-	})
-
-	if err := webhookManager.Init(ctx); err != nil {
-		setupLog.Error(err, "failed to mint initial webhook certificate")
 		return err
 	}
 
@@ -316,13 +320,11 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
 		return err
 	}
-	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+	if webhookEnabled {
 		if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
 			return err
 		}
-	}
-	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err = (&spirev1alpha1.ClusterSPIFFEID{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterSPIFFEID")
 			return err
@@ -360,9 +362,11 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 
-	if err = mgr.Add(webhookManager); err != nil {
-		setupLog.Error(err, "unable to manage federation relationship reconciler")
-		return err
+	if webhookRunnable != nil {
+		if err = mgr.Add(webhookRunnable); err != nil {
+			setupLog.Error(err, "unable to manage federation relationship reconciler")
+			return err
+		}
 	}
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
