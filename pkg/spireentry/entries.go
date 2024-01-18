@@ -31,6 +31,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var defaultParentIDTemplate = template.Must(template.New("defaultParentIDTemplate").Parse("spiffe://{{ .TrustDomain }}/spire/agent/k8s_psat/{{ .ClusterName }}/{{ .NodeMeta.UID }}"))
+
 func renderStaticEntry(spec *spirev1alpha1.ClusterStaticEntrySpec) (*spireapi.Entry, error) {
 	spiffeID, err := spiffeid.FromString(spec.SPIFFEID)
 	if err != nil {
@@ -66,26 +68,32 @@ func renderStaticEntry(spec *spirev1alpha1.ClusterStaticEntrySpec) (*spireapi.En
 	}, nil
 }
 
-func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, endpointsList *corev1.EndpointsList, trustDomain spiffeid.TrustDomain, clusterName, clusterDomain string) (*spireapi.Entry, error) {
+func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.Node, pod *corev1.Pod, endpointsList *corev1.EndpointsList, trustDomain spiffeid.TrustDomain, clusterName, clusterDomain string, parentIDTemplate *template.Template) (*spireapi.Entry, error) {
 	// We uniquely target the Pod running on the Node. The former is done
 	// via the k8s:pod-uid selector, the latter via the parent ID.
 	selectors := []spireapi.Selector{
 		{Type: "k8s", Value: fmt.Sprintf("pod-uid:%s", pod.UID)},
-	}
-	parentID, err := spiffeid.FromPathf(trustDomain, "/spire/agent/k8s_psat/%s/%s", clusterName, node.UID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to render parent ID: %w", err)
 	}
 
 	data := &templateData{
 		TrustDomain:   trustDomain.Name(),
 		ClusterName:   clusterName,
 		ClusterDomain: clusterDomain,
-		PodMeta:       &pod.ObjectMeta,
-		PodSpec:       &pod.Spec,
 		NodeMeta:      &node.ObjectMeta,
 		NodeSpec:      &node.Spec,
 	}
+
+	if parentIDTemplate == nil {
+		parentIDTemplate = defaultParentIDTemplate
+	}
+
+	parentID, err := renderSPIFFEID(parentIDTemplate, data, trustDomain)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render parent ID: %w", err)
+	}
+
+	data.PodMeta = &pod.ObjectMeta
+	data.PodSpec = &pod.Spec
 
 	spiffeID, err := renderSPIFFEID(spec.SPIFFEIDTemplate, data, trustDomain)
 	if err != nil {

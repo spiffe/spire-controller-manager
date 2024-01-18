@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -53,6 +54,7 @@ type ReconcilerConfig struct {
 	AutoPopulateDNSNames bool
 	ClassName            string
 	WatchClassless       bool
+	ParentIDTemplate     *template.Template
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -365,7 +367,7 @@ func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha
 			return nil, err
 		}
 	}
-	return renderPodEntry(spec, node, pod, endpointsList, r.config.TrustDomain, r.config.ClusterName, r.config.ClusterDomain)
+	return renderPodEntry(spec, node, pod, endpointsList, r.config.TrustDomain, r.config.ClusterName, r.config.ClusterDomain, r.config.ParentIDTemplate)
 }
 
 func (r *entryReconciler) createEntries(ctx context.Context, declaredEntries []declaredEntry) {
