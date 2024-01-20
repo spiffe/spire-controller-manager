@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -47,6 +48,7 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/internal/controller"
+	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/spiffe/spire-controller-manager/pkg/spireentry"
 	"github.com/spiffe/spire-controller-manager/pkg/spirefederationrelationship"
@@ -73,21 +75,22 @@ func init() {
 }
 
 func main() {
-	ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, err := parseConfig()
+	ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, err := parseConfig()
 	if err != nil {
 		setupLog.Error(err, "error parsing configuration")
 		os.Exit(1)
 	}
 
-	if err := run(ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate); err != nil {
+	if err := run(ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes); err != nil {
 		os.Exit(1)
 	}
 }
 
-func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*regexp.Regexp, *template.Template, error) {
+func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*regexp.Regexp, *template.Template, []string, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
 	var expandEnvFlag bool
+	syncTypes := []string{"clusterspiffeids", "clusterfederatedtrustdomains", "clusterstaticentries"}
 	flag.StringVar(&configFileFlag, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
@@ -117,13 +120,13 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig, expandEnvFlag); err != nil {
-			return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to load the config file: %w", err)
+			return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, fmt.Errorf("unable to load the config file: %w", err)
 		}
 
 		for _, ignoredNamespace := range ctrlConfig.IgnoreNamespaces {
 			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
-				return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
+				return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
 			}
 
 			ignoreNamespacesRegex = append(ignoreNamespacesRegex, regex)
@@ -159,8 +162,12 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 		var err error
 		parentIDTemplate, err = template.New("customParentIDTemplate").Parse(ctrlConfig.ParentIDTemplate)
 		if err != nil {
-			return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to parse parent ID template: %w", err)
+			return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, fmt.Errorf("unable to parse parent ID template: %w", err)
 		}
+	}
+
+	if ctrlConfig.SyncTypes != nil {
+		syncTypes = ctrlConfig.SyncTypes
 	}
 
 	setupLog.Info("Config loaded",
@@ -171,24 +178,25 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 		"gc interval", ctrlConfig.GCInterval,
 		"spire server socket path", ctrlConfig.SPIREServerSocketPath,
 		"class name", ctrlConfig.ClassName,
-		"handle crs without class name", ctrlConfig.WatchClassless)
+		"handle crs without class name", ctrlConfig.WatchClassless,
+		"sync types", strings.Join(syncTypes, ", "))
 
 	switch {
 	case ctrlConfig.TrustDomain == "":
 		setupLog.Error(nil, "trust domain is required configuration")
-		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("trust domain is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, errors.New("trust domain is required configuration")
 	case ctrlConfig.ClusterName == "":
-		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("cluster name is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, errors.New("cluster name is required configuration")
 	case ctrlConfig.ValidatingWebhookConfigurationName == "":
-		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("validating webhook configuration name is required configuration")
+		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, errors.New("validating webhook configuration name is required configuration")
 	case ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir != "":
 		setupLog.Info("certDir configuration is ignored", "certDir", ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir)
 	}
 
-	return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, nil
+	return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, syncTypes, nil
 }
 
-func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp, parentIDTemplate *template.Template) (err error) {
+func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp, parentIDTemplate *template.Template, syncTypes []string) (err error) {
 	webhookEnabled := os.Getenv("ENABLE_WEBHOOKS") != "false"
 
 	trustDomain, err := spiffeid.TrustDomainFromString(ctrlConfig.TrustDomain)
@@ -275,50 +283,61 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		return err
 	}
 
-	entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
-		TrustDomain:      trustDomain,
-		ClusterName:      ctrlConfig.ClusterName,
-		ClusterDomain:    ctrlConfig.ClusterDomain,
-		K8sClient:        mgr.GetClient(),
-		EntryClient:      spireClient,
-		IgnoreNamespaces: ignoreNamespacesRegex,
-		GCInterval:       ctrlConfig.GCInterval,
-		ClassName:        ctrlConfig.ClassName,
-		WatchClassless:   ctrlConfig.WatchClassless,
-		ParentIDTemplate: parentIDTemplate,
-	})
-
-	federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
-		K8sClient:         mgr.GetClient(),
-		TrustDomainClient: spireClient,
-		GCInterval:        ctrlConfig.GCInterval,
-		ClassName:         ctrlConfig.ClassName,
-		WatchClassless:    ctrlConfig.WatchClassless,
-	})
-
-	if err = (&controller.ClusterSPIFFEIDReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Triggerer: entryReconciler,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
-		return err
+	var entryReconciler reconciler.Reconciler
+	if slices.Contains(syncTypes, "clusterspiffeids") || slices.Contains(syncTypes, "clusterstaticentries") {
+		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
+			TrustDomain:      trustDomain,
+			ClusterName:      ctrlConfig.ClusterName,
+			ClusterDomain:    ctrlConfig.ClusterDomain,
+			K8sClient:        mgr.GetClient(),
+			EntryClient:      spireClient,
+			IgnoreNamespaces: ignoreNamespacesRegex,
+			GCInterval:       ctrlConfig.GCInterval,
+			ClassName:        ctrlConfig.ClassName,
+			WatchClassless:   ctrlConfig.WatchClassless,
+			ParentIDTemplate: parentIDTemplate,
+			SyncTypes:        syncTypes,
+		})
 	}
-	if err = (&controller.ClusterFederatedTrustDomainReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Triggerer: federationRelationshipReconciler,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
-		return err
+
+	var federationRelationshipReconciler reconciler.Reconciler
+	if slices.Contains(syncTypes, "clusterfederatedtrustdomains") {
+		federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
+			K8sClient:         mgr.GetClient(),
+			TrustDomainClient: spireClient,
+			GCInterval:        ctrlConfig.GCInterval,
+			ClassName:         ctrlConfig.ClassName,
+			WatchClassless:    ctrlConfig.WatchClassless,
+		})
+		if err = (&controller.ClusterFederatedTrustDomainReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Triggerer: federationRelationshipReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
+			return err
+		}
 	}
-	if err = (&controller.ClusterStaticEntryReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Triggerer: entryReconciler,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
-		return err
+
+	if slices.Contains(syncTypes, "clusterspiffeids") {
+		if err = (&controller.ClusterSPIFFEIDReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Triggerer: entryReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
+			return err
+		}
+	}
+	if slices.Contains(syncTypes, "clusterstaticentries") {
+		if err = (&controller.ClusterStaticEntryReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Triggerer: entryReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
+			return err
+		}
 	}
 	if webhookEnabled {
 		if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
@@ -332,34 +351,39 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 	}
 	//+kubebuilder:scaffold:builder
 
-	if err = (&controller.PodReconciler{
-		Client:           mgr.GetClient(),
-		Scheme:           mgr.GetScheme(),
-		Triggerer:        entryReconciler,
-		IgnoreNamespaces: ignoreNamespacesRegex,
-	}).SetupWithManager(ctx, mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Pod")
-		return err
+	if slices.Contains(syncTypes, "clusterspiffeids") {
+		if err = (&controller.PodReconciler{
+			Client:           mgr.GetClient(),
+			Scheme:           mgr.GetScheme(),
+			Triggerer:        entryReconciler,
+			IgnoreNamespaces: ignoreNamespacesRegex,
+		}).SetupWithManager(ctx, mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Pod")
+			return err
+		}
+		if err = (&controller.EndpointsReconciler{
+			Client:           mgr.GetClient(),
+			Scheme:           mgr.GetScheme(),
+			Triggerer:        entryReconciler,
+			IgnoreNamespaces: ignoreNamespacesRegex,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
+			return err
+		}
 	}
 
-	if err = (&controller.EndpointsReconciler{
-		Client:           mgr.GetClient(),
-		Scheme:           mgr.GetScheme(),
-		Triggerer:        entryReconciler,
-		IgnoreNamespaces: ignoreNamespacesRegex,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
-		return err
+	if slices.Contains(syncTypes, "clusterspiffeids") || slices.Contains(syncTypes, "clusterstaticentries") {
+		if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
+			setupLog.Error(err, "unable to manage entry reconciler")
+			return err
+		}
 	}
 
-	if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
-		setupLog.Error(err, "unable to manage entry reconciler")
-		return err
-	}
-
-	if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
-		setupLog.Error(err, "unable to manage federation relationship reconciler")
-		return err
+	if slices.Contains(syncTypes, "clusterfederatedtrustdomains") {
+		if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
+			setupLog.Error(err, "unable to manage federation relationship reconciler")
+			return err
+		}
 	}
 
 	if webhookRunnable != nil {

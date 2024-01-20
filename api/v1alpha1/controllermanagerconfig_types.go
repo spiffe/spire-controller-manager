@@ -125,6 +125,11 @@ type ControllerManagerConfigurationSpec struct {
 	// If specified, uses a different parent id template for linking pods to nodes
 	// +optional
 	ParentIDTemplate string `json:"parentIDTemplate,omitempty"`
+
+	// If specified, only syncs the specified CR types. Defaults to all.
+	// Options, one or more of: clusterspiffeids, clusterfederatedtrustdomains, clusterstaticentries
+	// +optional
+	SyncTypes []string `json:"syncTypes,omitempty"`
 }
 
 // NamespaceConfig configuration used to filter cached namespaces
