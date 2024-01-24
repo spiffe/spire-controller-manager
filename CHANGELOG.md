@@ -4,7 +4,7 @@
 
 ### Added
 
-- Process-wide support for a customizing the parent ID template for workload registration (#289)
+- Process-wide support for customizing the parent ID template for workload registration (#289)
 
 ### Fixed
 
