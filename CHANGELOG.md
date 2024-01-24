@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.2] - 2024-01-24
+
+### Added
+
+- Process-wide support for a customizing the parent ID template for workload registration (#289)
+
+### Fixed
+
+- Failed controller startup when webhook was disabled via ENABLE_WEBHOOKS=false (#294)
+
 ## [0.4.1] - 2024-01-17
 
 ### Added
