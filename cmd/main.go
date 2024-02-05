@@ -56,7 +56,7 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
-type MainConfig struct {
+type Config struct {
 	ctrlConfig            spirev1alpha1.ControllerManagerConfig
 	options               ctrl.Options
 	ignoreNamespacesRegex []*regexp.Regexp
@@ -94,8 +94,8 @@ func main() {
 	}
 }
 
-func parseConfig() (MainConfig, error) {
-	var retval MainConfig
+func parseConfig() (Config, error) {
+	var retval Config
 	var configFileFlag string
 	var spireAPISocketFlag string
 	var expandEnvFlag bool
@@ -203,7 +203,7 @@ func parseConfig() (MainConfig, error) {
 	return retval, nil
 }
 
-func run(mainConfig MainConfig) (err error) {
+func run(mainConfig Config) (err error) {
 	webhookEnabled := os.Getenv("ENABLE_WEBHOOKS") != "false"
 
 	trustDomain, err := spiffeid.TrustDomainFromString(mainConfig.ctrlConfig.TrustDomain)
