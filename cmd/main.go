@@ -25,7 +25,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -61,7 +60,7 @@ type Config struct {
 	options               ctrl.Options
 	ignoreNamespacesRegex []*regexp.Regexp
 	parentIDTemplate      *template.Template
-	syncTypes             []string
+	syncTypes             spirev1alpha1.SyncTypesConfig
 }
 
 const (
@@ -99,7 +98,6 @@ func parseConfig() (Config, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
 	var expandEnvFlag bool
-	retval.syncTypes = []string{"clusterspiffeids", "clusterfederatedtrustdomains", "clusterstaticentries"}
 	flag.StringVar(&configFileFlag, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
@@ -173,8 +171,14 @@ func parseConfig() (Config, error) {
 		}
 	}
 
-	if retval.ctrlConfig.SyncTypes != nil {
-		retval.syncTypes = retval.ctrlConfig.SyncTypes
+	if retval.ctrlConfig.SyncTypes == nil {
+		retval.syncTypes.ClusterSPIFFEIDs = true
+		retval.syncTypes.ClusterFederatedTrustDomains = true
+		retval.syncTypes.ClusterStaticEntries = true
+	} else {
+		retval.syncTypes.ClusterSPIFFEIDs = retval.ctrlConfig.SyncTypes.ClusterSPIFFEIDs
+		retval.syncTypes.ClusterFederatedTrustDomains = retval.ctrlConfig.SyncTypes.ClusterFederatedTrustDomains
+		retval.syncTypes.ClusterStaticEntries = retval.ctrlConfig.SyncTypes.ClusterStaticEntries
 	}
 
 	setupLog.Info("Config loaded",
@@ -186,7 +190,9 @@ func parseConfig() (Config, error) {
 		"spire server socket path", retval.ctrlConfig.SPIREServerSocketPath,
 		"class name", retval.ctrlConfig.ClassName,
 		"handle crs without class name", retval.ctrlConfig.WatchClassless,
-		"sync types", strings.Join(retval.syncTypes, ", "))
+		"sync ClusterSPIFFEIDs", retval.syncTypes.ClusterSPIFFEIDs,
+		"sync ClusterFederatedTrustDomains", retval.syncTypes.ClusterFederatedTrustDomains,
+		"sync ClusterStaticEntries", retval.syncTypes.ClusterStaticEntries)
 
 	switch {
 	case retval.ctrlConfig.TrustDomain == "":
@@ -291,7 +297,7 @@ func run(mainConfig Config) (err error) {
 	}
 
 	var entryReconciler reconciler.Reconciler
-	if slices.Contains(mainConfig.syncTypes, "clusterspiffeids") || slices.Contains(mainConfig.syncTypes, "clusterstaticentries") {
+	if mainConfig.syncTypes.ClusterSPIFFEIDs || mainConfig.syncTypes.ClusterStaticEntries {
 		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
 			TrustDomain:      trustDomain,
 			ClusterName:      mainConfig.ctrlConfig.ClusterName,
@@ -308,7 +314,7 @@ func run(mainConfig Config) (err error) {
 	}
 
 	var federationRelationshipReconciler reconciler.Reconciler
-	if slices.Contains(mainConfig.syncTypes, "clusterfederatedtrustdomains") {
+	if mainConfig.syncTypes.ClusterFederatedTrustDomains {
 		federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
 			K8sClient:         mgr.GetClient(),
 			TrustDomainClient: spireClient,
@@ -326,7 +332,7 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	if slices.Contains(mainConfig.syncTypes, "clusterspiffeids") {
+	if mainConfig.syncTypes.ClusterSPIFFEIDs {
 		if err = (&controller.ClusterSPIFFEIDReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -336,7 +342,7 @@ func run(mainConfig Config) (err error) {
 			return err
 		}
 	}
-	if slices.Contains(mainConfig.syncTypes, "clusterstaticentries") {
+	if mainConfig.syncTypes.ClusterStaticEntries {
 		if err = (&controller.ClusterStaticEntryReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -358,7 +364,7 @@ func run(mainConfig Config) (err error) {
 	}
 	//+kubebuilder:scaffold:builder
 
-	if slices.Contains(mainConfig.syncTypes, "clusterspiffeids") {
+	if mainConfig.syncTypes.ClusterSPIFFEIDs {
 		if err = (&controller.PodReconciler{
 			Client:           mgr.GetClient(),
 			Scheme:           mgr.GetScheme(),
@@ -379,14 +385,14 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	if slices.Contains(mainConfig.syncTypes, "clusterspiffeids") || slices.Contains(mainConfig.syncTypes, "clusterstaticentries") {
+	if mainConfig.syncTypes.ClusterSPIFFEIDs || mainConfig.syncTypes.ClusterStaticEntries {
 		if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
 			setupLog.Error(err, "unable to manage entry reconciler")
 			return err
 		}
 	}
 
-	if slices.Contains(mainConfig.syncTypes, "clusterfederatedtrustdomains") {
+	if mainConfig.syncTypes.ClusterFederatedTrustDomains {
 		if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
 			setupLog.Error(err, "unable to manage federation relationship reconciler")
 			return err

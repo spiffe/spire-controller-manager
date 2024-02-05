@@ -129,7 +129,22 @@ type ControllerManagerConfigurationSpec struct {
 	// If specified, only syncs the specified CR types. Defaults to all.
 	// Options, one or more of: clusterspiffeids, clusterfederatedtrustdomains, clusterstaticentries
 	// +optional
-	SyncTypes []string `json:"syncTypes,omitempty"`
+	SyncTypes *SyncTypesConfig `json:"syncTypes,omitempty"`
+}
+
+// SyncTypesConfig configuration used to enable/disable syncing various types
+type SyncTypesConfig struct {
+	// ClusterSpiffeIds enable syncing of clusterspiffeids
+	// +optional
+	ClusterSPIFFEIDs bool `json:"clusterSPIFFEIDs,omitempty"`
+
+	// ClusterFederatedTrustDomains enable syncing of clusterfederatedtrustdomains
+	// +optional
+	ClusterFederatedTrustDomains bool `json:"clusterFederatedTrustDomains,omitempty"`
+
+	// ClusterStaticEntries enable syncing of clusterstaticentries
+	// +optional
+	ClusterStaticEntries bool `json:"clusterStaticEntries,omitempty"`
 }
 
 // NamespaceConfig configuration used to filter cached namespaces
