@@ -127,7 +127,6 @@ type ControllerManagerConfigurationSpec struct {
 	ParentIDTemplate string `json:"parentIDTemplate,omitempty"`
 
 	// If specified, only syncs the specified CR types. Defaults to all.
-	// Options, one or more of: clusterspiffeids, clusterfederatedtrustdomains, clusterstaticentries
 	// +optional
 	SyncTypes *SyncTypesConfig `json:"syncTypes,omitempty"`
 }
