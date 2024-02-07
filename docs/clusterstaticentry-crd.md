@@ -20,6 +20,7 @@ The definition can be found [here](../api/v1alpha1/clusterstaticentry_types.go).
 | `hint`                      | OPTIONAL | An opaque string that is provided to the workload as a hint on how the SVID should be used |
 | `admin`                     | OPTIONAL | Indicates whether the target workload is an admin workload (i.e. can access SPIRE administrative APIs) |
 | `downstream`                | OPTIONAL | Indicates that the entry describes a downstream SPIRE server. |
+| `storeSVID`                 | OPTIONAL | Indicates whether the issued SVID must be stored through an SVIDStore plugin. |
 
 ## ClusterStaticEntryStatus
 

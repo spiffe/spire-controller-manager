@@ -573,6 +573,11 @@ func getOutdatedEntryFields(newEntry, oldEntry spireapi.Entry, unsupportedFields
 			outdated = append(outdated, spireapi.HintField)
 		}
 	}
+	if oldEntry.StoreSVID != newEntry.StoreSVID {
+		if _, ok := unsupportedFields[spireapi.StoreSVIDField]; !ok {
+			outdated = append(outdated, spireapi.StoreSVIDField)
+		}
+	}
 
 	return outdated
 }

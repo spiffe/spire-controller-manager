@@ -44,6 +44,7 @@ type Entry struct {
 	Downstream    bool
 	DNSNames      []string
 	Hint          string
+	StoreSVID     bool
 }
 
 type Selector struct {
@@ -154,6 +155,7 @@ func entryToAPI(in Entry) *apitypes.Entry {
 		DnsNames:      in.DNSNames,
 		Downstream:    in.Downstream,
 		Hint:          in.Hint,
+		StoreSvid:     in.StoreSVID,
 	}
 }
 
@@ -204,6 +206,7 @@ func entryFromAPI(in *apitypes.Entry) (Entry, error) {
 		DNSNames:      in.DnsNames,
 		Downstream:    in.Downstream,
 		Hint:          in.Hint,
+		StoreSVID:     in.StoreSvid,
 	}, nil
 }
 
