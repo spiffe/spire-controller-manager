@@ -60,7 +60,6 @@ type Config struct {
 	options               ctrl.Options
 	ignoreNamespacesRegex []*regexp.Regexp
 	parentIDTemplate      *template.Template
-	syncTypes             spirev1alpha1.SyncTypesConfig
 }
 
 const (
@@ -171,16 +170,6 @@ func parseConfig() (Config, error) {
 		}
 	}
 
-	if retval.ctrlConfig.SyncTypes == nil {
-		retval.syncTypes.ClusterSPIFFEIDs = true
-		retval.syncTypes.ClusterFederatedTrustDomains = true
-		retval.syncTypes.ClusterStaticEntries = true
-	} else {
-		retval.syncTypes.ClusterSPIFFEIDs = retval.ctrlConfig.SyncTypes.ClusterSPIFFEIDs
-		retval.syncTypes.ClusterFederatedTrustDomains = retval.ctrlConfig.SyncTypes.ClusterFederatedTrustDomains
-		retval.syncTypes.ClusterStaticEntries = retval.ctrlConfig.SyncTypes.ClusterStaticEntries
-	}
-
 	setupLog.Info("Config loaded",
 		"cluster name", retval.ctrlConfig.ClusterName,
 		"cluster domain", retval.ctrlConfig.ClusterDomain,
@@ -189,10 +178,7 @@ func parseConfig() (Config, error) {
 		"gc interval", retval.ctrlConfig.GCInterval,
 		"spire server socket path", retval.ctrlConfig.SPIREServerSocketPath,
 		"class name", retval.ctrlConfig.ClassName,
-		"handle crs without class name", retval.ctrlConfig.WatchClassless,
-		"sync ClusterSPIFFEIDs", retval.syncTypes.ClusterSPIFFEIDs,
-		"sync ClusterFederatedTrustDomains", retval.syncTypes.ClusterFederatedTrustDomains,
-		"sync ClusterStaticEntries", retval.syncTypes.ClusterStaticEntries)
+		"handle crs without class name", retval.ctrlConfig.WatchClassless)
 
 	switch {
 	case retval.ctrlConfig.TrustDomain == "":
@@ -297,60 +283,51 @@ func run(mainConfig Config) (err error) {
 	}
 
 	var entryReconciler reconciler.Reconciler
-	if mainConfig.syncTypes.ClusterSPIFFEIDs || mainConfig.syncTypes.ClusterStaticEntries {
-		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
-			TrustDomain:      trustDomain,
-			ClusterName:      mainConfig.ctrlConfig.ClusterName,
-			ClusterDomain:    mainConfig.ctrlConfig.ClusterDomain,
-			K8sClient:        mgr.GetClient(),
-			EntryClient:      spireClient,
-			IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
-			GCInterval:       mainConfig.ctrlConfig.GCInterval,
-			ClassName:        mainConfig.ctrlConfig.ClassName,
-			WatchClassless:   mainConfig.ctrlConfig.WatchClassless,
-			ParentIDTemplate: mainConfig.parentIDTemplate,
-			SyncTypes:        mainConfig.syncTypes,
-		})
-	}
+	entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
+		TrustDomain:      trustDomain,
+		ClusterName:      mainConfig.ctrlConfig.ClusterName,
+		ClusterDomain:    mainConfig.ctrlConfig.ClusterDomain,
+		K8sClient:        mgr.GetClient(),
+		EntryClient:      spireClient,
+		IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
+		GCInterval:       mainConfig.ctrlConfig.GCInterval,
+		ClassName:        mainConfig.ctrlConfig.ClassName,
+		WatchClassless:   mainConfig.ctrlConfig.WatchClassless,
+		ParentIDTemplate: mainConfig.parentIDTemplate,
+	})
 
 	var federationRelationshipReconciler reconciler.Reconciler
-	if mainConfig.syncTypes.ClusterFederatedTrustDomains {
-		federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
-			K8sClient:         mgr.GetClient(),
-			TrustDomainClient: spireClient,
-			GCInterval:        mainConfig.ctrlConfig.GCInterval,
-			ClassName:         mainConfig.ctrlConfig.ClassName,
-			WatchClassless:    mainConfig.ctrlConfig.WatchClassless,
-		})
-		if err = (&controller.ClusterFederatedTrustDomainReconciler{
-			Client:    mgr.GetClient(),
-			Scheme:    mgr.GetScheme(),
-			Triggerer: federationRelationshipReconciler,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
-			return err
-		}
+	federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
+		K8sClient:         mgr.GetClient(),
+		TrustDomainClient: spireClient,
+		GCInterval:        mainConfig.ctrlConfig.GCInterval,
+		ClassName:         mainConfig.ctrlConfig.ClassName,
+		WatchClassless:    mainConfig.ctrlConfig.WatchClassless,
+	})
+	if err = (&controller.ClusterFederatedTrustDomainReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Triggerer: federationRelationshipReconciler,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
+		return err
 	}
 
-	if mainConfig.syncTypes.ClusterSPIFFEIDs {
-		if err = (&controller.ClusterSPIFFEIDReconciler{
-			Client:    mgr.GetClient(),
-			Scheme:    mgr.GetScheme(),
-			Triggerer: entryReconciler,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
-			return err
-		}
+	if err = (&controller.ClusterSPIFFEIDReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Triggerer: entryReconciler,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
+		return err
 	}
-	if mainConfig.syncTypes.ClusterStaticEntries {
-		if err = (&controller.ClusterStaticEntryReconciler{
-			Client:    mgr.GetClient(),
-			Scheme:    mgr.GetScheme(),
-			Triggerer: entryReconciler,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
-			return err
-		}
+	if err = (&controller.ClusterStaticEntryReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Triggerer: entryReconciler,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
+		return err
 	}
 	if webhookEnabled {
 		if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
@@ -364,39 +341,33 @@ func run(mainConfig Config) (err error) {
 	}
 	//+kubebuilder:scaffold:builder
 
-	if mainConfig.syncTypes.ClusterSPIFFEIDs {
-		if err = (&controller.PodReconciler{
-			Client:           mgr.GetClient(),
-			Scheme:           mgr.GetScheme(),
-			Triggerer:        entryReconciler,
-			IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
-		}).SetupWithManager(ctx, mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Pod")
-			return err
-		}
-		if err = (&controller.EndpointsReconciler{
-			Client:           mgr.GetClient(),
-			Scheme:           mgr.GetScheme(),
-			Triggerer:        entryReconciler,
-			IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
-			return err
-		}
+	if err = (&controller.PodReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		Triggerer:        entryReconciler,
+		IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
+	}).SetupWithManager(ctx, mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Pod")
+		return err
+	}
+	if err = (&controller.EndpointsReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		Triggerer:        entryReconciler,
+		IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
+		return err
 	}
 
-	if mainConfig.syncTypes.ClusterSPIFFEIDs || mainConfig.syncTypes.ClusterStaticEntries {
-		if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
-			setupLog.Error(err, "unable to manage entry reconciler")
-			return err
-		}
+	if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
+		setupLog.Error(err, "unable to manage entry reconciler")
+		return err
 	}
 
-	if mainConfig.syncTypes.ClusterFederatedTrustDomains {
-		if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
-			setupLog.Error(err, "unable to manage federation relationship reconciler")
-			return err
-		}
+	if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
+		setupLog.Error(err, "unable to manage federation relationship reconciler")
+		return err
 	}
 
 	if webhookRunnable != nil {
