@@ -44,6 +44,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	// joinTokenSpiffeSubstr is the substring that is the part of the parent SPIFFE ID for join token entries.
+	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L714
+	joinTokenSpiffeSubstr = "/spire/agent/join_token/"
+
+	// joinTokenSelectorType is the selector type used in the selector for join token entries.
+	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L515
+	joinTokenSelectorType = "spiffe_id"
+)
+
 type ReconcilerConfig struct {
 	TrustDomain          spiffeid.TrustDomain
 	ClusterName          string
@@ -148,9 +158,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			}
 		}
 
-		// Any remaining current entries should be removed that aren't going
-		// to be reused for the entry update.
-		toDelete = append(toDelete, s.Current...)
+		// Any remaining current entries that are not associated with join tokens
+		// should be removed as they aren't going to be reused for the entry update.
+		toDelete = append(toDelete, filterJoinTokenEntries(s.Current)...)
 	}
 
 	if len(toDelete) > 0 {
@@ -629,4 +639,32 @@ func idsFromEntries(entries []spireapi.Entry) []string {
 		ids = append(ids, entry.ID)
 	}
 	return ids
+}
+
+// filterJoinTokenEntries filters out entries that correspond to join tokens.
+func filterJoinTokenEntries(entries []spireapi.Entry) []spireapi.Entry {
+	var filteredEntries []spireapi.Entry
+	for _, entry := range entries {
+		if isJoinTokenEntry(entry) {
+			continue
+		}
+		filteredEntries = append(filteredEntries, entry)
+	}
+	return filteredEntries
+}
+
+// isJoinTokenEntry returns true if the entry corresponds to a join token.
+// For an entry to correspond to a join token, both the following conditions must be true:
+// 1. The parent ID of the entry must contain the substring "/spire/agent/join_token/".
+// 2. The entry must contain a selector of type "spiffe_id".
+func isJoinTokenEntry(entry spireapi.Entry) bool {
+	if !strings.Contains(entry.ParentID.String(), joinTokenSpiffeSubstr) {
+		return false
+	}
+	for _, selector := range entry.Selectors {
+		if selector.Type == joinTokenSelectorType {
+			return true
+		}
+	}
+	return false
 }
