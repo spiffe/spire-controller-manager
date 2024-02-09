@@ -55,6 +55,7 @@ type ReconcilerConfig struct {
 	ClassName            string
 	WatchClassless       bool
 	ParentIDTemplate     *template.Template
+	SyncTypes            spirev1alpha1.SyncTypesConfig
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -100,21 +101,27 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		state.AddCurrent(entry)
 	}
 
-	// Load and add entry state for ClusterStaticEntries
-	clusterStaticEntries, err := r.listClusterStaticEntries(ctx)
-	if err != nil {
-		log.Error(err, "Failed to list ClusterStaticEntries")
-		return
+	clusterStaticEntries := []*ClusterStaticEntry{}
+	if r.config.SyncTypes.ClusterStaticEntries {
+		// Load and add entry state for ClusterStaticEntries
+		clusterStaticEntries, err = r.listClusterStaticEntries(ctx)
+		if err != nil {
+			log.Error(err, "Failed to list ClusterStaticEntries")
+			return
+		}
+		r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
 	}
-	r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
 
-	// Load and add entry state for ClusterSPIFFEIDs
-	clusterSPIFFEIDs, err := r.listClusterSPIFFEIDs(ctx)
-	if err != nil {
-		log.Error(err, "Failed to list ClusterSPIFFEIDs")
-		return
+	clusterSPIFFEIDs := []*ClusterSPIFFEID{}
+	if r.config.SyncTypes.ClusterSPIFFEIDs {
+		// Load and add entry state for ClusterSPIFFEIDs
+		clusterSPIFFEIDs, err = r.listClusterSPIFFEIDs(ctx)
+		if err != nil {
+			log.Error(err, "Failed to list ClusterSPIFFEIDs")
+			return
+		}
+		r.addClusterSPIFFEIDEntriesState(ctx, state, clusterSPIFFEIDs)
 	}
-	r.addClusterSPIFFEIDEntriesState(ctx, state, clusterSPIFFEIDs)
 
 	var toDelete []spireapi.Entry
 	var toCreate []declaredEntry

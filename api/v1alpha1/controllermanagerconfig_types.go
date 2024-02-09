@@ -125,6 +125,25 @@ type ControllerManagerConfigurationSpec struct {
 	// If specified, uses a different parent id template for linking pods to nodes
 	// +optional
 	ParentIDTemplate string `json:"parentIDTemplate,omitempty"`
+
+	// If specified, only syncs the specified CR types. Defaults to all.
+	// +optional
+	SyncTypes *SyncTypesConfig `json:"sync,omitempty"`
+}
+
+// SyncTypesConfig configuration used to enable/disable syncing various types
+type SyncTypesConfig struct {
+	// ClusterSpiffeIds enable syncing of clusterspiffeids
+	// +optional
+	ClusterSPIFFEIDs bool `json:"clusterSPIFFEIDs,omitempty"`
+
+	// ClusterFederatedTrustDomains enable syncing of clusterfederatedtrustdomains
+	// +optional
+	ClusterFederatedTrustDomains bool `json:"clusterFederatedTrustDomains,omitempty"`
+
+	// ClusterStaticEntries enable syncing of clusterstaticentries
+	// +optional
+	ClusterStaticEntries bool `json:"clusterStaticEntries,omitempty"`
 }
 
 // NamespaceConfig configuration used to filter cached namespaces
