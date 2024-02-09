@@ -282,8 +282,7 @@ func run(mainConfig Config) (err error) {
 		return err
 	}
 
-	var entryReconciler reconciler.Reconciler
-	entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
+	entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
 		TrustDomain:      trustDomain,
 		ClusterName:      mainConfig.ctrlConfig.ClusterName,
 		ClusterDomain:    mainConfig.ctrlConfig.ClusterDomain,
@@ -296,8 +295,7 @@ func run(mainConfig Config) (err error) {
 		ParentIDTemplate: mainConfig.parentIDTemplate,
 	})
 
-	var federationRelationshipReconciler reconciler.Reconciler
-	federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
+	federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
 		K8sClient:         mgr.GetClient(),
 		TrustDomainClient: spireClient,
 		GCInterval:        mainConfig.ctrlConfig.GCInterval,
