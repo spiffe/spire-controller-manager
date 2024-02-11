@@ -54,6 +54,13 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+type Config struct {
+	ctrlConfig            spirev1alpha1.ControllerManagerConfig
+	options               ctrl.Options
+	ignoreNamespacesRegex []*regexp.Regexp
+	parentIDTemplate      *template.Template
+}
+
 const (
 	defaultSPIREServerSocketPath = "/spire-server/api.sock"
 	defaultGCInterval            = 10 * time.Second
@@ -73,18 +80,19 @@ func init() {
 }
 
 func main() {
-	ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, err := parseConfig()
+	mainConfig, err := parseConfig()
 	if err != nil {
 		setupLog.Error(err, "error parsing configuration")
 		os.Exit(1)
 	}
 
-	if err := run(ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate); err != nil {
+	if err := run(mainConfig); err != nil {
 		os.Exit(1)
 	}
 }
 
-func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*regexp.Regexp, *template.Template, error) {
+func parseConfig() (Config, error) {
+	var retval Config
 	var configFileFlag string
 	var spireAPISocketFlag string
 	var expandEnvFlag bool
@@ -105,93 +113,91 @@ func parseConfig() (spirev1alpha1.ControllerManagerConfig, ctrl.Options, []*rege
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// Set default values
-	ctrlConfig := spirev1alpha1.ControllerManagerConfig{
+	retval.ctrlConfig = spirev1alpha1.ControllerManagerConfig{
 		IgnoreNamespaces:                   []string{"kube-system", "kube-public", "spire-system"},
 		GCInterval:                         defaultGCInterval,
 		ValidatingWebhookConfigurationName: "spire-controller-manager-webhook",
 	}
 
-	options := ctrl.Options{Scheme: scheme}
-	var ignoreNamespacesRegex []*regexp.Regexp
-	var parentIDTemplate *template.Template
+	retval.options = ctrl.Options{Scheme: scheme}
 
 	if configFileFlag != "" {
-		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &options, &ctrlConfig, expandEnvFlag); err != nil {
-			return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to load the config file: %w", err)
+		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &retval.options, &retval.ctrlConfig, expandEnvFlag); err != nil {
+			return retval, fmt.Errorf("unable to load the config file: %w", err)
 		}
 
-		for _, ignoredNamespace := range ctrlConfig.IgnoreNamespaces {
+		for _, ignoredNamespace := range retval.ctrlConfig.IgnoreNamespaces {
 			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
-				return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
+				return retval, fmt.Errorf("unable to compile ignore namespaces regex: %w", err)
 			}
 
-			ignoreNamespacesRegex = append(ignoreNamespacesRegex, regex)
+			retval.ignoreNamespacesRegex = append(retval.ignoreNamespacesRegex, regex)
 		}
 	}
 	// Determine the SPIRE Server socket path
 	switch {
-	case ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
+	case retval.ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
 		// Neither is set. Use the default.
-		ctrlConfig.SPIREServerSocketPath = defaultSPIREServerSocketPath
-	case ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag == "":
+		retval.ctrlConfig.SPIREServerSocketPath = defaultSPIREServerSocketPath
+	case retval.ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag == "":
 		// Configuration file value is set. Use it.
-	case ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag != "":
+	case retval.ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag != "":
 		// Deprecated flag value is set. Use it but warn.
-		ctrlConfig.SPIREServerSocketPath = spireAPISocketFlag
+		retval.ctrlConfig.SPIREServerSocketPath = spireAPISocketFlag
 		setupLog.Error(nil, "The spire-api-socket flag is deprecated and will be removed in a future release; use the configuration file instead")
-	case ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag != "":
+	case retval.ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag != "":
 		// Both are set. Warn and ignore the deprecated flag.
 		setupLog.Error(nil, "Ignoring deprecated spire-api-socket flag which will be removed in a future release")
 	}
 
 	// Attempt to auto detect cluster domain if it wasn't specified
-	if ctrlConfig.ClusterDomain == "" {
+	if retval.ctrlConfig.ClusterDomain == "" {
 		clusterDomain, err := autoDetectClusterDomain()
 		if err != nil {
 			setupLog.Error(err, "unable to autodetect cluster domain")
 		}
 
-		ctrlConfig.ClusterDomain = clusterDomain
+		retval.ctrlConfig.ClusterDomain = clusterDomain
 	}
 
-	if ctrlConfig.ParentIDTemplate != "" {
+	if retval.ctrlConfig.ParentIDTemplate != "" {
 		var err error
-		parentIDTemplate, err = template.New("customParentIDTemplate").Parse(ctrlConfig.ParentIDTemplate)
+		retval.parentIDTemplate, err = template.New("customParentIDTemplate").Parse(retval.ctrlConfig.ParentIDTemplate)
 		if err != nil {
-			return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, fmt.Errorf("unable to parse parent ID template: %w", err)
+			return retval, fmt.Errorf("unable to parse parent ID template: %w", err)
 		}
 	}
 
 	setupLog.Info("Config loaded",
-		"cluster name", ctrlConfig.ClusterName,
-		"cluster domain", ctrlConfig.ClusterDomain,
-		"trust domain", ctrlConfig.TrustDomain,
-		"ignore namespaces", ctrlConfig.IgnoreNamespaces,
-		"gc interval", ctrlConfig.GCInterval,
-		"spire server socket path", ctrlConfig.SPIREServerSocketPath,
-		"class name", ctrlConfig.ClassName,
-		"handle crs without class name", ctrlConfig.WatchClassless)
+		"cluster name", retval.ctrlConfig.ClusterName,
+		"cluster domain", retval.ctrlConfig.ClusterDomain,
+		"trust domain", retval.ctrlConfig.TrustDomain,
+		"ignore namespaces", retval.ctrlConfig.IgnoreNamespaces,
+		"gc interval", retval.ctrlConfig.GCInterval,
+		"spire server socket path", retval.ctrlConfig.SPIREServerSocketPath,
+		"class name", retval.ctrlConfig.ClassName,
+		"handle crs without class name", retval.ctrlConfig.WatchClassless)
 
 	switch {
-	case ctrlConfig.TrustDomain == "":
+	case retval.ctrlConfig.TrustDomain == "":
 		setupLog.Error(nil, "trust domain is required configuration")
-		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("trust domain is required configuration")
-	case ctrlConfig.ClusterName == "":
-		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("cluster name is required configuration")
-	case ctrlConfig.ValidatingWebhookConfigurationName == "":
-		return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, errors.New("validating webhook configuration name is required configuration")
-	case ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir != "":
-		setupLog.Info("certDir configuration is ignored", "certDir", ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir)
+		return retval, errors.New("trust domain is required configuration")
+	case retval.ctrlConfig.ClusterName == "":
+		return retval, errors.New("cluster name is required configuration")
+	case retval.ctrlConfig.ValidatingWebhookConfigurationName == "":
+		return retval, errors.New("validating webhook configuration name is required configuration")
+	case retval.ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir != "":
+		setupLog.Info("certDir configuration is ignored", "certDir", retval.ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir)
 	}
 
-	return ctrlConfig, options, ignoreNamespacesRegex, parentIDTemplate, nil
+	return retval, nil
 }
 
-func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options, ignoreNamespacesRegex []*regexp.Regexp, parentIDTemplate *template.Template) (err error) {
+func run(mainConfig Config) (err error) {
 	webhookEnabled := os.Getenv("ENABLE_WEBHOOKS") != "false"
 
-	trustDomain, err := spiffeid.TrustDomainFromString(ctrlConfig.TrustDomain)
+	trustDomain, err := spiffeid.TrustDomainFromString(mainConfig.ctrlConfig.TrustDomain)
 	if err != nil {
 		setupLog.Error(err, "invalid trust domain name")
 		return err
@@ -200,7 +206,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 	ctx := ctrl.SetupSignalHandler()
 
 	setupLog.Info("Dialing SPIRE Server socket")
-	spireClient, err := spireapi.DialSocket(ctx, ctrlConfig.SPIREServerSocketPath)
+	spireClient, err := spireapi.DialSocket(ctx, mainConfig.ctrlConfig.SPIREServerSocketPath)
 	if err != nil {
 		setupLog.Error(err, "unable to dial SPIRE Server socket")
 		return err
@@ -226,7 +232,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 				os.Exit(1)
 			}
 		}()
-		options.WebhookServer = webhook.NewServer(webhook.Options{
+		mainConfig.options.WebhookServer = webhook.NewServer(webhook.Options{
 			CertDir:  certDir,
 			CertName: keyPairName,
 			KeyName:  keyPairName,
@@ -255,7 +261,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		webhookManager := webhookmanager.New(webhookmanager.Config{
 			ID:            spiffeid.RequireFromPath(trustDomain, "/spire-controller-manager-webhook"),
 			KeyPairPath:   filepath.Join(certDir, keyPairName),
-			WebhookName:   ctrlConfig.ValidatingWebhookConfigurationName,
+			WebhookName:   mainConfig.ctrlConfig.ValidatingWebhookConfigurationName,
 			WebhookClient: clientset.AdmissionregistrationV1().ValidatingWebhookConfigurations(),
 			SVIDClient:    spireClient,
 			BundleClient:  spireClient,
@@ -269,7 +275,7 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		webhookRunnable = webhookManager
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mainConfig.options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		return err
@@ -277,24 +283,32 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 
 	entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
 		TrustDomain:      trustDomain,
-		ClusterName:      ctrlConfig.ClusterName,
-		ClusterDomain:    ctrlConfig.ClusterDomain,
+		ClusterName:      mainConfig.ctrlConfig.ClusterName,
+		ClusterDomain:    mainConfig.ctrlConfig.ClusterDomain,
 		K8sClient:        mgr.GetClient(),
 		EntryClient:      spireClient,
-		IgnoreNamespaces: ignoreNamespacesRegex,
-		GCInterval:       ctrlConfig.GCInterval,
-		ClassName:        ctrlConfig.ClassName,
-		WatchClassless:   ctrlConfig.WatchClassless,
-		ParentIDTemplate: parentIDTemplate,
+		IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
+		GCInterval:       mainConfig.ctrlConfig.GCInterval,
+		ClassName:        mainConfig.ctrlConfig.ClassName,
+		WatchClassless:   mainConfig.ctrlConfig.WatchClassless,
+		ParentIDTemplate: mainConfig.parentIDTemplate,
 	})
 
 	federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
 		K8sClient:         mgr.GetClient(),
 		TrustDomainClient: spireClient,
-		GCInterval:        ctrlConfig.GCInterval,
-		ClassName:         ctrlConfig.ClassName,
-		WatchClassless:    ctrlConfig.WatchClassless,
+		GCInterval:        mainConfig.ctrlConfig.GCInterval,
+		ClassName:         mainConfig.ctrlConfig.ClassName,
+		WatchClassless:    mainConfig.ctrlConfig.WatchClassless,
 	})
+	if err = (&controller.ClusterFederatedTrustDomainReconciler{
+		Client:    mgr.GetClient(),
+		Scheme:    mgr.GetScheme(),
+		Triggerer: federationRelationshipReconciler,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
+		return err
+	}
 
 	if err = (&controller.ClusterSPIFFEIDReconciler{
 		Client:    mgr.GetClient(),
@@ -302,14 +316,6 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		Triggerer: entryReconciler,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
-		return err
-	}
-	if err = (&controller.ClusterFederatedTrustDomainReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Triggerer: federationRelationshipReconciler,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
 		return err
 	}
 	if err = (&controller.ClusterStaticEntryReconciler{
@@ -336,17 +342,16 @@ func run(ctrlConfig spirev1alpha1.ControllerManagerConfig, options ctrl.Options,
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		Triggerer:        entryReconciler,
-		IgnoreNamespaces: ignoreNamespacesRegex,
+		IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Pod")
 		return err
 	}
-
 	if err = (&controller.EndpointsReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		Triggerer:        entryReconciler,
-		IgnoreNamespaces: ignoreNamespacesRegex,
+		IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
 		return err
