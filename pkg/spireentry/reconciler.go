@@ -643,7 +643,10 @@ func idsFromEntries(entries []spireapi.Entry) []string {
 
 // filterJoinTokenEntries filters out entries that correspond to join tokens.
 func filterJoinTokenEntries(entries []spireapi.Entry) []spireapi.Entry {
-	var filteredEntries []spireapi.Entry
+	if len(entries) == 0 {
+		return entries
+	}	
+	filteredEntries := make([]spireapi.Entry, 0, len(entries))
 	for _, entry := range entries {
 		if isJoinTokenEntry(entry) {
 			continue
@@ -655,10 +658,10 @@ func filterJoinTokenEntries(entries []spireapi.Entry) []spireapi.Entry {
 
 // isJoinTokenEntry returns true if the entry corresponds to a join token.
 // For an entry to correspond to a join token, both the following conditions must be true:
-// 1. The parent ID of the entry must contain the substring "/spire/agent/join_token/".
+// 1. The path of the parent ID of the entry must begin with "/spire/agent/join_token/".
 // 2. The entry must contain a selector of type "spiffe_id".
 func isJoinTokenEntry(entry spireapi.Entry) bool {
-	if !strings.Contains(entry.ParentID.String(), joinTokenSpiffeSubstr) {
+	if !strings.HasPrefix(entry.ParentID.Path(), joinTokenSpiffeSubstr) {
 		return false
 	}
 	for _, selector := range entry.Selectors {
