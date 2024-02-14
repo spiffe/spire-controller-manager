@@ -60,7 +60,7 @@ type Config struct {
 	options               ctrl.Options
 	ignoreNamespacesRegex []*regexp.Regexp
 	parentIDTemplate      *template.Template
-	syncTypes             spirev1alpha1.SyncTypesConfig
+	reconcile             spirev1alpha1.ReconcileConfig
 }
 
 const (
@@ -171,14 +171,14 @@ func parseConfig() (Config, error) {
 		}
 	}
 
-	if retval.ctrlConfig.SyncTypes == nil {
-		retval.syncTypes.ClusterSPIFFEIDs = true
-		retval.syncTypes.ClusterFederatedTrustDomains = true
-		retval.syncTypes.ClusterStaticEntries = true
+	if retval.ctrlConfig.Reconcile == nil {
+		retval.reconcile.ClusterSPIFFEIDs = true
+		retval.reconcile.ClusterFederatedTrustDomains = true
+		retval.reconcile.ClusterStaticEntries = true
 	} else {
-		retval.syncTypes.ClusterSPIFFEIDs = retval.ctrlConfig.SyncTypes.ClusterSPIFFEIDs
-		retval.syncTypes.ClusterFederatedTrustDomains = retval.ctrlConfig.SyncTypes.ClusterFederatedTrustDomains
-		retval.syncTypes.ClusterStaticEntries = retval.ctrlConfig.SyncTypes.ClusterStaticEntries
+		retval.reconcile.ClusterSPIFFEIDs = retval.ctrlConfig.Reconcile.ClusterSPIFFEIDs
+		retval.reconcile.ClusterFederatedTrustDomains = retval.ctrlConfig.Reconcile.ClusterFederatedTrustDomains
+		retval.reconcile.ClusterStaticEntries = retval.ctrlConfig.Reconcile.ClusterStaticEntries
 	}
 
 	setupLog.Info("Config loaded",
@@ -190,9 +190,9 @@ func parseConfig() (Config, error) {
 		"spire server socket path", retval.ctrlConfig.SPIREServerSocketPath,
 		"class name", retval.ctrlConfig.ClassName,
 		"handle crs without class name", retval.ctrlConfig.WatchClassless,
-		"sync ClusterSPIFFEIDs", retval.syncTypes.ClusterSPIFFEIDs,
-		"sync ClusterFederatedTrustDomains", retval.syncTypes.ClusterFederatedTrustDomains,
-		"sync ClusterStaticEntries", retval.syncTypes.ClusterStaticEntries)
+		"sync ClusterSPIFFEIDs", retval.reconcile.ClusterSPIFFEIDs,
+		"sync ClusterFederatedTrustDomains", retval.reconcile.ClusterFederatedTrustDomains,
+		"sync ClusterStaticEntries", retval.reconcile.ClusterStaticEntries)
 
 	switch {
 	case retval.ctrlConfig.TrustDomain == "":
@@ -297,7 +297,7 @@ func run(mainConfig Config) (err error) {
 	}
 
 	var entryReconciler reconciler.Reconciler
-	if mainConfig.syncTypes.ClusterSPIFFEIDs || mainConfig.syncTypes.ClusterStaticEntries {
+	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
 		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
 			TrustDomain:      trustDomain,
 			ClusterName:      mainConfig.ctrlConfig.ClusterName,
@@ -309,12 +309,12 @@ func run(mainConfig Config) (err error) {
 			ClassName:        mainConfig.ctrlConfig.ClassName,
 			WatchClassless:   mainConfig.ctrlConfig.WatchClassless,
 			ParentIDTemplate: mainConfig.parentIDTemplate,
-			SyncTypes:        mainConfig.syncTypes,
+			Reconcile:        mainConfig.reconcile,
 		})
 	}
 
 	var federationRelationshipReconciler reconciler.Reconciler
-	if mainConfig.syncTypes.ClusterFederatedTrustDomains {
+	if mainConfig.reconcile.ClusterFederatedTrustDomains {
 		federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
 			K8sClient:         mgr.GetClient(),
 			TrustDomainClient: spireClient,
@@ -332,7 +332,7 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	if mainConfig.syncTypes.ClusterSPIFFEIDs {
+	if mainConfig.reconcile.ClusterSPIFFEIDs {
 		if err = (&controller.ClusterSPIFFEIDReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -342,7 +342,7 @@ func run(mainConfig Config) (err error) {
 			return err
 		}
 	}
-	if mainConfig.syncTypes.ClusterStaticEntries {
+	if mainConfig.reconcile.ClusterStaticEntries {
 		if err = (&controller.ClusterStaticEntryReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -364,7 +364,7 @@ func run(mainConfig Config) (err error) {
 	}
 	//+kubebuilder:scaffold:builder
 
-	if mainConfig.syncTypes.ClusterSPIFFEIDs {
+	if mainConfig.reconcile.ClusterSPIFFEIDs {
 		if err = (&controller.PodReconciler{
 			Client:           mgr.GetClient(),
 			Scheme:           mgr.GetScheme(),
@@ -385,14 +385,14 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	if mainConfig.syncTypes.ClusterSPIFFEIDs || mainConfig.syncTypes.ClusterStaticEntries {
+	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
 		if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
 			setupLog.Error(err, "unable to manage entry reconciler")
 			return err
 		}
 	}
 
-	if mainConfig.syncTypes.ClusterFederatedTrustDomains {
+	if mainConfig.reconcile.ClusterFederatedTrustDomains {
 		if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
 			setupLog.Error(err, "unable to manage federation relationship reconciler")
 			return err

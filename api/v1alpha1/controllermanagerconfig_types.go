@@ -128,11 +128,11 @@ type ControllerManagerConfigurationSpec struct {
 
 	// If specified, only syncs the specified CR types. Defaults to all.
 	// +optional
-	SyncTypes *SyncTypesConfig `json:"sync,omitempty"`
+	Reconcile *ReconcileConfig `json:"reconcile,omitempty"`
 }
 
-// SyncTypesConfig configuration used to enable/disable syncing various types
-type SyncTypesConfig struct {
+// ReconcileConfig configuration used to enable/disable syncing various types
+type ReconcileConfig struct {
 	// ClusterSpiffeIds enable syncing of clusterspiffeids
 	// +optional
 	ClusterSPIFFEIDs bool `json:"clusterSPIFFEIDs,omitempty"`
