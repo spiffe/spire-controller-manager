@@ -176,9 +176,7 @@ func parseConfig() (Config, error) {
 		retval.reconcile.ClusterFederatedTrustDomains = true
 		retval.reconcile.ClusterStaticEntries = true
 	} else {
-		retval.reconcile.ClusterSPIFFEIDs = retval.ctrlConfig.Reconcile.ClusterSPIFFEIDs
-		retval.reconcile.ClusterFederatedTrustDomains = retval.ctrlConfig.Reconcile.ClusterFederatedTrustDomains
-		retval.reconcile.ClusterStaticEntries = retval.ctrlConfig.Reconcile.ClusterStaticEntries
+		retval.reconcile = *retval.ctrlConfig.Reconcile
 	}
 
 	setupLog.Info("Config loaded",
@@ -190,9 +188,9 @@ func parseConfig() (Config, error) {
 		"spire server socket path", retval.ctrlConfig.SPIREServerSocketPath,
 		"class name", retval.ctrlConfig.ClassName,
 		"handle crs without class name", retval.ctrlConfig.WatchClassless,
-		"sync ClusterSPIFFEIDs", retval.reconcile.ClusterSPIFFEIDs,
-		"sync ClusterFederatedTrustDomains", retval.reconcile.ClusterFederatedTrustDomains,
-		"sync ClusterStaticEntries", retval.reconcile.ClusterStaticEntries)
+		"reconcile ClusterSPIFFEIDs", retval.reconcile.ClusterSPIFFEIDs,
+		"reconcile ClusterFederatedTrustDomains", retval.reconcile.ClusterFederatedTrustDomains,
+		"reconcile ClusterStaticEntries", retval.reconcile.ClusterStaticEntries)
 
 	switch {
 	case retval.ctrlConfig.TrustDomain == "":
@@ -385,14 +383,14 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
+	if entryReconciler != nil {
 		if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
 			setupLog.Error(err, "unable to manage entry reconciler")
 			return err
 		}
 	}
 
-	if mainConfig.reconcile.ClusterFederatedTrustDomains {
+	if federationRelationshipReconciler != nil {
 		if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
 			setupLog.Error(err, "unable to manage federation relationship reconciler")
 			return err
