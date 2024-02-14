@@ -75,3 +75,51 @@ func TestMakeEntryKey(t *testing.T) {
 		require.Equal(t, makeEntryKey(a), makeEntryKey(b))
 	})
 }
+
+func TestFilterJoinTokenEntries(t *testing.T) {
+	id1 := spiffeid.RequireFromString("spiffe://domain.test/1")
+	id2 := spiffeid.RequireFromString("spiffe://domain.test/2")
+	id3 := spiffeid.RequireFromString("spiffe://domain.test/3")
+	idJoinToken := spiffeid.RequireFromString("spiffe://domain.test/spire/agent/join_token/717290d1-6e81-40cc-b9c4-1416f8c30cfd")
+	s1 := []spireapi.Selector{{Type: "A", Value: "A"}, {Type: "B", Value: "B"}}
+	s2 := []spireapi.Selector{{Type: "B", Value: "B"}, {Type: "A", Value: "A"}}
+	sJoinToken := []spireapi.Selector{{Type: "spiffe_id", Value: "A"}}
+
+	testCases := []struct {
+		name     string
+		entries  []spireapi.Entry
+		expected []spireapi.Entry
+	}{
+		{
+			name: "no join token entries",
+			entries: []spireapi.Entry{
+				{ID: "1", ParentID: id1, SPIFFEID: id2, Selectors: s1},
+				{ID: "2", ParentID: id1, SPIFFEID: id3, Selectors: s2},
+			},
+			expected: []spireapi.Entry{
+				{ID: "1", ParentID: id1, SPIFFEID: id2, Selectors: s1},
+				{ID: "2", ParentID: id1, SPIFFEID: id3, Selectors: s2},
+			},
+		},
+		{
+			name: "with join token entries",
+			entries: []spireapi.Entry{
+				{ID: "1", ParentID: id1, SPIFFEID: id2, Selectors: s1},
+				{ID: "2", ParentID: id1, SPIFFEID: id3, Selectors: s2},
+				{ID: "3", ParentID: idJoinToken, SPIFFEID: id3, Selectors: sJoinToken},
+				{ID: "4", ParentID: idJoinToken, SPIFFEID: id2, Selectors: sJoinToken},
+			},
+			expected: []spireapi.Entry{
+				{ID: "1", ParentID: id1, SPIFFEID: id2, Selectors: s1},
+				{ID: "2", ParentID: id1, SPIFFEID: id3, Selectors: s2},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := filterJoinTokenEntries(tc.entries)
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}

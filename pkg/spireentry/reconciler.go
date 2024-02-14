@@ -29,12 +29,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
-	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
-	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
-	"github.com/spiffe/spire-controller-manager/pkg/namespace"
-	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
-	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
-
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,6 +36,24 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
+	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
+	"github.com/spiffe/spire-controller-manager/pkg/namespace"
+	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
+	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
+)
+
+const (
+	// joinTokenSpiffePrefix is the prefix that is the part of the parent SPIFFE ID for join token entries.
+	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L714
+	// nolint: gosec // not a credential
+	joinTokenSpiffePrefix = "/spire/agent/join_token/"
+
+	// joinTokenSelectorType is the selector type used in the selector for join token entries.
+	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L515
+	// nolint: gosec // not a credential
+	joinTokenSelectorType = "spiffe_id"
 )
 
 type ReconcilerConfig struct {
@@ -148,9 +160,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			}
 		}
 
-		// Any remaining current entries should be removed that aren't going
-		// to be reused for the entry update.
-		toDelete = append(toDelete, s.Current...)
+		// Any remaining current entries that are not associated with join tokens
+		// should be removed as they aren't going to be reused for the entry update.
+		toDelete = append(toDelete, filterJoinTokenEntries(s.Current)...)
 	}
 
 	if len(toDelete) > 0 {
@@ -629,4 +641,35 @@ func idsFromEntries(entries []spireapi.Entry) []string {
 		ids = append(ids, entry.ID)
 	}
 	return ids
+}
+
+// filterJoinTokenEntries filters out entries that correspond to join tokens.
+func filterJoinTokenEntries(entries []spireapi.Entry) []spireapi.Entry {
+	if len(entries) == 0 {
+		return entries
+	}
+	filteredEntries := make([]spireapi.Entry, 0, len(entries))
+	for _, entry := range entries {
+		if isJoinTokenEntry(entry) {
+			continue
+		}
+		filteredEntries = append(filteredEntries, entry)
+	}
+	return filteredEntries
+}
+
+// isJoinTokenEntry returns true if the entry corresponds to a join token.
+// For an entry to correspond to a join token, both the following conditions must be true:
+// 1. The path of the parent ID of the entry must begin with "/spire/agent/join_token/".
+// 2. The entry must contain a selector of type "spiffe_id".
+func isJoinTokenEntry(entry spireapi.Entry) bool {
+	if !strings.HasPrefix(entry.ParentID.Path(), joinTokenSpiffePrefix) {
+		return false
+	}
+	for _, selector := range entry.Selectors {
+		if selector.Type == joinTokenSelectorType {
+			return true
+		}
+	}
+	return false
 }
