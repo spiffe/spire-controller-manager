@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.3] - 2024-02-22
+
+### Added
+
+- Ability to selectively choose which CRDs to reconcile (#297)
+
+### Changed
+
+- Join token novelty entries are ignored during entry reconciliation (#306)
+
 ## [0.4.2] - 2024-01-24
 
 ### Added
