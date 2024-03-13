@@ -179,9 +179,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		toDelete = append(toDelete, filterJoinTokenEntries(s.Current)...)
 	}
 
-	for _, entry := range deleteOnlyEntries {
-		toDelete = append(toDelete, entry)
-	}
+	toDelete = append(toDelete, deleteOnlyEntries...)
 	if len(toDelete) > 0 {
 		r.deleteEntries(ctx, toDelete)
 	}
