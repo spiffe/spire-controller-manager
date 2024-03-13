@@ -129,6 +129,16 @@ type ControllerManagerConfigurationSpec struct {
 	// If specified, only syncs the specified CR types. Defaults to all.
 	// +optional
 	Reconcile *ReconcileConfig `json:"reconcile,omitempty"`
+
+	// If specified, prefixes each entry id with `<prefix>/`. Entries without the Prefix will be ignored (except ones marked for cleanup, see EntryIDPrefixCleanup).
+	// +optiional
+	EntryIDPrefix string `json:"entryIDPrefix,omitempty"`
+
+	// If specified, entries with the specified prefix will be removed. If set to "" it will clean up all unprefixed entries.
+	// It can not be set to the same value as EntryIDPrefix.
+	// Generally useful when switching from nonprefixed to prefixed, or between two different prefixes.
+	// +optiional
+	EntryIDPrefixCleanup *string `json:"entryIDPrefixCleanup,omitempty"`
 }
 
 // ReconcileConfig configuration used to enable/disable syncing various types

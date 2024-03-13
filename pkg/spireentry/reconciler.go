@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"regexp"
 	"sort"
@@ -28,6 +29,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
@@ -68,6 +70,8 @@ type ReconcilerConfig struct {
 	WatchClassless       bool
 	ParentIDTemplate     *template.Template
 	Reconcile            spirev1alpha1.ReconcileConfig
+	EntryIDPrefix        string
+	EntryIDPrefixCleanup *string
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -101,7 +105,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	unsupportedFields := r.unsupportedFields
 
 	// Load current entries from SPIRE server.
-	currentEntries, err := r.listEntries(ctx)
+	currentEntries, deleteOnlyEntries, err := r.listEntries(ctx)
 	if err != nil {
 		log.Error(err, "Failed to list SPIRE entries")
 		return
@@ -156,6 +160,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			// drop the current entry from the list so it isn't added to the
 			// "to delete" list.
 			if len(s.Current) == 0 {
+				if preferredEntry.Entry.ID == "" && r.config.EntryIDPrefix != "" {
+					preferredEntry.Entry.ID = fmt.Sprintf("%s%s", r.config.EntryIDPrefix, uuid.New().String())
+				}
 				toCreate = append(toCreate, preferredEntry)
 			} else {
 				preferredEntry.Entry.ID = s.Current[0].ID
@@ -172,6 +179,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		toDelete = append(toDelete, filterJoinTokenEntries(s.Current)...)
 	}
 
+	for _, entry := range deleteOnlyEntries {
+		toDelete = append(toDelete, entry)
+	}
 	if len(toDelete) > 0 {
 		r.deleteEntries(ctx, toDelete)
 	}
@@ -250,9 +260,46 @@ func (r *entryReconciler) recalculateUnsupportFields(ctx context.Context, log lo
 	r.nextGetUnsupportedFields = time.Now().Add(10 * time.Minute)
 }
 
-func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, error) {
+func (r *entryReconciler) shouldProcessOrDeleteEntryID(entry spireapi.Entry) (bool, bool) {
+	if r.config.EntryIDPrefix == "" {
+		return true, false
+	}
+	if strings.HasPrefix(entry.ID, r.config.EntryIDPrefix) {
+		return true, false
+	}
+	if r.config.EntryIDPrefixCleanup != nil {
+		cleanupPrefix := *r.config.EntryIDPrefixCleanup
+		if cleanupPrefix == "" {
+			if strings.Contains(entry.ID, "/") {
+				return false, false
+			}
+			return false, true
+		}
+		if strings.HasPrefix(entry.ID, cleanupPrefix) {
+			return false, true
+		}
+	}
+	return false, false
+}
+
+func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, []spireapi.Entry, error) {
 	// TODO: cache?
-	return r.config.EntryClient.ListEntries(ctx)
+	deleteOnlyEntries := make([]spireapi.Entry, 0)
+	currentEntries := make([]spireapi.Entry, 0)
+	tmpvals, err := r.config.EntryClient.ListEntries(ctx)
+	if err != nil {
+		return currentEntries, deleteOnlyEntries, err
+	}
+	for _, value := range tmpvals {
+		proc, del := r.shouldProcessOrDeleteEntryID(value)
+		if proc {
+			currentEntries = append(currentEntries, value)
+		}
+		if del {
+			deleteOnlyEntries = append(deleteOnlyEntries, value)
+		}
+	}
+	return currentEntries, deleteOnlyEntries, nil
 }
 
 func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[spireapi.Field]struct{}, error) {

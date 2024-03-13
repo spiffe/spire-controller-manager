@@ -179,6 +179,21 @@ func parseConfig() (Config, error) {
 		retval.reconcile = *retval.ctrlConfig.Reconcile
 	}
 
+	if retval.ctrlConfig.EntryIDPrefix != "" && retval.ctrlConfig.EntryIDPrefixCleanup != nil && retval.ctrlConfig.EntryIDPrefix == *retval.ctrlConfig.EntryIDPrefixCleanup {
+		return retval, fmt.Errorf("if entryIDPrefixCleanup is specified, it can not be the same value as entryIDPrefix")
+	}
+
+	if retval.ctrlConfig.EntryIDPrefix != "" && retval.ctrlConfig.EntryIDPrefix[len(retval.ctrlConfig.EntryIDPrefix)-1] != "."[0] {
+		retval.ctrlConfig.EntryIDPrefix += "."
+	}
+	if retval.ctrlConfig.EntryIDPrefixCleanup != nil && *retval.ctrlConfig.EntryIDPrefixCleanup != "" && (*retval.ctrlConfig.EntryIDPrefixCleanup)[len(*retval.ctrlConfig.EntryIDPrefixCleanup)-1] != "."[0] {
+		*retval.ctrlConfig.EntryIDPrefixCleanup += "."
+	}
+
+	printCleanup := "<unset>"
+	if retval.ctrlConfig.EntryIDPrefixCleanup != nil {
+		printCleanup = *retval.ctrlConfig.EntryIDPrefixCleanup
+	}
 	setupLog.Info("Config loaded",
 		"cluster name", retval.ctrlConfig.ClusterName,
 		"cluster domain", retval.ctrlConfig.ClusterDomain,
@@ -190,7 +205,9 @@ func parseConfig() (Config, error) {
 		"handle crs without class name", retval.ctrlConfig.WatchClassless,
 		"reconcile ClusterSPIFFEIDs", retval.reconcile.ClusterSPIFFEIDs,
 		"reconcile ClusterFederatedTrustDomains", retval.reconcile.ClusterFederatedTrustDomains,
-		"reconcile ClusterStaticEntries", retval.reconcile.ClusterStaticEntries)
+		"reconcile ClusterStaticEntries", retval.reconcile.ClusterStaticEntries,
+		"entryIDPrefix", retval.ctrlConfig.EntryIDPrefix,
+		"entryIDPrefixCleanup", printCleanup)
 
 	switch {
 	case retval.ctrlConfig.TrustDomain == "":
@@ -297,17 +314,19 @@ func run(mainConfig Config) (err error) {
 	var entryReconciler reconciler.Reconciler
 	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
 		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
-			TrustDomain:      trustDomain,
-			ClusterName:      mainConfig.ctrlConfig.ClusterName,
-			ClusterDomain:    mainConfig.ctrlConfig.ClusterDomain,
-			K8sClient:        mgr.GetClient(),
-			EntryClient:      spireClient,
-			IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
-			GCInterval:       mainConfig.ctrlConfig.GCInterval,
-			ClassName:        mainConfig.ctrlConfig.ClassName,
-			WatchClassless:   mainConfig.ctrlConfig.WatchClassless,
-			ParentIDTemplate: mainConfig.parentIDTemplate,
-			Reconcile:        mainConfig.reconcile,
+			TrustDomain:          trustDomain,
+			ClusterName:          mainConfig.ctrlConfig.ClusterName,
+			ClusterDomain:        mainConfig.ctrlConfig.ClusterDomain,
+			K8sClient:            mgr.GetClient(),
+			EntryClient:          spireClient,
+			IgnoreNamespaces:     mainConfig.ignoreNamespacesRegex,
+			GCInterval:           mainConfig.ctrlConfig.GCInterval,
+			ClassName:            mainConfig.ctrlConfig.ClassName,
+			WatchClassless:       mainConfig.ctrlConfig.WatchClassless,
+			ParentIDTemplate:     mainConfig.parentIDTemplate,
+			Reconcile:            mainConfig.reconcile,
+			EntryIDPrefix:        mainConfig.ctrlConfig.EntryIDPrefix,
+			EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
 		})
 	}
 
