@@ -32,6 +32,7 @@ var (
 		Admin:         true,
 		Downstream:    true,
 		DNSNames:      []string{"dnsname"},
+		StoreSVID:     true,
 	}
 
 	apiEntry = &apitypes.Entry{
@@ -50,6 +51,7 @@ var (
 		Admin:         true,
 		Downstream:    true,
 		DnsNames:      []string{"dnsname"},
+		StoreSvid:     true,
 	}
 )
 

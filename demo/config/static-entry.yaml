@@ -13,3 +13,4 @@ spec:
   hint: "static-hint-2"
   admin: true
   downstream: true
+  storeSVID: true

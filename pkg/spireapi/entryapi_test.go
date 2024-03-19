@@ -177,6 +177,7 @@ func TestGetUnsupportedFields(t *testing.T) {
 			expectFields: map[Field]struct{}{
 				HintField:       {},
 				JWTSVIDTTLField: {},
+				StoreSVIDField:  {},
 			},
 		},
 		{
@@ -191,6 +192,7 @@ func TestGetUnsupportedFields(t *testing.T) {
 			expectFields: map[Field]struct{}{
 				HintField:       {},
 				JWTSVIDTTLField: {},
+				StoreSVIDField:  {},
 			},
 		},
 	} {
@@ -400,6 +402,7 @@ func (s *entryServer) BatchCreateEntry(_ context.Context, req *entryv1.BatchCrea
 		if s.clearUnsupportedFields {
 			entry.JwtSvidTtl = 0
 			entry.Hint = ""
+			entry.StoreSvid = false
 		}
 
 		st := status.Convert(s.createEntry(entry))

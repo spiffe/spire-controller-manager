@@ -87,12 +87,13 @@ verify that [manager-role](/config/rbac/role.yaml) is up-to-date.
 The SPIRE APIs used by the SPIRE Controller Manager are generally stable and
 supported since at least SPIRE v1.0. However, the API has gained support for
 additional entry fields beyond what was supported in SPIRE v1.0. Notably, these
-include both the `jwt_svid_ttl` and the `hint` fields. The ClusterStaticEntry
-CRD allows these fields to be set, however, a SPIRE server that does not
-support these fields will not retain them. This means if these fields are set
-on a ClusterStaticEntry with an older version of SPIRE, the SPIRE Controller
-Manager will continously try to reconcile SPIRE server. In order to use these
-fields, you must be on a version of SPIRE Server which supports them.
+include the `jwt_svid_ttl`, `hint` and the `store_svid` fields. The
+ClusterStaticEntry CRD allows these fields to be set, however, a SPIRE server
+that does not support these fields will not retain them. This means if these
+fields are set on a ClusterStaticEntry with an older version of SPIRE, the
+SPIRE Controller Manager will continously try to reconcile SPIRE server. In
+order to use these fields, you must be on a version of SPIRE Server which
+supports them.
 
 At the moment, SPIRE Controller Manager will silently try and reconcile these
 fields over and over. Future updates may cause the SPIRE Controller Manager
@@ -102,6 +103,8 @@ are set.
 The `hint` field is supported as of SPIRE 1.6.3.
 
 The `jwt_svid_ttl` field is supported as of SPIRE 1.5.0.
+
+The `store_svid` field is supported as of SPIRE 1.1.0.
 
 ## Demo
 

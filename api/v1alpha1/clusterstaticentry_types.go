@@ -35,6 +35,7 @@ type ClusterStaticEntrySpec struct {
 	Hint          string          `json:"hint,omitempty"`
 	Admin         bool            `json:"admin,omitempty"`
 	Downstream    bool            `json:"downstream,omitempty"`
+	StoreSVID     bool            `json:"storeSVID,omitempty"`
 	// Set which Controller Class will act on this object
 	// +kubebuilder:validation:Optional
 	ClassName string `json:"className,omitempty"`
