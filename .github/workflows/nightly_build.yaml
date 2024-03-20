@@ -4,6 +4,8 @@ on:
     # Random minute number to avoid GH scheduler stampede
     - cron: '37 21 * * *'
   workflow_dispatch: {}
+env:
+  GO_VERSION: 1.22.1
 
 jobs:
   build-and-publish-images:
@@ -20,7 +22,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.20.1
+          go-version: ${{ env.GO_VERSION }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
