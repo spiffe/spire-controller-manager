@@ -46,7 +46,7 @@ jobs:
       - name: Install regctl
         uses: regclient/actions/regctl-installer@main
       - name: Download archived image
-        uses: actions/download-artifact@v4.1.2
+        uses: actions/download-artifact@v4.1.4
         with:
           name: images
           path: .
@@ -75,12 +75,12 @@ jobs:
       - name: Install regctl
         uses: regclient/actions/regctl-installer@main
       - name: Download archived image
-        uses: actions/download-artifact@v4.1.2
+        uses: actions/download-artifact@v4.1.4
         with:
           name: images
           path: .
       - name: Log in to GHCR
-        uses: docker/login-action@v3.0.0
+        uses: docker/login-action@v3.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
