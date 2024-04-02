@@ -190,8 +190,8 @@ func parseConfig() (Config, error) {
 
 	printCleanup := "<unset>"
 	if retval.ctrlConfig.EntryIDPrefixCleanup != nil {
-		*retval.ctrlConfig.EntryIDPrefixCleanup = addDotSuffix(*retval.ctrlConfig.EntryIDPrefixCleanup)
 		printCleanup = *retval.ctrlConfig.EntryIDPrefixCleanup
+		*retval.ctrlConfig.EntryIDPrefixCleanup = addDotSuffix(*retval.ctrlConfig.EntryIDPrefixCleanup)
 		if retval.ctrlConfig.EntryIDPrefix != "" && retval.ctrlConfig.EntryIDPrefix == *retval.ctrlConfig.EntryIDPrefixCleanup {
 			return retval, fmt.Errorf("if entryIDPrefixCleanup is specified, it can not be the same value as entryIDPrefix")
 		}
