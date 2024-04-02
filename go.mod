@@ -1,6 +1,6 @@
 module github.com/spiffe/spire-controller-manager
 
-go 1.22
+go 1.22.1
 
 require (
 	github.com/go-logr/logr v1.4.1
