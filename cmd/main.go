@@ -183,7 +183,7 @@ func parseConfig() (Config, error) {
 		return retval, fmt.Errorf("if entryIDPrefixCleanup is specified, it can not be the same value as entryIDPrefix")
 	}
 
-	if retval.ctrlConfig.EntryIDPrefix != "" && retval.ctrlConfig.EntryIDPrefix[len(retval.ctrlConfig.EntryIDPrefix)-1] != "."[0] {
+	if retval.ctrlConfig.EntryIDPrefix != "" && !strings.HasSuffix(retval.ctrlConfig.EntryIDPrefix, ".") {
 		retval.ctrlConfig.EntryIDPrefix += "."
 	}
 	if retval.ctrlConfig.EntryIDPrefixCleanup != nil && *retval.ctrlConfig.EntryIDPrefixCleanup != "" && (*retval.ctrlConfig.EntryIDPrefixCleanup)[len(*retval.ctrlConfig.EntryIDPrefixCleanup)-1] != "."[0] {

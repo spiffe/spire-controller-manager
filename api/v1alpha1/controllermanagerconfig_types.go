@@ -130,7 +130,7 @@ type ControllerManagerConfigurationSpec struct {
 	// +optional
 	Reconcile *ReconcileConfig `json:"reconcile,omitempty"`
 
-	// If specified, prefixes each entry id with `<prefix>/`. Entries without the Prefix will be ignored (except ones marked for cleanup, see EntryIDPrefixCleanup).
+	// If specified, prefixes each entry id with `<prefix>.`. Entries without the Prefix will be ignored (except ones marked for cleanup, see EntryIDPrefixCleanup).
 	// +optiional
 	EntryIDPrefix string `json:"entryIDPrefix,omitempty"`
 

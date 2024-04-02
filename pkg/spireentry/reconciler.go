@@ -161,7 +161,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			// "to delete" list.
 			if len(s.Current) == 0 {
 				if preferredEntry.Entry.ID == "" && r.config.EntryIDPrefix != "" {
-					preferredEntry.Entry.ID = fmt.Sprintf("%s%s", r.config.EntryIDPrefix, uuid.New().String())
+					preferredEntry.Entry.ID = fmt.Sprintf("%s%s", r.config.EntryIDPrefix, uuid.New())
 				}
 				toCreate = append(toCreate, preferredEntry)
 			} else {
@@ -282,8 +282,8 @@ func (r *entryReconciler) shouldProcessOrDeleteEntryID(entry spireapi.Entry) (bo
 
 func (r *entryReconciler) listEntries(ctx context.Context) ([]spireapi.Entry, []spireapi.Entry, error) {
 	// TODO: cache?
-	deleteOnlyEntries := make([]spireapi.Entry, 0)
-	currentEntries := make([]spireapi.Entry, 0)
+	var deleteOnlyEntries []spireapi.Entry
+	var currentEntries []spireapi.Entry
 	tmpvals, err := r.config.EntryClient.ListEntries(ctx)
 	if err != nil {
 		return currentEntries, deleteOnlyEntries, err
