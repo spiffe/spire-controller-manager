@@ -93,6 +93,13 @@ func main() {
 	}
 }
 
+func addDotSuffix(val string) string {
+	if val != "" && !strings.HasSuffix(val, ".") {
+		val += "."
+	}
+	return val
+}
+
 func parseConfig() (Config, error) {
 	var retval Config
 	var configFileFlag string
@@ -179,21 +186,17 @@ func parseConfig() (Config, error) {
 		retval.reconcile = *retval.ctrlConfig.Reconcile
 	}
 
-	if retval.ctrlConfig.EntryIDPrefix != "" && retval.ctrlConfig.EntryIDPrefixCleanup != nil && retval.ctrlConfig.EntryIDPrefix == *retval.ctrlConfig.EntryIDPrefixCleanup {
-		return retval, fmt.Errorf("if entryIDPrefixCleanup is specified, it can not be the same value as entryIDPrefix")
-	}
-
-	if retval.ctrlConfig.EntryIDPrefix != "" && !strings.HasSuffix(retval.ctrlConfig.EntryIDPrefix, ".") {
-		retval.ctrlConfig.EntryIDPrefix += "."
-	}
-	if retval.ctrlConfig.EntryIDPrefixCleanup != nil && *retval.ctrlConfig.EntryIDPrefixCleanup != "" && (*retval.ctrlConfig.EntryIDPrefixCleanup)[len(*retval.ctrlConfig.EntryIDPrefixCleanup)-1] != "."[0] {
-		*retval.ctrlConfig.EntryIDPrefixCleanup += "."
-	}
+	retval.ctrlConfig.EntryIDPrefix = addDotSuffix(retval.ctrlConfig.EntryIDPrefix)
 
 	printCleanup := "<unset>"
 	if retval.ctrlConfig.EntryIDPrefixCleanup != nil {
+		*retval.ctrlConfig.EntryIDPrefixCleanup = addDotSuffix(*retval.ctrlConfig.EntryIDPrefixCleanup)
 		printCleanup = *retval.ctrlConfig.EntryIDPrefixCleanup
+		if retval.ctrlConfig.EntryIDPrefix != "" && retval.ctrlConfig.EntryIDPrefix == *retval.ctrlConfig.EntryIDPrefixCleanup {
+			return retval, fmt.Errorf("if entryIDPrefixCleanup is specified, it can not be the same value as entryIDPrefix")
+		}
 	}
+
 	setupLog.Info("Config loaded",
 		"cluster name", retval.ctrlConfig.ClusterName,
 		"cluster domain", retval.ctrlConfig.ClusterDomain,

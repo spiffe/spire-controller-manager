@@ -268,10 +268,7 @@ func (r *entryReconciler) shouldProcessOrDeleteEntryID(entry spireapi.Entry) (bo
 	if r.config.EntryIDPrefixCleanup != nil {
 		cleanupPrefix := *r.config.EntryIDPrefixCleanup
 		if cleanupPrefix == "" {
-			if strings.Contains(entry.ID, "/") {
-				return false, false
-			}
-			return false, true
+			return false, !strings.Contains(entry.ID, ".")
 		}
 		if strings.HasPrefix(entry.ID, cleanupPrefix) {
 			return false, true
