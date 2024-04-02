@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.17.0
 	github.com/onsi/gomega v1.32.0
 	github.com/spiffe/go-spiffe/v2 v2.2.0
-	github.com/spiffe/spire-api-sdk v1.9.1
+	github.com/spiffe/spire-api-sdk v1.9.2
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
