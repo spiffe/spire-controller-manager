@@ -77,6 +77,7 @@ endif
 
 ##@ Vars
 
+go_version := $(shell cat .go-version)
 build_dir := $(DIR)/.build/$(os1)-$(arch1)
 
 golangci_lint_version = v1.52.2
@@ -167,6 +168,7 @@ spire-controller-manager-image.tar: Dockerfile FORCE | container-builder
 	$(CONTAINER_TOOL) buildx build \
 		--platform $(PLATFORMS) \
 		--target spire-controller-manager \
+		--build-arg goversion=$(go_version) \
 		-o type=oci,dest=$@ \
 	    .
 
