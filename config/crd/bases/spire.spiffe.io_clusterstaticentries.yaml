@@ -67,6 +67,8 @@ spec:
                 type: array
               spiffeID:
                 type: string
+              storeSVID:
+                type: boolean
               x509SVIDTTL:
                 type: string
             required:

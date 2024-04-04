@@ -42,6 +42,7 @@ const (
 	adminKey                 = "admin"
 	downstreamKey            = "downstream"
 	hintKey                  = "hint"
+	storeSVIDKey             = "storeSVID"
 )
 
 func objectName(o metav1.Object) string {
@@ -64,6 +65,7 @@ func entryLogFields(entry spireapi.Entry) []interface{} {
 		adminKey, entry.Admin,
 		downstreamKey, entry.Downstream,
 		hintKey, entry.Hint,
+		storeSVIDKey, entry.StoreSVID,
 	}
 }
 

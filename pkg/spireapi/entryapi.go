@@ -35,6 +35,7 @@ const (
 	FederatesWithField Field = "federatesWith"
 	HintField          Field = "hint"
 	JWTSVIDTTLField    Field = "jwtSVIDTTL"
+	StoreSVIDField     Field = "storeSVID"
 	X509SVIDTTL        Field = "x509SVIDTTL"
 )
 
@@ -96,6 +97,7 @@ func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[F
 				},
 				X509SvidTtl: 60,
 				JwtSvidTtl:  60,
+				StoreSvid:   true,
 				Hint:        "hint",
 			},
 		},
@@ -130,6 +132,10 @@ func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[F
 
 	if result.Entry.Hint == "" {
 		unsupportedFields[HintField] = struct{}{}
+	}
+
+	if !result.Entry.StoreSvid {
+		unsupportedFields[StoreSVIDField] = struct{}{}
 	}
 
 	return unsupportedFields, nil
