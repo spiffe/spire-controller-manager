@@ -45,7 +45,7 @@ func DialSocket(ctx context.Context, path string) (Client, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	grpcClient, err := grpc.DialContext(ctx, target, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	grpcClient, err := grpc.DialContext(ctx, target, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock()) // nolint: staticcheck // Avoiding this for now, but will be solved in future versions
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial API socket: %w", err)
 	}

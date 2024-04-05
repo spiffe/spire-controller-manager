@@ -45,7 +45,7 @@ func startServer(t *testing.T, registerFn func(s *grpc.Server)) grpc.ClientConnI
 	go func() { _ = s.Serve(listener) }()
 	t.Cleanup(s.GracefulStop)
 
-	conn, err := grpc.DialContext(context.Background(), listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.FailOnNonTempDialError(true), grpc.WithReturnConnectionError())
+	conn, err := grpc.DialContext(context.Background(), listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.FailOnNonTempDialError(true), grpc.WithReturnConnectionError()) // nolint: staticcheck // Avoiding this for now, but will be solved in future versions
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = conn.Close()
