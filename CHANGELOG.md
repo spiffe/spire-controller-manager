@@ -4,7 +4,7 @@
 
 ### Security
 
-- Updated Golang to 1.21.9 to address CVE-2023-45288 (#336)
+- Updated Golang to 1.21.9 to address CVE-2023-45288 (#337)
 
 ## [0.4.3] - 2024-02-22
 
