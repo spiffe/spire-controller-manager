@@ -5,7 +5,7 @@ on:
     - cron: '37 21 * * *'
   workflow_dispatch: {}
 env:
-  GO_VERSION: 1.22.1
+  GO_VERSION: 1.22.2
 
 jobs:
   build-and-publish-images:
