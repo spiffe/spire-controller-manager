@@ -5,7 +5,6 @@ run:
 linters:
   enable:
     - bodyclose
-    - depguard
     - durationcheck
     - errorlint
     - goimports

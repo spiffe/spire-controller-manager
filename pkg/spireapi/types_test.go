@@ -87,7 +87,7 @@ func TestFederationRelationshipEqual(t *testing.T) {
 		assert.False(t, base.Equal(compareTo))
 	}
 
-	assertEqual(t, func(compareTo *FederationRelationship) {})
+	assertEqual(t, func(_ *FederationRelationship) {})
 	assertNotEqual(t, func(compareTo *FederationRelationship) {
 		compareTo.TrustDomain = tdB
 	})
@@ -163,7 +163,7 @@ func TestEntryFromAPI(t *testing.T) {
 	}{
 		{
 			desc: "nil entry",
-			makeEntry: func(base *apitypes.Entry) *apitypes.Entry {
+			makeEntry: func(_ *apitypes.Entry) *apitypes.Entry {
 				return nil
 			},
 			expectErr: "entry is nil",

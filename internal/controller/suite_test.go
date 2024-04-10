@@ -22,8 +22,8 @@ import (
 	"runtime"
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //nolint:revive // auto-generated
+	. "github.com/onsi/gomega"    //nolint:revive // auto-generated
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
