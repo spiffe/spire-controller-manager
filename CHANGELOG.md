@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0] - 2024-04-10
+
+<font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
+
+ This version contains changes in the `ClusterSPIFFEID` CRD. Before upgrading you __MUST__ do the following:
+
+- Update the CRD in your cluster (see [here](./config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml).
+
+### Added
+
+- Support for `storeSVID` on ClusterSPIFFEID (#304)
+- Support for more than one spire-controller-manager managing entries against a single SPIRE server cluster via entry prefixes (#325)
+
+### Security
+
+- Updated Golang to 1.22.2 to address CVE-2023-45288 (#338)
+
 ## [0.4.4] - 2024-04-05
 
 ### Security
