@@ -26,8 +26,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //nolint:revive // auto-generated
+	. "github.com/onsi/gomega"    //nolint:revive // auto-generated
 
 	admissionv1 "k8s.io/api/admission/v1"
 	//+kubebuilder:scaffold:imports

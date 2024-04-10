@@ -400,15 +400,15 @@ func startInformer(ctx context.Context, config Config) (cache.Store, chan struct
 				return ok && o.Name == config.WebhookName
 			},
 			Handler: cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
+				AddFunc: func(_ interface{}) {
 					log.Info("Received webhook added event")
 					notify()
 				},
-				UpdateFunc: func(oldObj, newObj interface{}) {
+				UpdateFunc: func(_, _ interface{}) {
 					log.Info("Received webhook updated event")
 					notify()
 				},
-				DeleteFunc: func(obj interface{}) {
+				DeleteFunc: func(_ interface{}) {
 					log.Info("Received webhook deleted event")
 					notify()
 				},
