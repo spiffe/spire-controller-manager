@@ -9,6 +9,10 @@ updates:
       k8s.io:
         patterns:
           - "k8s.io/*"
+  - package-ecosystem: gomod
+    directory: /demo/greeter
+    schedule:
+      interval: daily
   - package-ecosystem: github-actions
     directory: /
     schedule:
