@@ -21,6 +21,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"io"
 	"regexp"
 	"sort"
@@ -41,6 +42,7 @@ import (
 
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
+	"github.com/spiffe/spire-controller-manager/pkg/metrics"
 	"github.com/spiffe/spire-controller-manager/pkg/namespace"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
@@ -80,7 +82,8 @@ type ReconcilerConfig struct {
 
 func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &entryReconciler{
-		config: config,
+		config:      config,
+		promCounter: metrics.PromCounters,
 	}
 	return reconciler.New(reconciler.Config{
 		Kind:       "entry",
@@ -93,6 +96,7 @@ type entryReconciler struct {
 	config ReconcilerConfig
 
 	unsupportedFields        map[spireapi.Field]struct{}
+	promCounter              map[string]prometheus.Counter
 	nextGetUnsupportedFields time.Time
 }
 
@@ -349,6 +353,7 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 		if err != nil {
 			log.Error(err, "Failed to render ClusterStaticEntry")
 			clusterStaticEntry.NextStatus.Rendered = false
+			r.promCounter[metrics.StaticEntryFailures].Add(1)
 			continue
 		}
 		clusterStaticEntry.NextStatus.Rendered = true
