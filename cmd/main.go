@@ -67,7 +67,6 @@ type Config struct {
 const (
 	defaultSPIREServerSocketPath = "/spire-server/api.sock"
 	defaultGCInterval            = 10 * time.Second
-	defaultLoglevel              = "info"
 	k8sDefaultService            = "kubernetes.default.svc"
 )
 
@@ -142,6 +141,10 @@ func parseConfig() (Config, error) {
 	switch strings.ToLower(retval.ctrlConfig.LogLevel) {
 	case "debug":
 		logLevel = zapcore.DebugLevel
+	case "warn":
+		logLevel = zapcore.WarnLevel
+	case "error":
+		logLevel = zapcore.ErrorLevel
 	default:
 		logLevel = zapcore.InfoLevel
 	}
