@@ -56,6 +56,9 @@ type ControllerManagerConfig struct {
 
 	// SPIREServerSocketPath is the path to the SPIRE Server API socket
 	SPIREServerSocketPath string `json:"spireServerSocketPath"`
+
+	// LogLevel is the log level for the controller manager
+	LogLevel string `json:"logLevel"`
 }
 
 // ControllerManagerConfigurationSpec defines the desired state of GenericControllerManagerConfiguration.

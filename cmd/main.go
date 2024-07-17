@@ -35,6 +35,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -105,21 +106,14 @@ func parseConfig() (Config, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
 	var expandEnvFlag bool
+	var logLevel zapcore.Level
 	flag.StringVar(&configFileFlag, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
 			"Command-line flags override configuration from this file.")
 	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
 	flag.BoolVar(&expandEnvFlag, "expand-env", false, "Expand environment variables in SPIRE Controller Manager config file")
-
-	// Parse log flags
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// Set default values
 	retval.ctrlConfig = spirev1alpha1.ControllerManagerConfig{
@@ -134,7 +128,6 @@ func parseConfig() (Config, error) {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &retval.options, &retval.ctrlConfig, expandEnvFlag); err != nil {
 			return retval, fmt.Errorf("unable to load the config file: %w", err)
 		}
-
 		for _, ignoredNamespace := range retval.ctrlConfig.IgnoreNamespaces {
 			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
@@ -144,6 +137,28 @@ func parseConfig() (Config, error) {
 			retval.ignoreNamespacesRegex = append(retval.ignoreNamespacesRegex, regex)
 		}
 	}
+
+	switch strings.ToLower(retval.ctrlConfig.LogLevel) {
+	case "debug":
+		logLevel = zapcore.DebugLevel
+	case "warn":
+		logLevel = zapcore.WarnLevel
+	case "error":
+		logLevel = zapcore.ErrorLevel
+	default:
+		logLevel = zapcore.InfoLevel
+	}
+
+	// Parse log flags
+	opts := zap.Options{
+		Level:       logLevel,
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.Log.V(0).Info("Logger configured", "level", opts.Level)
+
 	// Determine the SPIRE Server socket path
 	switch {
 	case retval.ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
