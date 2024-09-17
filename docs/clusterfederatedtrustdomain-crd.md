@@ -16,6 +16,7 @@ See the [SPIFFE Federation](https://github.com/spiffe/spiffe/blob/main/standards
 | `bundleEndpointURL`     | REQUIRED | `https://somedomain.test/bundle`                        | An HTTPS URL to the bundle endpoint for the foreign trust domain.                                                       |
 | `bundleEndpointProfile` | REQUIRED | See [Bundle Endpoint Profile](#bundle-endpoint-profile) | The profile for the bundle endpoint for the foreign trust domain.                                                       |
 | `trustDomainBundle`     | OPTIONAL |                                                         | The bundle contents for the foreign trust domain.                                                                       |
+| `className`             | OPTIONAL |                                                         | The class name of the SPIRE controller manager.                                                                         |
 
 ### Bundle Endpoint Profile
 
