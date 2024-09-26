@@ -392,7 +392,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 
 		for i := range namespaces {
 			namespaceName := namespaces[i].Name
-			if seen[namespaceName] == nil {
+			if _, ok := seen[namespaceName]; !ok {
 				seen[namespaceName] = make(map[string]bool)
 			}
 
