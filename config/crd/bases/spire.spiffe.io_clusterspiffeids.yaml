@@ -52,6 +52,11 @@ spec:
               className:
                 description: Set which Controller Class will act on this object
                 type: string
+              default:
+                description: |-
+                  Apply this ID only if there are no other matching non default
+                  ClusterSPIFFEIDs
+                type: boolean
               dnsNameTemplates:
                 description: |-
                   DNSNameTemplate represents templates for extra DNS names that are

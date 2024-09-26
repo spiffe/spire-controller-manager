@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -358,6 +359,17 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 
 func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID) {
 	log := log.FromContext(ctx)
+	seen := make(map[string]map[string]bool)
+	// Process all the default clusterSPIFFEIDs last.
+	slices.SortStableFunc(clusterSPIFFEIDs, func(x, y *ClusterSPIFFEID) int {
+		if x.Spec.Default == y.Spec.Default {
+			return 0
+		}
+		if x.Spec.Default {
+			return 1
+		}
+		return -1
+	})
 	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
 		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterSPIFFEID))
 
@@ -379,14 +391,19 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 		clusterSPIFFEID.NextStatus.Stats.NamespacesSelected += len(namespaces)
 
 		for i := range namespaces {
-			if namespace.IsIgnored(r.config.IgnoreNamespaces, namespaces[i].Name) {
+			namespaceName := namespaces[i].Name
+			if seen[namespaceName] == nil {
+				seen[namespaceName] = make(map[string]bool)
+			}
+
+			if namespace.IsIgnored(r.config.IgnoreNamespaces, namespaceName) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}
 
 			log := log.WithValues(namespaceLogKey, objectName(&namespaces[i]))
 
-			pods, err := r.listNamespacePods(ctx, namespaces[i].Name, spec.PodSelector)
+			pods, err := r.listNamespacePods(ctx, namespaceName, spec.PodSelector)
 			switch {
 			case err == nil:
 			case apierrors.IsNotFound(err):
@@ -400,6 +417,10 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 			for i := range pods {
 				log := log.WithValues(podLogKey, objectName(&pods[i]))
 
+				if _, ok := seen[namespaceName][pods[i].Name]; ok && clusterSPIFFEID.Spec.Default {
+					continue
+				}
+
 				entry, err := r.renderPodEntry(ctx, spec, &pods[i])
 				switch {
 				case err != nil:
@@ -409,6 +430,9 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 					// renderPodEntry will return a nil entry if requisite k8s
 					// objects disappeared from underneath.
 					state.AddDeclared(*entry, clusterSPIFFEID)
+					if !clusterSPIFFEID.Spec.Default {
+						seen[namespaceName][pods[i].Name] = true
+					}
 				}
 			}
 		}

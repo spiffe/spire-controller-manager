@@ -78,6 +78,10 @@ type ClusterSPIFFEIDSpec struct {
 	// Set which Controller Class will act on this object
 	// +kubebuilder:validation:Optional
 	ClassName string `json:"className,omitempty"`
+
+	// Apply this ID only if there are no other matching non default ClusterSPIFFEIDs.
+	// +kubebuilder:validation:Optional
+	Default bool `json:"default,omitempty"`
 }
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID
