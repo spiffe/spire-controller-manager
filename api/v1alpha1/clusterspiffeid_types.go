@@ -83,7 +83,7 @@ type ClusterSPIFFEIDSpec struct {
 	// +kubebuilder:validation:Optional
 	Default bool `json:"default,omitempty"`
 
-  // Set the entry hint
+	// Set the entry hint
 	// +kubebuilder:validation:Optional
 	Hint string `json:"hint,omitempty"`
 }
