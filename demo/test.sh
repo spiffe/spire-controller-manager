@@ -31,13 +31,20 @@ DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$DIR"
 
 cleanup() {
+    if [[ "$1" -ne 0 ]]; then
+      cat <<EOF >>"$GITHUB_STEP_SUMMARY"
+#### Logs
+$(kubectl logs -n "$1" "${line}" --prefix --all-containers=true --ignore-errors=true)
+EOF
+    fi
+
     echo "Cleaning up..."
     ./cluster1 kind delete cluster || true
     ./cluster2 kind delete cluster || true
     echo "Done."
 }
 
-trap cleanup EXIT
+trap 'EC=$? && trap - SIGTERM && cleanup $EC' SIGINT SIGTERM EXIT
 
 log-info "Tagging devel image as nightly..."
 docker tag ghcr.io/spiffe/spire-controller-manager:{devel,nightly}
