@@ -116,11 +116,11 @@ log-info "Applying cluster2 SPIRE config..."
 
 log-info "Waiting for SPIRE server and spire-controller-manager to deploy in cluster1..."
 ./cluster1 kubectl rollout status -w --timeout=30s -nspire-system deployment/spire-server
-./cluster1 kubectl wait --for=condition=ready service/spire-controller-manager-webhook-service -n spire-server --timeout=30s
+./cluster1 kubectl wait --for=condition=ready service/spire-controller-manager-webhook-service -n spire-system --timeout=30s
 
 log-info "Waiting for SPIRE server and spire-controller-manager to deploy in cluster2..."
 ./cluster2 kubectl rollout status -w --timeout=30s -nspire-system deployment/spire-server
-./cluster2 kubectl wait --for=condition=ready service/spire-controller-manager-webhook-service -n spire-server --timeout=30s
+./cluster2 kubectl wait --for=condition=ready service/spire-controller-manager-webhook-service -n spire-system --timeout=30s
 
 ############################################################################
 # Deploy the greeter server and client
