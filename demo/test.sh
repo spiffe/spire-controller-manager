@@ -33,17 +33,27 @@ cd "$DIR"
 cleanup() {
     if [[ "$1" -ne 0 ]]; then
       cat <<EOF >>"$GITHUB_STEP_SUMMARY"
-#### Describe Pods Cluster 1
+### Describe Pods Cluster 1
+\`\`\`
 $(./cluster1 kubectl describe pods -n "spire-system")
+\`\`\`
 
-#### Logs Cluster 1
-$(./cluster1 kubectl get pods -o name -n "spire-system" | while read -r line; do echo logs for "${line}"; ./cluster1 kubectl logs -n "spire-system" "${line}" --prefix --all-containers=true --ignore-errors=true; done)
+### Logs Cluster 1
 
-#### Describe Pods Cluster 1
+\`\`\`
+$(./cluster1 kubectl get pods -o name -n "spire-system" | while read -r line; do echo; echo "logs for ${line}:"; ./cluster1 kubectl logs -n "spire-system" "${line}" --prefix --all-containers=true --ignore-errors=true; done)
+
+### Describe Pods Cluster 2
+
+\`\`\`
 $(./cluster2 kubectl describe pods -n "spire-system")
+\`\`\`
 
-#### Logs Cluster 2
-$(./cluster2 kubectl get pods -o name -n "spire-system" | while read -r line; do echo logs for "${line}"; ./cluster2 kubectl logs -n "spire-system" "${line}" --prefix --all-containers=true --ignore-errors=true; done)
+### Logs Cluster 2
+
+\`\`\`
+$(./cluster2 kubectl get pods -o name -n "spire-system" | while read -r line; do echo; echo logs for "${line}:"; ./cluster2 kubectl logs -n "spire-system" "${line}" --prefix --all-containers=true --ignore-errors=true; done)
+\`\`\`
 EOF
     fi
 
