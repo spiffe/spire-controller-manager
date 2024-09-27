@@ -82,6 +82,10 @@ type ClusterSPIFFEIDSpec struct {
 	// Apply this ID only if there are no other matching non default ClusterSPIFFEIDs.
 	// +kubebuilder:validation:Optional
 	Default bool `json:"default,omitempty"`
+
+  // Set the entry hint
+	// +kubebuilder:validation:Optional
+	Hint string `json:"hint,omitempty"`
 }
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID
