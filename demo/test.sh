@@ -42,6 +42,7 @@ $(./cluster1 kubectl describe pods -n "spire-system")
 
 \`\`\`
 $(./cluster1 kubectl get pods -o name -n "spire-system" | while read -r line; do echo; echo "logs for ${line}:"; ./cluster1 kubectl logs -n "spire-system" "${line}" --prefix --all-containers=true --ignore-errors=true; done)
+\`\`\`
 
 ### Describe Pods Cluster 2
 
