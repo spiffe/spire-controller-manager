@@ -72,6 +72,10 @@ spec:
                 items:
                   type: string
                 type: array
+              hint:
+                description: |-
+                  Set the entry hint
+                type: string
               jwtTtl:
                 description: |-
                   JWTTTL indicates an upper-bound time-to-live for JWT SVIDs minted for this
