@@ -391,16 +391,14 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 		clusterSPIFFEID.NextStatus.Stats.NamespacesSelected += len(namespaces)
 
 		for i := range namespaces {
-			namespaceName := namespaces[i].Name
-
-			if namespace.IsIgnored(r.config.IgnoreNamespaces, namespaceName) {
+			if namespace.IsIgnored(r.config.IgnoreNamespaces, namespaces[i].Name) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
 				continue
 			}
 
 			log := log.WithValues(namespaceLogKey, objectName(&namespaces[i]))
 
-			pods, err := r.listNamespacePods(ctx, namespaceName, spec.PodSelector)
+			pods, err := r.listNamespacePods(ctx, namespaces[i].Name, spec.PodSelector)
 			switch {
 			case err == nil:
 			case apierrors.IsNotFound(err):
