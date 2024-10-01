@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -358,6 +359,17 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 
 func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID) {
 	log := log.FromContext(ctx)
+	podsWithNonFallbackApplied := make(map[types.UID]struct{})
+	// Process all the fallback clusterSPIFFEIDs last.
+	slices.SortStableFunc(clusterSPIFFEIDs, func(x, y *ClusterSPIFFEID) int {
+		if x.Spec.Fallback == y.Spec.Fallback {
+			return 0
+		}
+		if x.Spec.Fallback {
+			return 1
+		}
+		return -1
+	})
 	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
 		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterSPIFFEID))
 
@@ -399,6 +411,9 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 			clusterSPIFFEID.NextStatus.Stats.PodsSelected += len(pods)
 			for i := range pods {
 				log := log.WithValues(podLogKey, objectName(&pods[i]))
+				if _, ok := podsWithNonFallbackApplied[pods[i].UID]; ok && clusterSPIFFEID.Spec.Fallback {
+					continue
+				}
 
 				entry, err := r.renderPodEntry(ctx, spec, &pods[i])
 				switch {
@@ -409,6 +424,9 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 					// renderPodEntry will return a nil entry if requisite k8s
 					// objects disappeared from underneath.
 					state.AddDeclared(*entry, clusterSPIFFEID)
+					if !clusterSPIFFEID.Spec.Fallback {
+						podsWithNonFallbackApplied[pods[i].UID] = struct{}{}
+					}
 				}
 			}
 		}
