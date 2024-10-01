@@ -392,9 +392,6 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 
 		for i := range namespaces {
 			namespaceName := namespaces[i].Name
-			if _, ok := seen[namespaceName]; !ok {
-				seen[namespaceName] = make(map[string]bool)
-			}
 
 			if namespace.IsIgnored(r.config.IgnoreNamespaces, namespaceName) {
 				clusterSPIFFEID.NextStatus.Stats.NamespacesIgnored++
@@ -416,8 +413,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 			clusterSPIFFEID.NextStatus.Stats.PodsSelected += len(pods)
 			for i := range pods {
 				log := log.WithValues(podLogKey, objectName(&pods[i]))
-
-				if _, ok := seen[namespaceName][pods[i].Name]; ok && clusterSPIFFEID.Spec.Fallback {
+				if _, ok := podsWithNonFallbackApplied[pods[i].UID]; ok && clusterSPIFFEID.Spec.Fallback {
 					continue
 				}
 
@@ -431,7 +427,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 					// objects disappeared from underneath.
 					state.AddDeclared(*entry, clusterSPIFFEID)
 					if !clusterSPIFFEID.Spec.Fallback {
-						seen[namespaceName][pods[i].Name] = true
+						podsWithNonFallbackApplied[pods[i].UID] = true
 					}
 				}
 			}
