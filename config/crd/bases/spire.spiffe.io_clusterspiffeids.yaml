@@ -52,9 +52,9 @@ spec:
               className:
                 description: Set which Controller Class will act on this object
                 type: string
-              default:
+              fallback:
                 description: |-
-                  Apply this ID only if there are no other matching non default
+                  Apply this ID only if there are no other matching non fallback
                   ClusterSPIFFEIDs
                 type: boolean
               dnsNameTemplates:

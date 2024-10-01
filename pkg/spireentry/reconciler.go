@@ -360,12 +360,12 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID) {
 	log := log.FromContext(ctx)
 	seen := make(map[string]map[string]bool)
-	// Process all the default clusterSPIFFEIDs last.
+	// Process all the fallback clusterSPIFFEIDs last.
 	slices.SortStableFunc(clusterSPIFFEIDs, func(x, y *ClusterSPIFFEID) int {
-		if x.Spec.Default == y.Spec.Default {
+		if x.Spec.Fallback == y.Spec.Fallback {
 			return 0
 		}
-		if x.Spec.Default {
+		if x.Spec.Fallback {
 			return 1
 		}
 		return -1
@@ -417,7 +417,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 			for i := range pods {
 				log := log.WithValues(podLogKey, objectName(&pods[i]))
 
-				if _, ok := seen[namespaceName][pods[i].Name]; ok && clusterSPIFFEID.Spec.Default {
+				if _, ok := seen[namespaceName][pods[i].Name]; ok && clusterSPIFFEID.Spec.Fallback {
 					continue
 				}
 
@@ -430,7 +430,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 					// renderPodEntry will return a nil entry if requisite k8s
 					// objects disappeared from underneath.
 					state.AddDeclared(*entry, clusterSPIFFEID)
-					if !clusterSPIFFEID.Spec.Default {
+					if !clusterSPIFFEID.Spec.Fallback {
 						seen[namespaceName][pods[i].Name] = true
 					}
 				}

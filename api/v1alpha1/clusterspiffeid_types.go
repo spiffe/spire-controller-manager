@@ -79,9 +79,9 @@ type ClusterSPIFFEIDSpec struct {
 	// +kubebuilder:validation:Optional
 	ClassName string `json:"className,omitempty"`
 
-	// Apply this ID only if there are no other matching non default ClusterSPIFFEIDs.
+	// Apply this ID only if there are no other matching non fallback ClusterSPIFFEIDs.
 	// +kubebuilder:validation:Optional
-	Default bool `json:"default,omitempty"`
+	Fallback bool `json:"fallback,omitempty"`
 
 	// Set the entry hint
 	// +kubebuilder:validation:Optional
