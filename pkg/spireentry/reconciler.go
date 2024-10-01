@@ -359,7 +359,7 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 
 func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID) {
 	log := log.FromContext(ctx)
-	seen := make(map[string]map[string]bool)
+	podsWithNonFallbackApplied := make(map[string]struct{})
 	// Process all the fallback clusterSPIFFEIDs last.
 	slices.SortStableFunc(clusterSPIFFEIDs, func(x, y *ClusterSPIFFEID) int {
 		if x.Spec.Fallback == y.Spec.Fallback {
