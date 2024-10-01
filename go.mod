@@ -12,7 +12,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.3.0
 	github.com/spiffe/spire-api-sdk v1.10.4
 	github.com/stretchr/testify v1.9.0
-	google.golang.org/grpc v1.67.0
+	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.34.2
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
