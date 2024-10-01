@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/spiffe/go-spiffe/v2 v2.3.0
-	google.golang.org/grpc v1.67.0
+	google.golang.org/grpc v1.67.1
 	google.golang.org/grpc/examples v0.0.0-20240422202308-34de5cf4832f
 )
 
