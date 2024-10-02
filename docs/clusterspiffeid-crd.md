@@ -27,6 +27,7 @@ The definition can be found [here](../api/v1alpha1/clusterspiffeid_types.go).
 | `admin`                     | OPTIONAL | Indicates whether the target workload is an admin workload (i.e. can access SPIRE administrative APIs) |
 | `downstream`                | OPTIONAL | Indicates that the entry describes a downstream SPIRE server. |
 | `autoPopulateDNSNames`      | OPTIONAL | Indicates whether or not to auto populate service DNS names. |
+| `fallback`                  | OPTIONAL | Apply this ID only if there are no other matching non fallback ClusterSPIFFEIDs. |
 
 ## ClusterSPIFFEIDStatus
 
