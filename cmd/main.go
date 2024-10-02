@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -46,7 +47,7 @@ import (
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
-	"github.com/spiffe/spire-controller-manager/internal/controller"
+	//"github.com/spiffe/spire-controller-manager/internal/controller"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/spiffe/spire-controller-manager/pkg/spireentry"
@@ -246,6 +247,12 @@ func run(mainConfig Config) (err error) {
 	}
 	defer spireClient.Close()
 
+	//FIXME KMF
+	webhookEnabled = false
+	mainConfig.options = ctrl.Options{Scheme: scheme, LeaderElection: false}
+	mainConfig.reconcile.ClusterSPIFFEIDs = false
+	mainConfig.reconcile.ClusterFederatedTrustDomains = false
+	mainConfig.reconcile.ClusterStaticEntries = false
 	// It's unfortunate that we have to keep credentials on disk so that the
 	// manager can load them. Webhook server credentials are stored in a single
 	// file to keep rotation simple.
@@ -308,40 +315,44 @@ func run(mainConfig Config) (err error) {
 		webhookRunnable = webhookManager
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mainConfig.options)
+	//mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mainConfig.options)
+	mgr, err := ctrl.NewManager(&rest.Config{}, mainConfig.options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		return err
 	}
-
 	var entryReconciler reconciler.Reconciler
-	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
-		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
-			TrustDomain:          trustDomain,
-			ClusterName:          mainConfig.ctrlConfig.ClusterName,
-			ClusterDomain:        mainConfig.ctrlConfig.ClusterDomain,
-			K8sClient:            mgr.GetClient(),
-			EntryClient:          spireClient,
-			IgnoreNamespaces:     mainConfig.ignoreNamespacesRegex,
-			GCInterval:           mainConfig.ctrlConfig.GCInterval,
-			ClassName:            mainConfig.ctrlConfig.ClassName,
-			WatchClassless:       mainConfig.ctrlConfig.WatchClassless,
-			ParentIDTemplate:     mainConfig.parentIDTemplate,
-			Reconcile:            mainConfig.reconcile,
-			EntryIDPrefix:        mainConfig.ctrlConfig.EntryIDPrefix,
-			EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
-		})
-	}
-
+	//	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
+	entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
+		TrustDomain:   trustDomain,
+		ClusterName:   mainConfig.ctrlConfig.ClusterName,
+		ClusterDomain: mainConfig.ctrlConfig.ClusterDomain,
+		//K8sClient:            mgr.GetClient(),
+		K8sClient:            nil,
+		EntryClient:          spireClient,
+		IgnoreNamespaces:     mainConfig.ignoreNamespacesRegex,
+		GCInterval:           mainConfig.ctrlConfig.GCInterval,
+		ClassName:            mainConfig.ctrlConfig.ClassName,
+		WatchClassless:       mainConfig.ctrlConfig.WatchClassless,
+		ParentIDTemplate:     mainConfig.parentIDTemplate,
+		Reconcile:            mainConfig.reconcile,
+		EntryIDPrefix:        mainConfig.ctrlConfig.EntryIDPrefix,
+		EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
+	})
+	//	}
 	var federationRelationshipReconciler reconciler.Reconciler
-	if mainConfig.reconcile.ClusterFederatedTrustDomains {
-		federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
-			K8sClient:         mgr.GetClient(),
-			TrustDomainClient: spireClient,
-			GCInterval:        mainConfig.ctrlConfig.GCInterval,
-			ClassName:         mainConfig.ctrlConfig.ClassName,
-			WatchClassless:    mainConfig.ctrlConfig.WatchClassless,
-		})
+	//if mainConfig.reconcile.ClusterFederatedTrustDomains {
+	federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
+		//K8sClient:         mgr.GetClient(),
+		K8sClient:         nil,
+		TrustDomainClient: spireClient,
+		GCInterval:        mainConfig.ctrlConfig.GCInterval,
+		ClassName:         mainConfig.ctrlConfig.ClassName,
+		WatchClassless:    mainConfig.ctrlConfig.WatchClassless,
+	})
+	go entryReconciler.Run(context.TODO())
+	go federationRelationshipReconciler.Run(context.TODO())
+	/*
 		if err = (&controller.ClusterFederatedTrustDomainReconciler{
 			Client:    mgr.GetClient(),
 			Scheme:    mgr.GetScheme(),
@@ -350,28 +361,30 @@ func run(mainConfig Config) (err error) {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
 			return err
 		}
-	}
-
-	if mainConfig.reconcile.ClusterSPIFFEIDs {
-		if err = (&controller.ClusterSPIFFEIDReconciler{
-			Client:    mgr.GetClient(),
-			Scheme:    mgr.GetScheme(),
-			Triggerer: entryReconciler,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
-			return err
+	*/
+	//}
+	/*
+		if mainConfig.reconcile.ClusterSPIFFEIDs {
+			if err = (&controller.ClusterSPIFFEIDReconciler{
+				Client:    mgr.GetClient(),
+				Scheme:    mgr.GetScheme(),
+				Triggerer: entryReconciler,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "ClusterSPIFFEID")
+				return err
+			}
 		}
-	}
-	if mainConfig.reconcile.ClusterStaticEntries {
-		if err = (&controller.ClusterStaticEntryReconciler{
-			Client:    mgr.GetClient(),
-			Scheme:    mgr.GetScheme(),
-			Triggerer: entryReconciler,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
-			return err
+		if mainConfig.reconcile.ClusterStaticEntries {
+			if err = (&controller.ClusterStaticEntryReconciler{
+				Client:    mgr.GetClient(),
+				Scheme:    mgr.GetScheme(),
+				Triggerer: entryReconciler,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
+				return err
+			}
 		}
-	}
+	*/
 	if webhookEnabled {
 		if err = (&spirev1alpha1.ClusterFederatedTrustDomain{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterFederatedTrustDomain")
@@ -383,42 +396,43 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 	//+kubebuilder:scaffold:builder
-
-	if mainConfig.reconcile.ClusterSPIFFEIDs {
-		if err = (&controller.PodReconciler{
-			Client:           mgr.GetClient(),
-			Scheme:           mgr.GetScheme(),
-			Triggerer:        entryReconciler,
-			IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
-		}).SetupWithManager(ctx, mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Pod")
-			return err
+	/*
+		if mainConfig.reconcile.ClusterSPIFFEIDs {
+			if err = (&controller.PodReconciler{
+				Client:           mgr.GetClient(),
+				Scheme:           mgr.GetScheme(),
+				Triggerer:        entryReconciler,
+				IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
+			}).SetupWithManager(ctx, mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "Pod")
+				return err
+			}
+			if err = (&controller.EndpointsReconciler{
+				Client:           mgr.GetClient(),
+				Scheme:           mgr.GetScheme(),
+				Triggerer:        entryReconciler,
+				IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
+			}).SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
+				return err
+			}
 		}
-		if err = (&controller.EndpointsReconciler{
-			Client:           mgr.GetClient(),
-			Scheme:           mgr.GetScheme(),
-			Triggerer:        entryReconciler,
-			IgnoreNamespaces: mainConfig.ignoreNamespacesRegex,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "Endpoints")
-			return err
+	*/
+	/*
+		if entryReconciler != nil {
+			if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
+				setupLog.Error(err, "unable to manage entry reconciler")
+				return err
+			}
 		}
-	}
 
-	if entryReconciler != nil {
-		if err = mgr.Add(manager.RunnableFunc(entryReconciler.Run)); err != nil {
-			setupLog.Error(err, "unable to manage entry reconciler")
-			return err
+		if federationRelationshipReconciler != nil {
+			if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
+				setupLog.Error(err, "unable to manage federation relationship reconciler")
+				return err
+			}
 		}
-	}
-
-	if federationRelationshipReconciler != nil {
-		if err = mgr.Add(manager.RunnableFunc(federationRelationshipReconciler.Run)); err != nil {
-			setupLog.Error(err, "unable to manage federation relationship reconciler")
-			return err
-		}
-	}
-
+	*/
 	if webhookRunnable != nil {
 		if err = mgr.Add(webhookRunnable); err != nil {
 			setupLog.Error(err, "unable to manage federation relationship reconciler")
