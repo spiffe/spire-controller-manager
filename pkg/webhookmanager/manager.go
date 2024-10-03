@@ -383,8 +383,8 @@ func startInformer(ctx context.Context, config Config) (cache.Store, chan struct
 	}
 
 	log := log.FromContext(ctx)
-	store, controller := cache.NewInformer(
-		&cache.ListWatch{
+	store, controller := cache.NewInformerWithOptions(cache.InformerOptions{
+		ListerWatcher: &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return config.WebhookClient.List(ctx, options)
 			},
@@ -392,9 +392,9 @@ func startInformer(ctx context.Context, config Config) (cache.Store, chan struct
 				return config.WebhookClient.Watch(ctx, options)
 			},
 		},
-		&admissionregistrationv1.ValidatingWebhookConfiguration{},
-		time.Hour,
-		cache.FilteringResourceEventHandler{
+		ObjectType:   &admissionregistrationv1.ValidatingWebhookConfiguration{},
+		ResyncPeriod: time.Hour,
+		Handler: cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				o, ok := obj.(*admissionregistrationv1.ValidatingWebhookConfiguration)
 				return ok && o.Name == config.WebhookName
@@ -414,7 +414,7 @@ func startInformer(ctx context.Context, config Config) (cache.Store, chan struct
 				},
 			},
 		},
-	)
+	})
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)

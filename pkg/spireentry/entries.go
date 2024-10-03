@@ -126,6 +126,7 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 		DNSNames:      dnsNames,
 		Admin:         spec.Admin,
 		Downstream:    spec.Downstream,
+		Hint:          spec.Hint,
 	}, nil
 }
 

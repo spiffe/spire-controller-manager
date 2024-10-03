@@ -93,6 +93,7 @@ type ParsedClusterSPIFFEIDSpec struct {
 	Admin                     bool
 	Downstream                bool
 	AutoPopulateDNSNames      bool
+	Hint                      string
 }
 
 // ParseClusterSPIFFEIDSpec parses and validates the fields in the ClusterSPIFFEIDSpec
@@ -161,5 +162,6 @@ func ParseClusterSPIFFEIDSpec(spec *ClusterSPIFFEIDSpec) (*ParsedClusterSPIFFEID
 		Admin:                     spec.Admin,
 		Downstream:                spec.Downstream,
 		AutoPopulateDNSNames:      spec.AutoPopulateDNSNames,
+		Hint:                      spec.Hint,
 	}, nil
 }

@@ -245,7 +245,7 @@ func run(mainConfig Config) (err error) {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupLog.Info("Dialing SPIRE Server socket")
-	spireClient, err := spireapi.DialSocket(ctx, mainConfig.ctrlConfig.SPIREServerSocketPath)
+	spireClient, err := spireapi.DialSocket(mainConfig.ctrlConfig.SPIREServerSocketPath)
 	if err != nil {
 		setupLog.Error(err, "unable to dial SPIRE Server socket")
 		return err
