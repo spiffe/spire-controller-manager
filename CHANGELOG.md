@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0] - 2024-10-03
+
+<font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
+
+This version contains changes in the `ClusterSPIFFEID` CRD. Before upgrading you __MUST__ do the following:
+
+- Update the CRD in your cluster (see [here](./config/crd/bases/spire.spiffe.io_clusterspiffeids.yaml)).
+
+### Added
+
+- Hint field to the ClusterSPIFFEID CRD that controls the hint on resulting entries (#416)
+- Fallback field to the ClusterSPIFFEID CRD which causes the CR to only apply if no other non-fallback CRs have been applied to a given pod (#415)
+- Missing documentation for the className on the ClusterFederatedTrustDomain CRD (#413)
+
 ## [0.5.0] - 2024-04-10
 
 <font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
