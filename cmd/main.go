@@ -43,11 +43,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	k8sMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/internal/controller"
+	"github.com/spiffe/spire-controller-manager/pkg/metrics"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/spiffe/spire-controller-manager/pkg/spireentry"
@@ -79,6 +81,10 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
+
+	k8sMetrics.Registry.MustRegister(
+		metrics.PromCounters[metrics.StaticEntryFailures],
+	)
 	//+kubebuilder:scaffold:scheme
 }
 
