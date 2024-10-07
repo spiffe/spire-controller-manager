@@ -106,7 +106,6 @@ func parseConfig() (Config, error) {
 	var configFileFlag string
 	var spireAPISocketFlag string
 	var expandEnvFlag bool
-	var logLevel zapcore.Level
 	flag.StringVar(&configFileFlag, "config", "",
 		"The controller will load its initial configuration from this file. "+
 			"Omit this flag to use the default configuration values. "+
@@ -138,18 +137,11 @@ func parseConfig() (Config, error) {
 		}
 	}
 
-	switch strings.ToLower(retval.ctrlConfig.LogLevel) {
-	case "debug":
-		logLevel = zapcore.DebugLevel
-	case "warn":
-		logLevel = zapcore.WarnLevel
-	case "error":
-		logLevel = zapcore.ErrorLevel
-	default:
-		logLevel = zapcore.InfoLevel
-	}
-
 	// Parse log flags
+	logLevel, err := getLogLevel(retval.ctrlConfig.LogLevel)
+	if err != nil {
+		return retval, fmt.Errorf("unable to parse log level: %w", err)
+	}
 	opts := zap.Options{
 		Level:       logLevel,
 		Development: true,
@@ -485,4 +477,19 @@ func parseClusterDomainCNAME(cname string) (string, error) {
 	}
 
 	return clusterDomain, nil
+}
+
+func getLogLevel(logLevel string) (zapcore.Level, error) {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		return zapcore.DebugLevel, nil
+	case "warn":
+		return zapcore.WarnLevel, nil
+	case "error":
+		return zapcore.ErrorLevel, nil
+	case "info":
+		return zapcore.InfoLevel, nil
+	default:
+		return zapcore.InfoLevel, fmt.Errorf("invalid log level: %s", logLevel)
+	}
 }
