@@ -9,6 +9,7 @@ leaderElection:
   resourceName: 98c9c988.spiffe.io
   resourceNamespace: spire-system
 clusterName: cluster1
+logLevel: info
 trustDomain: cluster1.demo
 ignoreNamespaces:
   - kube-system
