@@ -33,9 +33,9 @@ Build the greeter server and client:
 
 Pull the requisite images:
 
-    $ echo ghcr.io/spiffe/spire-server:1.7.0 \
-        ghcr.io/spiffe/spire-agent:1.7.0 \
-        ghcr.io/spiffe/spiffe-csi-driver:0.2.3 \
+    $ echo ghcr.io/spiffe/spire-server:1.10.4 \
+        ghcr.io/spiffe/spire-agent:1.10.4 \
+        ghcr.io/spiffe/spiffe-csi-driver:0.2.6 \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         | xargs -n1 docker pull
 
@@ -43,9 +43,9 @@ Start up cluster1 and load the requisite images:
 
     $ ./cluster1 kind create cluster
     $ echo \
-        ghcr.io/spiffe/spire-server:1.7.0 \
-        ghcr.io/spiffe/spire-agent:1.7.0 \
-        ghcr.io/spiffe/spiffe-csi-driver:0.2.3 \
+        ghcr.io/spiffe/spire-server:1.10.4 \
+        ghcr.io/spiffe/spire-agent:1.10.4 \
+        ghcr.io/spiffe/spiffe-csi-driver:0.2.6 \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         greeter-server:demo \
         | xargs -n1 ./cluster1 kind load docker-image
@@ -54,9 +54,9 @@ Start up cluster 2 and load the requisite images:
 
     $ ./cluster2 kind create cluster
     $ echo \
-        ghcr.io/spiffe/spire-server:1.7.0 \
-        ghcr.io/spiffe/spire-agent:1.7.0 \
-        ghcr.io/spiffe/spiffe-csi-driver:0.2.3 \
+        ghcr.io/spiffe/spire-server:1.10.4 \
+        ghcr.io/spiffe/spire-agent:1.10.4 \
+        ghcr.io/spiffe/spiffe-csi-driver:0.2.6 \
         ghcr.io/spiffe/spire-controller-manager:nightly \
         greeter-client:demo \
         | xargs -n1 ./cluster2 kind load docker-image
