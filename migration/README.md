@@ -51,7 +51,7 @@ Next deploy the new SPIRE Controller Manager.
 
 ## Delete the Kubernetes Workload Registrar CRD (CRD mode only)
 
-The CRD mode requires an additonal step of removing the SpiffeId CRD. SPIRE Controller Manager uses a different CRD, so this one needs to be removed and resources cleaned up.
+The CRD mode requires an additional step of removing the SpiffeId CRD. SPIRE Controller Manager uses a different CRD, so this one needs to be removed and resources cleaned up.
 
 1. Manually remove the finalizers with the below script. SPIRE Controller Manager will automatically clean up entries, so the finalizers can safely be removed.
 
@@ -228,11 +228,11 @@ For each [ClusterSPIFFEID][1] you want to auto populate DNS names for, set the `
 
 ### Can SPIRE Controller Manager be deployed in a different Pod from SPIRE Server?
 
-This is not supported with SPIRE Controller Manager, they must be in the same Pod. If you require them to be in seperate Pods, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
+This is not supported with SPIRE Controller Manager, they must be in the same Pod. If you require them to be in separate Pods, please open a [new issue](https://github.com/spiffe/spire-controller-manager/issues/new) with your use case.
 
 ### Can I manually create entries like I could with the CRD Kubernetes Workload Registrar?
 
-This is not currently supported, SPIRE Controller Manager will automatically garbage collect any manually created entries. If you need suppport for manually created entries, please update [#76](https://github.com/spiffe/spire-controller-manager/issues/76) with your use case.
+Yes, but it requires the use of a separate CRD ([ClusterStaticEntry][2]).
 
 ### How do i see SPIRE Controller Manager logs?
 
@@ -245,7 +245,7 @@ $ kubectl logs spire-server-0 -n spire -c spire-controller-manager
 2022-12-13T00:41:21.844Z	INFO	webhook-manager	Webhook configuration patched with CABundle
 ```
 
-### I'm using CRD mode Kubernetes Workload Registrar and it gets stuck deleting the SpiffeId CRD. What do I do?
+### I'm using CRD mode Kubernetes Workload Registrar, and it gets stuck deleting the SpiffeId CRD. What do I do?
 
 This can happen if the Kubernetes Workload Registrar is deleted before all the SpiffeId custom resources are removed. To get around this, manually remove the finalizers with the below script and try deleting the CRD again.
 
@@ -261,10 +261,11 @@ done
 
 ### Why can't Kubernetes Workload Registrar entries be reused with SPIRE Controller Manager?
 
-SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Though it is technically possible to modify all the entries, its a lot easier to just allow SPIRE Controller Manager to automatically replace the entries.
+SPIRE Controller Manager uses a different scheme for parenting SPIFFE IDs. Though it is technically possible to modify all the entries, it's a lot easier to just allow SPIRE Controller Manager to automatically replace the entries.
 
-### What happens if a Pod is deployed while I'm in the middle of this cutover?
+### What happens if a Pod is deployed while I'm in the middle of this cut-over?
 
 SPIRE Controller Manager will reconcile the state of the system when it starts up. Any new Pods deployed after Kubernetes Workload Registrar is deleted and before SPIRE Controller Manager is up will have entries created when SPIRE Controller Manager is up.
 
 [1]: docs/clusterspiffeid-crd.md
+[2]: docs/clusterstaticentry-crd.md
