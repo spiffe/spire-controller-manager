@@ -21,6 +21,7 @@ The definition can be found [here](../api/v1alpha1/clusterstaticentry_types.go).
 | `admin`                     | OPTIONAL | Indicates whether the target workload is an admin workload (i.e. can access SPIRE administrative APIs) |
 | `downstream`                | OPTIONAL | Indicates that the entry describes a downstream SPIRE server. |
 | `storeSVID`                 | OPTIONAL | Indicates whether the issued SVID must be stored through an SVIDStore plugin. |
+| `className`                 | OPTIONAL | The class name of the SPIRE controller manager. |
 
 ## ClusterStaticEntryStatus
 
