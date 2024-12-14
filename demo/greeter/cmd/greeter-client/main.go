@@ -43,7 +43,7 @@ func main() {
 
 	creds := grpccredentials.MTLSClientCredentials(source, source, tlsconfig.AuthorizeID(serverID))
 
-	client, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
+	client, err := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatal(err)
 	}

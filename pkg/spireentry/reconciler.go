@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +44,7 @@ import (
 
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/pkg/k8sapi"
+	"github.com/spiffe/spire-controller-manager/pkg/metrics"
 	"github.com/spiffe/spire-controller-manager/pkg/namespace"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
@@ -81,7 +84,8 @@ type ReconcilerConfig struct {
 
 func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &entryReconciler{
-		config: config,
+		config:      config,
+		promCounter: metrics.PromCounters,
 	}
 	return reconciler.New(reconciler.Config{
 		Kind:       "entry",
@@ -94,6 +98,7 @@ type entryReconciler struct {
 	config ReconcilerConfig
 
 	unsupportedFields        map[spireapi.Field]struct{}
+	promCounter              map[string]prometheus.Counter
 	nextGetUnsupportedFields time.Time
 }
 
@@ -361,6 +366,7 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 		if err != nil {
 			log.Error(err, "Failed to render ClusterStaticEntry")
 			clusterStaticEntry.NextStatus.Rendered = false
+			r.promCounter[metrics.StaticEntryFailures].Add(1)
 			continue
 		}
 		clusterStaticEntry.NextStatus.Rendered = true
@@ -370,6 +376,17 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 
 func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID) {
 	log := log.FromContext(ctx)
+	podsWithNonFallbackApplied := make(map[types.UID]struct{})
+	// Process all the fallback clusterSPIFFEIDs last.
+	slices.SortStableFunc(clusterSPIFFEIDs, func(x, y *ClusterSPIFFEID) int {
+		if x.Spec.Fallback == y.Spec.Fallback {
+			return 0
+		}
+		if x.Spec.Fallback {
+			return 1
+		}
+		return -1
+	})
 	for _, clusterSPIFFEID := range clusterSPIFFEIDs {
 		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterSPIFFEID))
 
@@ -411,6 +428,9 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 			clusterSPIFFEID.NextStatus.Stats.PodsSelected += len(pods)
 			for i := range pods {
 				log := log.WithValues(podLogKey, objectName(&pods[i]))
+				if _, ok := podsWithNonFallbackApplied[pods[i].UID]; ok && clusterSPIFFEID.Spec.Fallback {
+					continue
+				}
 
 				entry, err := r.renderPodEntry(ctx, spec, &pods[i])
 				switch {
@@ -421,6 +441,9 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 					// renderPodEntry will return a nil entry if requisite k8s
 					// objects disappeared from underneath.
 					state.AddDeclared(*entry, clusterSPIFFEID)
+					if !clusterSPIFFEID.Spec.Fallback {
+						podsWithNonFallbackApplied[pods[i].UID] = struct{}{}
+					}
 				}
 			}
 		}

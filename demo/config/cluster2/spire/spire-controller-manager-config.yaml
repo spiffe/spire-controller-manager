@@ -3,12 +3,13 @@ kind: ControllerManagerConfig
 metrics:
   bindAddress: 127.0.0.1:8082
 health:
-  healthProbeBindAddress: 127.0.0.1:8083
+  healthProbeBindAddress: 0.0.0.0:8083
 leaderElection:
   leaderElect: true
   resourceName: 98c9c988.spiffe.io
   resourceNamespace: spire-system
 clusterName: cluster2
+logLevel: info
 trustDomain: cluster2.demo
 ignoreNamespaces:
   - kube-system

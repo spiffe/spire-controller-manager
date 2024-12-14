@@ -78,6 +78,14 @@ type ClusterSPIFFEIDSpec struct {
 	// Set which Controller Class will act on this object
 	// +kubebuilder:validation:Optional
 	ClassName string `json:"className,omitempty"`
+
+	// Apply this ID only if there are no other matching non fallback ClusterSPIFFEIDs.
+	// +kubebuilder:validation:Optional
+	Fallback bool `json:"fallback,omitempty"`
+
+	// Set the entry hint
+	// +kubebuilder:validation:Optional
+	Hint string `json:"hint,omitempty"`
 }
 
 // ClusterSPIFFEIDStatus defines the observed state of ClusterSPIFFEID

@@ -36,6 +36,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -43,11 +44,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	k8sMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	//"github.com/spiffe/spire-controller-manager/internal/controller"
+	"github.com/spiffe/spire-controller-manager/pkg/metrics"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/spiffe/spire-controller-manager/pkg/spireentry"
@@ -79,6 +82,10 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
+
+	k8sMetrics.Registry.MustRegister(
+		metrics.PromCounters[metrics.StaticEntryFailures],
+	)
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -112,15 +119,7 @@ func parseConfig() (Config, error) {
 			"Command-line flags override configuration from this file.")
 	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
 	flag.BoolVar(&expandEnvFlag, "expand-env", false, "Expand environment variables in SPIRE Controller Manager config file")
-
-	// Parse log flags
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// Set default values
 	retval.ctrlConfig = spirev1alpha1.ControllerManagerConfig{
@@ -135,7 +134,6 @@ func parseConfig() (Config, error) {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &retval.options, &retval.ctrlConfig, expandEnvFlag); err != nil {
 			return retval, fmt.Errorf("unable to load the config file: %w", err)
 		}
-
 		for _, ignoredNamespace := range retval.ctrlConfig.IgnoreNamespaces {
 			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
@@ -145,6 +143,21 @@ func parseConfig() (Config, error) {
 			retval.ignoreNamespacesRegex = append(retval.ignoreNamespacesRegex, regex)
 		}
 	}
+
+	// Parse log flags
+	logLevel, err := getLogLevel(retval.ctrlConfig.LogLevel)
+	if err != nil {
+		return retval, fmt.Errorf("unable to parse log level: %w", err)
+	}
+	opts := zap.Options{
+		Level:       logLevel,
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.Log.V(0).Info("Logger configured", "level", opts.Level)
+
 	// Determine the SPIRE Server socket path
 	switch {
 	case retval.ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
@@ -240,7 +253,7 @@ func run(mainConfig Config) (err error) {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupLog.Info("Dialing SPIRE Server socket")
-	spireClient, err := spireapi.DialSocket(ctx, mainConfig.ctrlConfig.SPIREServerSocketPath)
+	spireClient, err := spireapi.DialSocket(mainConfig.ctrlConfig.SPIREServerSocketPath)
 	if err != nil {
 		setupLog.Error(err, "unable to dial SPIRE Server socket")
 		return err
@@ -484,4 +497,19 @@ func parseClusterDomainCNAME(cname string) (string, error) {
 	}
 
 	return clusterDomain, nil
+}
+
+func getLogLevel(logLevel string) (zapcore.Level, error) {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		return zapcore.DebugLevel, nil
+	case "warn":
+		return zapcore.WarnLevel, nil
+	case "error":
+		return zapcore.ErrorLevel, nil
+	case "info":
+		return zapcore.InfoLevel, nil
+	default:
+		return zapcore.InfoLevel, fmt.Errorf("invalid log level: %s", logLevel)
+	}
 }

@@ -31,13 +31,40 @@ DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$DIR"
 
 cleanup() {
+    if [[ "$1" -ne 0 ]]; then
+      cat <<EOF >>"$GITHUB_STEP_SUMMARY"
+### Describe Pods Cluster 1
+\`\`\`
+$(./cluster1 kubectl describe pods -n "spire-system")
+\`\`\`
+
+### Logs Cluster 1
+
+\`\`\`
+$(./cluster1 kubectl get pods -o name -n "spire-system" | while read -r line; do echo; echo "logs for ${line}:"; ./cluster1 kubectl logs -n "spire-system" "${line}" --prefix --all-containers=true --ignore-errors=true; done)
+\`\`\`
+
+### Describe Pods Cluster 2
+
+\`\`\`
+$(./cluster2 kubectl describe pods -n "spire-system")
+\`\`\`
+
+### Logs Cluster 2
+
+\`\`\`
+$(./cluster2 kubectl get pods -o name -n "spire-system" | while read -r line; do echo; echo logs for "${line}:"; ./cluster2 kubectl logs -n "spire-system" "${line}" --prefix --all-containers=true --ignore-errors=true; done)
+\`\`\`
+EOF
+    fi
+
     echo "Cleaning up..."
     ./cluster1 kind delete cluster || true
     ./cluster2 kind delete cluster || true
     echo "Done."
 }
 
-trap cleanup EXIT
+trap 'EC=$? && trap - SIGTERM && cleanup $EC' SIGINT SIGTERM EXIT
 
 log-info "Tagging devel image as nightly..."
 docker tag ghcr.io/spiffe/spire-controller-manager:{devel,nightly}
@@ -46,10 +73,10 @@ log-info "Building greeter server/client..."
 (cd greeter; make docker-build)
 
 log-info "Pulling docker images..."
-echo ghcr.io/spiffe/spire-server:1.7.0 \
-    ghcr.io/spiffe/spire-agent:1.7.0 \
-    ghcr.io/spiffe/spiffe-csi-driver:0.2.3 \
-    quay.io/k8scsi/csi-node-driver-registrar:v2.0.1 \
+echo ghcr.io/spiffe/spire-server:1.10.4 \
+    ghcr.io/spiffe/spire-agent:1.10.4 \
+    ghcr.io/spiffe/spiffe-csi-driver:0.2.6 \
+    registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.12.0 \
     | xargs -n1 docker pull
 
 log-info "Creating cluster1..."
@@ -60,20 +87,20 @@ log-info "Creating cluster2..."
 
 log-info "Loading images into cluster1..."
 echo \
-    ghcr.io/spiffe/spire-server:1.7.0 \
-    ghcr.io/spiffe/spire-agent:1.7.0 \
-    ghcr.io/spiffe/spiffe-csi-driver:0.2.3 \
-    quay.io/k8scsi/csi-node-driver-registrar:v2.0.1 \
+    ghcr.io/spiffe/spire-server:1.10.4 \
+    ghcr.io/spiffe/spire-agent:1.10.4 \
+    ghcr.io/spiffe/spiffe-csi-driver:0.2.6 \
+    registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.12.0 \
     ghcr.io/spiffe/spire-controller-manager:nightly \
     greeter-server:demo \
     | xargs -n1 ./cluster1 kind load docker-image
 
 log-info "Loading images into cluster2..."
 echo \
-    ghcr.io/spiffe/spire-server:1.7.0 \
-    ghcr.io/spiffe/spire-agent:1.7.0 \
-    ghcr.io/spiffe/spiffe-csi-driver:0.2.3 \
-    quay.io/k8scsi/csi-node-driver-registrar:v2.0.1 \
+    ghcr.io/spiffe/spire-server:1.10.4 \
+    ghcr.io/spiffe/spire-agent:1.10.4 \
+    ghcr.io/spiffe/spiffe-csi-driver:0.2.6 \
+    registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.12.0 \
     ghcr.io/spiffe/spire-controller-manager:nightly \
     greeter-client:demo \
     | xargs -n1 ./cluster2 kind load docker-image

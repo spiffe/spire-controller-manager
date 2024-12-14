@@ -17,11 +17,9 @@ limitations under the License.
 package spireapi
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"path/filepath"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -35,7 +33,7 @@ type Client interface {
 	io.Closer
 }
 
-func DialSocket(ctx context.Context, path string) (Client, error) {
+func DialSocket(path string) (Client, error) {
 	var target string
 	if filepath.IsAbs(path) {
 		target = "unix://" + path
@@ -43,9 +41,7 @@ func DialSocket(ctx context.Context, path string) (Client, error) {
 		target = "unix:" + path
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	grpcClient, err := grpc.DialContext(ctx, target, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	grpcClient, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial API socket: %w", err)
 	}
