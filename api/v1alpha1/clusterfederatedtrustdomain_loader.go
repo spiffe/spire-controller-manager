@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -41,10 +40,10 @@ func loadClusterFederatedTrustDomainFile(path string, scheme *runtime.Scheme, en
 	return nil
 }
 
-func ListClusterFederatedTrustDomains(ctx context.Context, scheme *runtime.Scheme, manifestPath string) ([]ClusterFederatedTrustDomain, error) {
+func ListClusterFederatedTrustDomains(_ context.Context, scheme *runtime.Scheme, manifestPath string) ([]ClusterFederatedTrustDomain, error) {
 	res := make([]ClusterFederatedTrustDomain, 0)
 	expandEnv := false
-	files, err := ioutil.ReadDir(manifestPath)
+	files, err := os.ReadDir(manifestPath)
 	if err != nil {
 		return nil, err
 	}

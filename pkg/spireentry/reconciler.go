@@ -319,7 +319,7 @@ func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*Clus
 	if r.config.K8sClient != nil {
 		clusterStaticEntries, err = k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
 	} else {
-		//FIXME prebuild / pass scheme?
+		// FIXME prebuild / pass scheme?
 		scheme := runtime.NewScheme()
 		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, scheme, *r.staticManifestPath)
 	}

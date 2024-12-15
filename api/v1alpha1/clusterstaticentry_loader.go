@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -41,10 +40,10 @@ func loadClusterStaticEntryFile(path string, scheme *runtime.Scheme, entry *Clus
 	return nil
 }
 
-func ListClusterStaticEntries(ctx context.Context, scheme *runtime.Scheme, manifestPath string) ([]ClusterStaticEntry, error) {
+func ListClusterStaticEntries(_ context.Context, scheme *runtime.Scheme, manifestPath string) ([]ClusterStaticEntry, error) {
 	res := make([]ClusterStaticEntry, 0)
 	expandEnv := false
-	files, err := ioutil.ReadDir(manifestPath)
+	files, err := os.ReadDir(manifestPath)
 	if err != nil {
 		return nil, err
 	}

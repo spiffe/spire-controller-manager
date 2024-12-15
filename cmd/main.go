@@ -204,7 +204,7 @@ func parseConfig() (Config, error) {
 	}
 
 	if retval.ctrlConfig.StaticManifestPath != nil {
-		if retval.options.LeaderElection != false {
+		if retval.options.LeaderElection {
 			return retval, fmt.Errorf("Leader election is not possible with static manifests")
 		}
 		if retval.reconcile.ClusterSPIFFEIDs {
@@ -348,7 +348,7 @@ func run(mainConfig Config) (err error) {
 		return err
 	}
 	var entryReconciler reconciler.Reconciler
-	var k8sClient client.Client = nil
+	var k8sClient client.Client
 	if mainConfig.ctrlConfig.StaticManifestPath == nil {
 		k8sClient = mgr.GetClient()
 	}
@@ -397,16 +397,14 @@ func run(mainConfig Config) (err error) {
 	if mainConfig.ctrlConfig.StaticManifestPath != nil {
 		go entryReconciler.Run(context.TODO())
 		go federationRelationshipReconciler.Run(context.TODO())
-	} else {
-		if mainConfig.reconcile.ClusterStaticEntries {
-			if err = (&controller.ClusterStaticEntryReconciler{
-				Client:    mgr.GetClient(),
-				Scheme:    mgr.GetScheme(),
-				Triggerer: entryReconciler,
-			}).SetupWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
-				return err
-			}
+	} else if mainConfig.reconcile.ClusterStaticEntries {
+		if err = (&controller.ClusterStaticEntryReconciler{
+			Client:    mgr.GetClient(),
+			Scheme:    mgr.GetScheme(),
+			Triggerer: entryReconciler,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterStaticEntry")
+			return err
 		}
 	}
 	if mainConfig.reconcile.ClusterSPIFFEIDs {

@@ -144,7 +144,7 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 	if r.k8sClient != nil {
 		clusterFederatedTrustDomains, err = k8sapi.ListClusterFederatedTrustDomains(ctx, r.k8sClient)
 	} else {
-		//FIXME precreate scheme and pass?
+		// FIXME precreate scheme and pass?
 		scheme := runtime.NewScheme()
 		clusterFederatedTrustDomains, err = spirev1alpha1.ListClusterFederatedTrustDomains(ctx, scheme, *r.staticManifestPath)
 	}
