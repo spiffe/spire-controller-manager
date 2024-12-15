@@ -395,8 +395,19 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 	if mainConfig.ctrlConfig.StaticManifestPath != nil {
-		go entryReconciler.Run(context.TODO())
-		go federationRelationshipReconciler.Run(context.TODO())
+		go func() {
+			err = entryReconciler.Run(context.TODO())
+			if err != nil {
+				setupLog.Error(err, "failure starting entry reconciler", "controller", "ClusterStaticEntry")
+			}
+		}()
+		go func() {
+			err = federationRelationshipReconciler.Run(context.TODO())
+			if err != nil {
+				setupLog.Error(err, "failure starting federation relationship reconciler", "controller", "ClusterFederatedTrustDomain")
+			}
+		}()
+
 	} else if mainConfig.reconcile.ClusterStaticEntries {
 		if err = (&controller.ClusterStaticEntryReconciler{
 			Client:    mgr.GetClient(),
