@@ -37,6 +37,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -75,6 +76,7 @@ type ReconcilerConfig struct {
 	Reconcile            spirev1alpha1.ReconcileConfig
 	EntryIDPrefix        string
 	EntryIDPrefixCleanup *string
+	StaticManifestPath   *string
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -83,8 +85,9 @@ type ReconcilerConfig struct {
 
 func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &entryReconciler{
-		config:      config,
-		promCounter: metrics.PromCounters,
+		config:             config,
+		promCounter:        metrics.PromCounters,
+		staticManifestPath: config.StaticManifestPath,
 	}
 	return reconciler.New(reconciler.Config{
 		Kind:       "entry",
@@ -99,6 +102,7 @@ type entryReconciler struct {
 	unsupportedFields        map[spireapi.Field]struct{}
 	promCounter              map[string]prometheus.Counter
 	nextGetUnsupportedFields time.Time
+	staticManifestPath       *string
 }
 
 func (r *entryReconciler) reconcile(ctx context.Context) {
@@ -203,6 +207,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			continue
 		}
 		clusterStaticEntry.Status = clusterStaticEntry.NextStatus
+		if r.config.K8sClient == nil {
+			continue
+		}
 		if err := r.config.K8sClient.Status().Update(ctx, &clusterStaticEntry.ClusterStaticEntry); err == nil {
 			log.Info("Updated status")
 		} else {
@@ -307,7 +314,15 @@ func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[spireap
 }
 
 func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*ClusterStaticEntry, error) {
-	clusterStaticEntries, err := k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
+	var clusterStaticEntries []spirev1alpha1.ClusterStaticEntry
+	var err error
+	if r.config.K8sClient != nil {
+		clusterStaticEntries, err = k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
+	} else {
+		// FIXME prebuild / pass scheme?
+		scheme := runtime.NewScheme()
+		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, scheme, *r.staticManifestPath)
+	}
 	if err != nil {
 		return nil, err
 	}
