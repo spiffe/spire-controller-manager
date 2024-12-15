@@ -407,7 +407,6 @@ func run(mainConfig Config) (err error) {
 				setupLog.Error(err, "failure starting federation relationship reconciler", "controller", "ClusterFederatedTrustDomain")
 			}
 		}()
-
 	} else if mainConfig.reconcile.ClusterStaticEntries {
 		if err = (&controller.ClusterStaticEntryReconciler{
 			Client:    mgr.GetClient(),
