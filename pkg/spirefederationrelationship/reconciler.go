@@ -33,10 +33,11 @@ import (
 )
 
 type ReconcilerConfig struct {
-	TrustDomainClient spireapi.TrustDomainClient
-	K8sClient         client.Client
-	ClassName         string
-	WatchClassless    bool
+	TrustDomainClient  spireapi.TrustDomainClient
+	K8sClient          client.Client
+	ClassName          string
+	WatchClassless     bool
+	StaticManifestPath *string
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -47,27 +48,29 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	return reconciler.New(reconciler.Config{
 		Kind: "federation relationship",
 		Reconcile: func(ctx context.Context) {
-			Reconcile(ctx, config.TrustDomainClient, config.K8sClient, config.ClassName, config.WatchClassless)
+			Reconcile(ctx, config.TrustDomainClient, config.K8sClient, config.ClassName, config.WatchClassless, config.StaticManifestPath)
 		},
 		GCInterval: config.GCInterval,
 	})
 }
 
-func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client, className string, watchClassless bool) {
+func Reconcile(ctx context.Context, trustDomainClient spireapi.TrustDomainClient, k8sClient client.Client, className string, watchClassless bool, staticManifestPath *string) {
 	r := &federationRelationshipReconciler{
-		trustDomainClient: trustDomainClient,
-		k8sClient:         k8sClient,
-		className:         className,
-		watchClassless:    watchClassless,
+		trustDomainClient:  trustDomainClient,
+		k8sClient:          k8sClient,
+		className:          className,
+		watchClassless:     watchClassless,
+		staticManifestPath: staticManifestPath,
 	}
 	r.reconcile(ctx)
 }
 
 type federationRelationshipReconciler struct {
-	trustDomainClient spireapi.TrustDomainClient
-	k8sClient         client.Client
-	className         string
-	watchClassless    bool
+	trustDomainClient  spireapi.TrustDomainClient
+	k8sClient          client.Client
+	className          string
+	watchClassless     bool
+	staticManifestPath *string
 }
 
 func (r *federationRelationshipReconciler) reconcile(ctx context.Context) {
@@ -141,9 +144,9 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 	if r.k8sClient != nil {
 		clusterFederatedTrustDomains, err = k8sapi.ListClusterFederatedTrustDomains(ctx, r.k8sClient)
 	} else {
-		//FIXME scheme and path
+		//FIXME precreate scheme and pass?
 		scheme := runtime.NewScheme()
-		clusterFederatedTrustDomains, err = spirev1alpha1.ListClusterFederatedTrustDomains(ctx, scheme, "/etc/spire-controller-manager/manifests")
+		clusterFederatedTrustDomains, err = spirev1alpha1.ListClusterFederatedTrustDomains(ctx, scheme, *r.staticManifestPath)
 	}
 	if err != nil {
 		return nil, err

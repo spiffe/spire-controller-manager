@@ -76,6 +76,7 @@ type ReconcilerConfig struct {
 	Reconcile            spirev1alpha1.ReconcileConfig
 	EntryIDPrefix        string
 	EntryIDPrefixCleanup *string
+	StaticManifestPath   *string
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -84,8 +85,9 @@ type ReconcilerConfig struct {
 
 func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &entryReconciler{
-		config:      config,
-		promCounter: metrics.PromCounters,
+		config:             config,
+		promCounter:        metrics.PromCounters,
+		staticManifestPath: config.StaticManifestPath,
 	}
 	return reconciler.New(reconciler.Config{
 		Kind:       "entry",
@@ -100,6 +102,7 @@ type entryReconciler struct {
 	unsupportedFields        map[spireapi.Field]struct{}
 	promCounter              map[string]prometheus.Counter
 	nextGetUnsupportedFields time.Time
+	staticManifestPath       *string
 }
 
 func (r *entryReconciler) reconcile(ctx context.Context) {
@@ -124,15 +127,15 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 
 	clusterStaticEntries := []*ClusterStaticEntry{}
-	//	if r.config.Reconcile.ClusterStaticEntries {
-	// Load and add entry state for ClusterStaticEntries
-	clusterStaticEntries, err = r.listClusterStaticEntries(ctx)
-	if err != nil {
-		log.Error(err, "Failed to list ClusterStaticEntries")
-		return
+	if r.config.Reconcile.ClusterStaticEntries {
+		// Load and add entry state for ClusterStaticEntries
+		clusterStaticEntries, err = r.listClusterStaticEntries(ctx)
+		if err != nil {
+			log.Error(err, "Failed to list ClusterStaticEntries")
+			return
+		}
+		r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
 	}
-	r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
-	//	}
 
 	clusterSPIFFEIDs := []*ClusterSPIFFEID{}
 	if r.config.Reconcile.ClusterSPIFFEIDs {
@@ -316,9 +319,9 @@ func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*Clus
 	if r.config.K8sClient != nil {
 		clusterStaticEntries, err = k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
 	} else {
-		//FIXME scheme and path
+		//FIXME prebuild / pass scheme?
 		scheme := runtime.NewScheme()
-		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, scheme, "/etc/spire-controller-manager/manifests")
+		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, scheme, *r.staticManifestPath)
 	}
 	if err != nil {
 		return nil, err

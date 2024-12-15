@@ -142,6 +142,9 @@ type ControllerManagerConfigurationSpec struct {
 	// Generally useful when switching from nonprefixed to prefixed, or between two different prefixes.
 	// +optiional
 	EntryIDPrefixCleanup *string `json:"entryIDPrefixCleanup,omitempty"`
+
+	// When configured, read yaml objects from the specified path rather then from Kubernetes.
+	StaticManifestPath *string `json:"staticManifestPath,omitempty"`
 }
 
 // ReconcileConfig configuration used to enable/disable syncing various types
