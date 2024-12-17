@@ -1,7 +1,7 @@
 ARG goversion
 
 # Build the manager binary
-FROM --platform=${BUILDPLATFORM} golang:${goversion}-alpine as base
+FROM --platform=${BUILDPLATFORM} golang:${goversion}-alpine AS base
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.* ./
@@ -22,7 +22,7 @@ COPY pkg/ pkg/
 FROM --platform=${BUILDPLATFORM} tonistiigi/xx@sha256:904fe94f236d36d65aeb5a2462f88f2c537b8360475f6342e7599194f291fb7e AS xx
 
 # Build
-FROM --platform=${BUILDPLATFORM} base as builder
+FROM --platform=${BUILDPLATFORM} base AS builder
 ARG TARGETPLATFORM
 ARG TARGETARCH
 ENV CGO_ENABLED=0
