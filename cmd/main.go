@@ -69,6 +69,7 @@ type Config struct {
 const (
 	defaultSPIREServerSocketPath = "/spire-server/api.sock"
 	defaultGCInterval            = 10 * time.Second
+	defaultLogLevel              = "info"
 	k8sDefaultService            = "kubernetes.default.svc"
 )
 
@@ -118,6 +119,10 @@ func parseConfig() (Config, error) {
 			"Command-line flags override configuration from this file.")
 	flag.StringVar(&spireAPISocketFlag, "spire-api-socket", "", "The path to the SPIRE API socket (deprecated; use the config file)")
 	flag.BoolVar(&expandEnvFlag, "expand-env", false, "Expand environment variables in SPIRE Controller Manager config file")
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
 	// Set default values
@@ -125,9 +130,13 @@ func parseConfig() (Config, error) {
 		IgnoreNamespaces:                   []string{"kube-system", "kube-public", "spire-system"},
 		GCInterval:                         defaultGCInterval,
 		ValidatingWebhookConfigurationName: "spire-controller-manager-webhook",
+		LogLevel:                           defaultLogLevel,
 	}
 
 	retval.options = ctrl.Options{Scheme: scheme}
+
+	// Setup logger to zap's default log level so errors parsing the config which contains the desired log level are logged
+	_ = setLogger(&opts, "")
 
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &retval.options, &retval.ctrlConfig, expandEnvFlag); err != nil {
@@ -144,18 +153,10 @@ func parseConfig() (Config, error) {
 	}
 
 	// Parse log flags
-	logLevel, err := getLogLevel(retval.ctrlConfig.LogLevel)
-	if err != nil {
+	if err := setLogger(&opts, retval.ctrlConfig.LogLevel); err != nil {
 		return retval, fmt.Errorf("unable to parse log level: %w", err)
 	}
-	opts := zap.Options{
-		Level:       logLevel,
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
-
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-	ctrl.Log.V(0).Info("Logger configured", "level", opts.Level)
+	setupLog.Info("Logger configured", "level", opts.Level)
 
 	// Determine the SPIRE Server socket path
 	switch {
@@ -485,6 +486,19 @@ func parseClusterDomainCNAME(cname string) (string, error) {
 	return clusterDomain, nil
 }
 
+func setLogger(opts *zap.Options, logLevel string) error {
+	if logLevel != "" && opts.Level == nil {
+		zapLogLevel, err := getLogLevel(logLevel)
+		if err != nil {
+			return fmt.Errorf("unable to parse log level: %w", err)
+		}
+		opts.Level = zapLogLevel
+	}
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(opts)))
+
+	return nil
+}
+
 func getLogLevel(logLevel string) (zapcore.Level, error) {
 	switch strings.ToLower(logLevel) {
 	case "debug":
@@ -496,6 +510,6 @@ func getLogLevel(logLevel string) (zapcore.Level, error) {
 	case "info":
 		return zapcore.InfoLevel, nil
 	default:
-		return zapcore.InfoLevel, fmt.Errorf("invalid log level: %s", logLevel)
+		return zapcore.InfoLevel, fmt.Errorf("invalid log level: %q", logLevel)
 	}
 }
