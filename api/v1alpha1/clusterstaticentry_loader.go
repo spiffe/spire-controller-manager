@@ -34,7 +34,7 @@ func loadClusterStaticEntryFile(path string, scheme *runtime.Scheme, entry *Clus
 	// Regardless of if the bytes are of any external version,
 	// it will be read successfully and converted into the internal version
 	if err = runtime.DecodeInto(codecs.UniversalDecoder(), content, entry); err != nil {
-		return fmt.Errorf("could not decode file into runtime.Object: %w", err)
+		return fmt.Errorf("could not decode file (%s) into runtime.Object: %w", path, err)
 	}
 
 	return nil
