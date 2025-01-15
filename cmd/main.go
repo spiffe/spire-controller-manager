@@ -265,7 +265,7 @@ func run(mainConfig Config) (err error) {
 	// file to keep rotation simple.
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to
 	// obtain the certificates so we don't have to touch disk.
-	var webhookRunnable manager.Runnable
+	var webhookManager *webhookmanager.Manager
 	if webhookEnabled {
 		const keyPairName = "keypair.pem"
 		certDir, err := os.MkdirTemp("", "spire-controller-manager-")
@@ -305,7 +305,7 @@ func run(mainConfig Config) (err error) {
 			return err
 		}
 
-		webhookManager := webhookmanager.New(webhookmanager.Config{
+		webhookManager = webhookmanager.New(webhookmanager.Config{
 			ID:            spiffeid.RequireFromPath(trustDomain, "/spire-controller-manager-webhook"),
 			KeyPairPath:   filepath.Join(certDir, keyPairName),
 			WebhookName:   mainConfig.ctrlConfig.ValidatingWebhookConfigurationName,
@@ -318,8 +318,6 @@ func run(mainConfig Config) (err error) {
 			setupLog.Error(err, "failed to mint initial webhook certificate")
 			return err
 		}
-
-		webhookRunnable = webhookManager
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mainConfig.options)
@@ -433,9 +431,9 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	if webhookRunnable != nil {
-		if err = mgr.Add(webhookRunnable); err != nil {
-			setupLog.Error(err, "unable to manage federation relationship reconciler")
+	if webhookManager != nil {
+		if err = mgr.Add(webhookManager); err != nil {
+			setupLog.Error(err, "unable to manage webhook")
 			return err
 		}
 	}
