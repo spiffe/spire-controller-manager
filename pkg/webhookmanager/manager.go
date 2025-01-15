@@ -169,6 +169,10 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 }
 
+func (m *Manager) NeedLeaderElection() bool {
+	return false
+}
+
 func (m *Manager) mintX509SVIDIfNeeded(ctx context.Context, store cache.Store) error {
 	log := log.FromContext(ctx)
 
