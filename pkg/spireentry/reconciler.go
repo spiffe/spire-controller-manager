@@ -52,12 +52,12 @@ import (
 const (
 	// joinTokenSpiffePrefix is the prefix that is the part of the parent SPIFFE ID for join token entries.
 	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L714
-	// nolint: gosec // not a credential
+	//nolint: gosec // not a credential
 	joinTokenSpiffePrefix = "/spire/agent/join_token/"
 
 	// joinTokenSelectorType is the selector type used in the selector for join token entries.
 	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L515
-	// nolint: gosec // not a credential
+	//nolint: gosec // not a credential
 	joinTokenSelectorType = "spiffe_id"
 )
 
