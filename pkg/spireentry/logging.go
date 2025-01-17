@@ -92,7 +92,7 @@ func stringList(ss []string) string {
 func renderList(n int, fn func(i int, w io.StringWriter)) string {
 	var builder strings.Builder
 	builder.WriteRune('[')
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if i > 0 {
 			builder.WriteRune(',')
 		}
