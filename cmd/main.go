@@ -90,6 +90,7 @@ func init() {
 }
 
 func main() {
+	ctrl.SetLogger(zap.New())
 	mainConfig, err := parseConfig()
 	if err != nil {
 		setupLog.Error(err, "error parsing configuration")
