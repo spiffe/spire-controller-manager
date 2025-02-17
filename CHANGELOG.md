@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.1] - 2025-02-14
+
+### Added
+
+- Support for configuring the log level (#388, #464)
+- New metrics to track `ClusterStaticEntry` failures (#387)
+
+### Fixed
+
+- Failed controller upgrade when webhook certificate is expired (#450)
+
+### Updated
+
+- Minor documentation changes (#435, #443)
+- Version used in migration guide (#465)
+
 ## [0.6.0] - 2024-10-03
 
 <font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
