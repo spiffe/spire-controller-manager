@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -44,22 +45,22 @@ func (r *ClusterFederatedTrustDomain) SetupWebhookWithManager(mgr ctrl.Manager) 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-spire-spiffe-io-v1alpha1-clusterfederatedtrustdomain,mutating=false,failurePolicy=fail,sideEffects=None,groups=spire.spiffe.io,resources=clusterfederatedtrustdomains,verbs=create;update,versions=v1alpha1,name=vclusterfederatedtrustdomain.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &ClusterFederatedTrustDomain{}
+var _ webhook.CustomValidator = &ClusterFederatedTrustDomain{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomain) ValidateCreate() (admission.Warnings, error) {
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterFederatedTrustDomain) ValidateCreate(context.Context, runtime.Object) (admission.Warnings, error) {
 	clusterfederatedtrustdomainlog.Info("validate create", "name", r.Name)
 	return r.validate()
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomain) ValidateUpdate(runtime.Object) (admission.Warnings, error) {
+// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterFederatedTrustDomain) ValidateUpdate(context.Context, runtime.Object, runtime.Object) (admission.Warnings, error) {
 	clusterfederatedtrustdomainlog.Info("validate update", "name", r.Name)
 	return r.validate()
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomain) ValidateDelete() (admission.Warnings, error) {
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterFederatedTrustDomain) ValidateDelete(context.Context, runtime.Object) (admission.Warnings, error) {
 	// Deletes are not validated.
 	return nil, nil
 }

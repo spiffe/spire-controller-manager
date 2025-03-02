@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"text/template"
@@ -52,24 +53,24 @@ func (r *ClusterSPIFFEID) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-spire-spiffe-io-v1alpha1-clusterspiffeid,mutating=false,failurePolicy=fail,sideEffects=None,groups=spire.spiffe.io,resources=clusterspiffeids,verbs=create;update,versions=v1alpha1,name=vclusterspiffeid.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &ClusterSPIFFEID{}
+var _ webhook.CustomValidator = &ClusterSPIFFEID{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateCreate() (admission.Warnings, error) {
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterSPIFFEID) ValidateCreate(context.Context, runtime.Object) (admission.Warnings, error) {
 	clusterspiffeidlog.Info("validate create", "name", r.Name)
 
 	return r.validate()
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateUpdate(runtime.Object) (admission.Warnings, error) {
+// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterSPIFFEID) ValidateUpdate(context.Context, runtime.Object, runtime.Object) (admission.Warnings, error) {
 	clusterspiffeidlog.Info("validate update", "name", r.Name)
 
 	return r.validate()
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateDelete() (admission.Warnings, error) {
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterSPIFFEID) ValidateDelete(context.Context, runtime.Object) (admission.Warnings, error) {
 	// Deletes are not validated.
 	return nil, nil
 }
