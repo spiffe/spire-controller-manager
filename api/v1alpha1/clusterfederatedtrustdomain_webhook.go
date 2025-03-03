@@ -37,6 +37,7 @@ var clusterfederatedtrustdomainlog = logf.Log.WithName("clusterfederatedtrustdom
 func (r *ClusterFederatedTrustDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(&ClusterFederatedTrustDomain{}).
 		Complete()
 }
 

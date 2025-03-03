@@ -45,6 +45,7 @@ var clusterspiffeidlog = logf.Log.WithName("clusterspiffeid-resource")
 func (r *ClusterSPIFFEID) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(&ClusterSPIFFEID{}).
 		Complete()
 }
 
