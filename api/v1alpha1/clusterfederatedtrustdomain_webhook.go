@@ -53,7 +53,7 @@ type ClusterFederatedTrustDomainCustomValidator struct {
 var _ webhook.CustomValidator = &ClusterFederatedTrustDomainCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomainCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (r *ClusterFederatedTrustDomainCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	o, ok := obj.(*ClusterFederatedTrustDomain)
 	if !ok {
 		return nil, fmt.Errorf("expected a ClusterFederatedTrustDomain object but got %T", obj)
@@ -63,7 +63,7 @@ func (r *ClusterFederatedTrustDomainCustomValidator) ValidateCreate(ctx context.
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomainCustomValidator) ValidateUpdate(ctx context.Context, oobj runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
+func (r *ClusterFederatedTrustDomainCustomValidator) ValidateUpdate(_ context.Context, oobj runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
 	o, ok := nobj.(*ClusterFederatedTrustDomain)
 	if !ok {
 		return nil, fmt.Errorf("expected a ClusterFederatedTrustDomain object but got %T", nobj)
