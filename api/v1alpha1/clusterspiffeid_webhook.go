@@ -72,7 +72,7 @@ func (r *ClusterSPIFFEIDCustomValidator) ValidateCreate(_ context.Context, obj r
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
-func (r *ClusterSPIFFEIDCustomValidator) ValidateUpdate(_ context.Context, oobj runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
+func (r *ClusterSPIFFEIDCustomValidator) ValidateUpdate(_ context.Context, _ runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
 	o, ok := nobj.(*ClusterSPIFFEID)
 	if !ok {
 		return nil, fmt.Errorf("expected a ClusterSPIFFEID object but got %T", nobj)

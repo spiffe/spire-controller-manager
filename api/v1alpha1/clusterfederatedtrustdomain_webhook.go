@@ -63,7 +63,7 @@ func (r *ClusterFederatedTrustDomainCustomValidator) ValidateCreate(_ context.Co
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomainCustomValidator) ValidateUpdate(_ context.Context, oobj runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
+func (r *ClusterFederatedTrustDomainCustomValidator) ValidateUpdate(_ context.Context, _ runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
 	o, ok := nobj.(*ClusterFederatedTrustDomain)
 	if !ok {
 		return nil, fmt.Errorf("expected a ClusterFederatedTrustDomain object but got %T", nobj)
