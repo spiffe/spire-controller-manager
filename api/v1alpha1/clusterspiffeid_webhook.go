@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"text/template"
@@ -44,6 +45,7 @@ var clusterspiffeidlog = logf.Log.WithName("clusterspiffeid-resource")
 func (r *ClusterSPIFFEID) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(&ClusterSPIFFEIDCustomValidator{}).
 		Complete()
 }
 
@@ -52,30 +54,42 @@ func (r *ClusterSPIFFEID) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-spire-spiffe-io-v1alpha1-clusterspiffeid,mutating=false,failurePolicy=fail,sideEffects=None,groups=spire.spiffe.io,resources=clusterspiffeids,verbs=create;update,versions=v1alpha1,name=vclusterspiffeid.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &ClusterSPIFFEID{}
-
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateCreate() (admission.Warnings, error) {
-	clusterspiffeidlog.Info("validate create", "name", r.Name)
-
-	return r.validate()
+type ClusterSPIFFEIDCustomValidator struct {
+	// TODO(user): Add more fields as needed for validation
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateUpdate(runtime.Object) (admission.Warnings, error) {
-	clusterspiffeidlog.Info("validate update", "name", r.Name)
+var _ webhook.CustomValidator = &ClusterSPIFFEIDCustomValidator{}
 
-	return r.validate()
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterSPIFFEIDCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	o, ok := obj.(*ClusterSPIFFEID)
+	if !ok {
+		return nil, fmt.Errorf("expected a ClusterSPIFFEID object but got %T", obj)
+	}
+	clusterspiffeidlog.Info("validate create", "name", o.Name)
+
+	return r.validate(o)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *ClusterSPIFFEID) ValidateDelete() (admission.Warnings, error) {
+// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterSPIFFEIDCustomValidator) ValidateUpdate(_ context.Context, _ runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
+	o, ok := nobj.(*ClusterSPIFFEID)
+	if !ok {
+		return nil, fmt.Errorf("expected a ClusterSPIFFEID object but got %T", nobj)
+	}
+	clusterspiffeidlog.Info("validate update", "name", o.Name)
+
+	return r.validate(o)
+}
+
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *ClusterSPIFFEIDCustomValidator) ValidateDelete(context.Context, runtime.Object) (admission.Warnings, error) {
 	// Deletes are not validated.
 	return nil, nil
 }
 
-func (r *ClusterSPIFFEID) validate() (admission.Warnings, error) {
-	_, err := ParseClusterSPIFFEIDSpec(&r.Spec)
+func (r *ClusterSPIFFEIDCustomValidator) validate(o *ClusterSPIFFEID) (admission.Warnings, error) {
+	_, err := ParseClusterSPIFFEIDSpec(&o.Spec)
 	return nil, err
 }
 
