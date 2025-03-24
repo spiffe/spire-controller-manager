@@ -11,7 +11,7 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/prometheus/client_golang v1.21.1
 	github.com/spiffe/go-spiffe/v2 v2.5.0
-	github.com/spiffe/spire-api-sdk v1.11.2
+	github.com/spiffe/spire-api-sdk v1.12.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.71.0
