@@ -1,10 +1,9 @@
 module greeter
 
 go 1.23.4
-
 require (
 	github.com/spiffe/go-spiffe/v2 v2.5.0
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.71.1
 	google.golang.org/grpc/examples v0.0.0-20240422202308-34de5cf4832f
 )
 
