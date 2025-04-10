@@ -191,7 +191,7 @@ func TestReconcile(t *testing.T) {
 			ctx := log.IntoContext(context.Background(), logrtesting.NewTestLogger(t))
 
 			k8sClient := k8stest.NewClientBuilder(t).WithRuntimeObjects(tt.withObjects...).Build()
-			spirefederationrelationship.Reconcile(ctx, tdc, k8sClient, "", false)
+			spirefederationrelationship.Reconcile(ctx, tdc, k8sClient, "", false, nil)
 			assert.Equal(t, tt.expectFRs, tdc.getFederationRelationships())
 		})
 	}
