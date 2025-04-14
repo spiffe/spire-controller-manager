@@ -18,3 +18,14 @@ the following fields are defined:
 | `logLevel`                           | OPTIONAL | `info`                                           | The log level for the controller manager. Supported values are `info`, `error`, `warn` and `debug`.                                                                                                           |
 | `className`                          | OPTIONAL |                                                  | Only sync resources that have the specified className set on them.                                                                                                                                            |
 | `watchClassless`                     | OPTIONAL |                                                  | If className is set, also watch for resources that do not have any className set.                                                                                                                             |
+| `staticManifestPath`                 | OPTIONAL |                                                  | If specified, manifests will be read from disk instead of from Kubernetes                                                                                                                                     |
+
+## Kubernetes Mode
+
+By default, all objects are synced from the Kubernetes cluster the spire-controller-manager is running in.
+
+## Static Mode
+
+If `staticManifestPath is specified, Kubernetes will not be used and instead, manifests are loaded from yaml files located in the specified path and synchronized to the SPIRE server.
+
+In this mode, validating webhooks will be ignored as its not useful without Kubernetes.

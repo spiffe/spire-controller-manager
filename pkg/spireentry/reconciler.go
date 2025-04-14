@@ -37,7 +37,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -319,9 +318,7 @@ func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*Clus
 	if r.config.K8sClient != nil {
 		clusterStaticEntries, err = k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
 	} else {
-		// FIXME prebuild / pass scheme?
-		scheme := runtime.NewScheme()
-		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, scheme, *r.staticManifestPath)
+		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, *r.staticManifestPath)
 	}
 	if err != nil {
 		return nil, err

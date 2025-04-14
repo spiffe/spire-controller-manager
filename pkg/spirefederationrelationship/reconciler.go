@@ -27,7 +27,6 @@ import (
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"google.golang.org/grpc/codes"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -144,9 +143,7 @@ func (r *federationRelationshipReconciler) listClusterFederatedTrustDomains(ctx 
 	if r.k8sClient != nil {
 		clusterFederatedTrustDomains, err = k8sapi.ListClusterFederatedTrustDomains(ctx, r.k8sClient)
 	} else {
-		// FIXME precreate scheme and pass?
-		scheme := runtime.NewScheme()
-		clusterFederatedTrustDomains, err = spirev1alpha1.ListClusterFederatedTrustDomains(ctx, scheme, *r.staticManifestPath)
+		clusterFederatedTrustDomains, err = spirev1alpha1.ListClusterFederatedTrustDomains(ctx, *r.staticManifestPath)
 	}
 	if err != nil {
 		return nil, err

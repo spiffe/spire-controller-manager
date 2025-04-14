@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -27,6 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -474,6 +474,13 @@ func run(mainConfig Config) (err error) {
 }
 
 func staticRun(mainConfig Config) (err error) {
+	var wg sync.WaitGroup
+	if mainConfig.reconcile.ClusterFederatedTrustDomains {
+		wg.Add(1)
+	}
+	if mainConfig.reconcile.ClusterStaticEntries {
+		wg.Add(1)
+	}
 	trustDomain, err := spiffeid.TrustDomainFromString(mainConfig.ctrlConfig.TrustDomain)
 	if err != nil {
 		setupLog.Error(err, "invalid trust domain name")
@@ -490,19 +497,13 @@ func staticRun(mainConfig Config) (err error) {
 	}
 	defer spireClient.Close()
 
-	var mgr ctrl.Manager
-	if mainConfig.ctrlConfig.StaticManifestPath != nil {
-		mgr, err = ctrl.NewManager(&rest.Config{}, mainConfig.options)
-	} else {
-		mgr, err = ctrl.NewManager(ctrl.GetConfigOrDie(), mainConfig.options)
-	}
+	mgr, err := ctrl.NewManager(&rest.Config{}, mainConfig.options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		return err
 	}
-	var entryReconciler reconciler.Reconciler
-	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
-		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
+	if mainConfig.reconcile.ClusterStaticEntries {
+		entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
 			TrustDomain:          trustDomain,
 			ClusterName:          mainConfig.ctrlConfig.ClusterName,
 			ClusterDomain:        mainConfig.ctrlConfig.ClusterDomain,
@@ -518,10 +519,16 @@ func staticRun(mainConfig Config) (err error) {
 			EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
 			StaticManifestPath:   mainConfig.ctrlConfig.StaticManifestPath,
 		})
+		go func() {
+			err = entryReconciler.Run(ctx)
+			if err != nil {
+				setupLog.Error(err, "failure starting entry reconciler", "controller", "ClusterStaticEntry")
+			}
+			wg.Done()
+		}()
 	}
-	var federationRelationshipReconciler reconciler.Reconciler
 	if mainConfig.reconcile.ClusterFederatedTrustDomains {
-		federationRelationshipReconciler = spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
+		federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
 			K8sClient:          nil,
 			TrustDomainClient:  spireClient,
 			GCInterval:         mainConfig.ctrlConfig.GCInterval,
@@ -529,29 +536,14 @@ func staticRun(mainConfig Config) (err error) {
 			WatchClassless:     mainConfig.ctrlConfig.WatchClassless,
 			StaticManifestPath: mainConfig.ctrlConfig.StaticManifestPath,
 		})
-		if mainConfig.ctrlConfig.StaticManifestPath == nil {
-			if err = (&controller.ClusterFederatedTrustDomainReconciler{
-				Client:    mgr.GetClient(),
-				Scheme:    mgr.GetScheme(),
-				Triggerer: federationRelationshipReconciler,
-			}).SetupWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create controller", "controller", "ClusterFederatedTrustDomain")
-				return err
+		go func() {
+			err = federationRelationshipReconciler.Run(ctx)
+			if err != nil {
+				setupLog.Error(err, "failure starting federation relationship reconciler", "controller", "ClusterFederatedTrustDomain")
 			}
-		}
+			wg.Done()
+		}()
 	}
-	go func() {
-		err = entryReconciler.Run(context.TODO())
-		if err != nil {
-			setupLog.Error(err, "failure starting entry reconciler", "controller", "ClusterStaticEntry")
-		}
-	}()
-	go func() {
-		err = federationRelationshipReconciler.Run(context.TODO())
-		if err != nil {
-			setupLog.Error(err, "failure starting federation relationship reconciler", "controller", "ClusterFederatedTrustDomain")
-		}
-	}()
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
@@ -562,6 +554,7 @@ func staticRun(mainConfig Config) (err error) {
 		return err
 	}
 
+	wg.Wait()
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
