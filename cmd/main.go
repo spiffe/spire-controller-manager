@@ -203,6 +203,7 @@ func parseConfig() (Config, error) {
 		retval.reconcile.ClusterFederatedTrustDomains = true
 		retval.reconcile.ClusterStaticEntries = true
 		if retval.ctrlConfig.StaticManifestPath == nil {
+			// Static mode default is to have ClusterSPIFFEID syncing off (unsupported). Non static mode syncing on.
 			retval.reconcile.ClusterSPIFFEIDs = true
 		}
 	} else {
