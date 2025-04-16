@@ -26,6 +26,6 @@ By default, all objects are synced from the Kubernetes cluster the spire-control
 
 ## Static Mode
 
-If `staticManifestPath is specified, Kubernetes will not be used and instead, manifests are loaded from yaml files located in the specified path and synchronized to the SPIRE server.
+If `staticManifestPath` is specified, Kubernetes will not be used and instead, manifests are loaded from yaml files located in the specified path and synchronized to the SPIRE server.
 
 In this mode, validating webhooks will be ignored as its not useful without Kubernetes.
