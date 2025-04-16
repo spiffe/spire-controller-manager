@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -94,6 +95,12 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "error parsing configuration")
 		os.Exit(1)
+	}
+
+	if mainConfig.ctrlConfig.StaticManifestPath != nil {
+		if err := staticRun(mainConfig); err != nil {
+			os.Exit(1)
+		}
 	}
 
 	if err := run(mainConfig); err != nil {
@@ -193,11 +200,23 @@ func parseConfig() (Config, error) {
 	}
 
 	if retval.ctrlConfig.Reconcile == nil {
-		retval.reconcile.ClusterSPIFFEIDs = true
 		retval.reconcile.ClusterFederatedTrustDomains = true
 		retval.reconcile.ClusterStaticEntries = true
+		if retval.ctrlConfig.StaticManifestPath == nil {
+			// Static mode default is to have ClusterSPIFFEID syncing off (unsupported). Non static mode syncing on.
+			retval.reconcile.ClusterSPIFFEIDs = true
+		}
 	} else {
 		retval.reconcile = *retval.ctrlConfig.Reconcile
+	}
+
+	if retval.ctrlConfig.StaticManifestPath != nil {
+		if retval.options.LeaderElection {
+			return retval, fmt.Errorf("Leader election is not possible with static manifests")
+		}
+		if retval.reconcile.ClusterSPIFFEIDs {
+			return retval, fmt.Errorf("ClusterSPIFFEID reconciliation is not possible with static manifests")
+		}
 	}
 
 	retval.ctrlConfig.EntryIDPrefix = addDotSuffix(retval.ctrlConfig.EntryIDPrefix)
@@ -446,6 +465,97 @@ func run(mainConfig Config) (err error) {
 		return err
 	}
 
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctx); err != nil {
+		setupLog.Error(err, "problem running manager")
+		return err
+	}
+
+	return nil
+}
+
+func staticRun(mainConfig Config) (err error) {
+	var wg sync.WaitGroup
+	if mainConfig.reconcile.ClusterFederatedTrustDomains {
+		wg.Add(1)
+	}
+	if mainConfig.reconcile.ClusterStaticEntries {
+		wg.Add(1)
+	}
+	trustDomain, err := spiffeid.TrustDomainFromString(mainConfig.ctrlConfig.TrustDomain)
+	if err != nil {
+		setupLog.Error(err, "invalid trust domain name")
+		return err
+	}
+
+	ctx := ctrl.SetupSignalHandler()
+
+	setupLog.Info("Dialing SPIRE Server socket")
+	spireClient, err := spireapi.DialSocket(mainConfig.ctrlConfig.SPIREServerSocketPath)
+	if err != nil {
+		setupLog.Error(err, "unable to dial SPIRE Server socket")
+		return err
+	}
+	defer spireClient.Close()
+
+	mgr, err := ctrl.NewManager(&rest.Config{}, mainConfig.options)
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		return err
+	}
+	if mainConfig.reconcile.ClusterStaticEntries {
+		entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
+			TrustDomain:          trustDomain,
+			ClusterName:          mainConfig.ctrlConfig.ClusterName,
+			ClusterDomain:        mainConfig.ctrlConfig.ClusterDomain,
+			K8sClient:            nil,
+			EntryClient:          spireClient,
+			IgnoreNamespaces:     mainConfig.ignoreNamespacesRegex,
+			GCInterval:           mainConfig.ctrlConfig.GCInterval,
+			ClassName:            mainConfig.ctrlConfig.ClassName,
+			WatchClassless:       mainConfig.ctrlConfig.WatchClassless,
+			ParentIDTemplate:     mainConfig.parentIDTemplate,
+			Reconcile:            mainConfig.reconcile,
+			EntryIDPrefix:        mainConfig.ctrlConfig.EntryIDPrefix,
+			EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
+			StaticManifestPath:   mainConfig.ctrlConfig.StaticManifestPath,
+		})
+		go func() {
+			err = entryReconciler.Run(ctx)
+			if err != nil {
+				setupLog.Error(err, "failure starting entry reconciler", "controller", "ClusterStaticEntry")
+			}
+			wg.Done()
+		}()
+	}
+	if mainConfig.reconcile.ClusterFederatedTrustDomains {
+		federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
+			K8sClient:          nil,
+			TrustDomainClient:  spireClient,
+			GCInterval:         mainConfig.ctrlConfig.GCInterval,
+			ClassName:          mainConfig.ctrlConfig.ClassName,
+			WatchClassless:     mainConfig.ctrlConfig.WatchClassless,
+			StaticManifestPath: mainConfig.ctrlConfig.StaticManifestPath,
+		})
+		go func() {
+			err = federationRelationshipReconciler.Run(ctx)
+			if err != nil {
+				setupLog.Error(err, "failure starting federation relationship reconciler", "controller", "ClusterFederatedTrustDomain")
+			}
+			wg.Done()
+		}()
+	}
+
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up health check")
+		return err
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up ready check")
+		return err
+	}
+
+	wg.Wait()
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
