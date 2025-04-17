@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.2] - 2025-04-17
+
+### Added
+
+- Support `staticManifestPath`: watch a directory for CRs instead of using Kubernetes API (#411)
+
 ## [0.6.1] - 2025-02-14
 
 ### Added
