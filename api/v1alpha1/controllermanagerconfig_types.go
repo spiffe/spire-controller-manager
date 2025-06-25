@@ -59,6 +59,9 @@ type ControllerManagerConfig struct {
 
 	// LogLevel is the log level for the controller manager
 	LogLevel string `json:"logLevel"`
+
+	// LogEncoding is the log encoding for the controller manager
+	LogEncoding string `json:"logEncoding"`
 }
 
 // ControllerManagerConfigurationSpec defines the desired state of GenericControllerManagerConfiguration.
