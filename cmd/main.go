@@ -71,6 +71,7 @@ const (
 	defaultSPIREServerSocketPath = "/spire-server/api.sock"
 	defaultGCInterval            = 10 * time.Second
 	defaultLogLevel              = "info"
+	defaultLogEncoding           = "console"
 	k8sDefaultService            = "kubernetes.default.svc"
 )
 
@@ -138,12 +139,13 @@ func parseConfig() (Config, error) {
 		GCInterval:                         defaultGCInterval,
 		ValidatingWebhookConfigurationName: "spire-controller-manager-webhook",
 		LogLevel:                           defaultLogLevel,
+		LogEncoding:                        defaultLogEncoding,
 	}
 
 	retval.options = ctrl.Options{Scheme: scheme}
 
 	// Setup logger to zap's default log level so errors parsing the config which contains the desired log level are logged
-	_ = setLogger(&opts, "")
+	_ = setLogger(&opts, "", "")
 
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &retval.options, &retval.ctrlConfig, expandEnvFlag); err != nil {
@@ -160,7 +162,7 @@ func parseConfig() (Config, error) {
 	}
 
 	// Parse log flags
-	if err := setLogger(&opts, retval.ctrlConfig.LogLevel); err != nil {
+	if err := setLogger(&opts, retval.ctrlConfig.LogLevel, retval.ctrlConfig.LogEncoding); err != nil {
 		return retval, fmt.Errorf("unable to parse log level: %w", err)
 	}
 	setupLog.Info("Logger configured", "level", opts.Level)
@@ -594,7 +596,7 @@ func parseClusterDomainCNAME(cname string) (string, error) {
 	return clusterDomain, nil
 }
 
-func setLogger(opts *zap.Options, logLevel string) error {
+func setLogger(opts *zap.Options, logLevel string, logEncoding string) error {
 	if logLevel != "" && opts.Level == nil {
 		zapLogLevel, err := getLogLevel(logLevel)
 		if err != nil {
@@ -602,6 +604,17 @@ func setLogger(opts *zap.Options, logLevel string) error {
 		}
 		opts.Level = zapLogLevel
 	}
+	if logEncoding != "" && opts.Encoder == nil {
+		switch logEncoding {
+		case "console":
+			zap.ConsoleEncoder(opts.EncoderConfigOptions...)(opts)
+		case "json":
+			zap.JSONEncoder(opts.EncoderConfigOptions...)(opts)
+		default:
+			return fmt.Errorf("unrecognized log encoding: %s", logEncoding)
+		}
+	}
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(opts)))
 
 	return nil
