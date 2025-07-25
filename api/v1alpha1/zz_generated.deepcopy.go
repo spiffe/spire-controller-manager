@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
@@ -456,6 +457,11 @@ func (in *ControllerManagerConfig) DeepCopyInto(out *ControllerManagerConfig) {
 		in, out := &in.IgnoreNamespaces, &out.IgnoreNamespaces
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.Grpc != nil {
+		in, out := &in.Grpc, &out.Grpc
+		*out = new(spireapi.GrpcConfig)
+		**out = **in
 	}
 }
 

@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"time"
 
+	spireapi "github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
@@ -62,6 +63,9 @@ type ControllerManagerConfig struct {
 
 	// LogEncoding is the log encoding for the controller manager
 	LogEncoding string `json:"logEncoding"`
+
+	// Grpc is the grpc configuration for the controller manager communication with SPIRE Server API
+	Grpc *spireapi.GrpcConfig `json:"grpc,omitempty"`
 }
 
 // ControllerManagerConfigurationSpec defines the desired state of GenericControllerManagerConfiguration.
