@@ -20,6 +20,13 @@ the following fields are defined:
 | `className`                          | OPTIONAL |                                                  | Only sync resources that have the specified className set on them.                                                                                                                                            |
 | `watchClassless`                     | OPTIONAL |                                                  | If className is set, also watch for resources that do not have any className set.                                                                                                                             |
 | `staticManifestPath`                 | OPTIONAL |                                                  | If specified, manifests will be read from disk instead of from Kubernetes                                                                                                                                     |
+| `grpc`                               | OPTIONAL |                                                  | Allows configuring the GRPC config used when connecting to the SPIRE server API.                                                                                                                              |
+
+GRPC Config Options
+
+| Field                                | Required | Default | Description                                               |
+|--------------------------------------|----------|---------|-----------------------------------------------------------|
+| `maxCallRecvMsgSize`                 | OPTIONAL | 4MB     | The maximum message size in bytes the client can receive. |
 
 ## Kubernetes Mode
 
