@@ -62,20 +62,21 @@ const (
 )
 
 type ReconcilerConfig struct {
-	TrustDomain          spiffeid.TrustDomain
-	ClusterName          string
-	ClusterDomain        string
-	EntryClient          spireapi.EntryClient
-	K8sClient            client.Client
-	IgnoreNamespaces     []*regexp.Regexp
-	AutoPopulateDNSNames bool
-	ClassName            string
-	WatchClassless       bool
-	ParentIDTemplate     *template.Template
-	Reconcile            spirev1alpha1.ReconcileConfig
-	EntryIDPrefix        string
-	EntryIDPrefixCleanup *string
-	StaticManifestPath   *string
+	TrustDomain              spiffeid.TrustDomain
+	ClusterName              string
+	ClusterDomain            string
+	EntryClient              spireapi.EntryClient
+	K8sClient                client.Client
+	IgnoreNamespaces         []*regexp.Regexp
+	AutoPopulateDNSNames     bool
+	ClassName                string
+	WatchClassless           bool
+	ParentIDTemplate         *template.Template
+	Reconcile                spirev1alpha1.ReconcileConfig
+	EntryIDPrefix            string
+	EntryIDPrefixCleanup     *string
+	StaticManifestPath       *string
+	ExpandEnvStaticManifests bool
 
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
@@ -84,9 +85,10 @@ type ReconcilerConfig struct {
 
 func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &entryReconciler{
-		config:             config,
-		promCounter:        metrics.PromCounters,
-		staticManifestPath: config.StaticManifestPath,
+		config:                   config,
+		promCounter:              metrics.PromCounters,
+		staticManifestPath:       config.StaticManifestPath,
+		expandEnvStaticManifests: config.ExpandEnvStaticManifests,
 	}
 	return reconciler.New(reconciler.Config{
 		Kind:       "entry",
@@ -102,6 +104,7 @@ type entryReconciler struct {
 	promCounter              map[string]prometheus.Counter
 	nextGetUnsupportedFields time.Time
 	staticManifestPath       *string
+	expandEnvStaticManifests bool
 }
 
 func (r *entryReconciler) reconcile(ctx context.Context) {
@@ -128,7 +131,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	clusterStaticEntries := []*ClusterStaticEntry{}
 	if r.config.Reconcile.ClusterStaticEntries {
 		// Load and add entry state for ClusterStaticEntries
-		clusterStaticEntries, err = r.listClusterStaticEntries(ctx)
+		clusterStaticEntries, err = r.listClusterStaticEntries(ctx, r.expandEnvStaticManifests)
 		if err != nil {
 			log.Error(err, "Failed to list ClusterStaticEntries")
 			return
@@ -312,13 +315,13 @@ func (r *entryReconciler) getUnsupportedFields(ctx context.Context) (map[spireap
 	return r.config.EntryClient.GetUnsupportedFields(ctx, r.config.TrustDomain.Name())
 }
 
-func (r *entryReconciler) listClusterStaticEntries(ctx context.Context) ([]*ClusterStaticEntry, error) {
+func (r *entryReconciler) listClusterStaticEntries(ctx context.Context, expandEnv bool) ([]*ClusterStaticEntry, error) {
 	var clusterStaticEntries []spirev1alpha1.ClusterStaticEntry
 	var err error
 	if r.config.K8sClient != nil {
 		clusterStaticEntries, err = k8sapi.ListClusterStaticEntries(ctx, r.config.K8sClient)
 	} else {
-		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, *r.staticManifestPath)
+		clusterStaticEntries, err = spirev1alpha1.ListClusterStaticEntries(ctx, *r.staticManifestPath, expandEnv)
 	}
 	if err != nil {
 		return nil, err
