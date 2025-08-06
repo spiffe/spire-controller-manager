@@ -507,20 +507,21 @@ func staticRun(mainConfig Config) (err error) {
 	}
 	if mainConfig.reconcile.ClusterStaticEntries {
 		entryReconciler := spireentry.Reconciler(spireentry.ReconcilerConfig{
-			TrustDomain:          trustDomain,
-			ClusterName:          mainConfig.ctrlConfig.ClusterName,
-			ClusterDomain:        mainConfig.ctrlConfig.ClusterDomain,
-			K8sClient:            nil,
-			EntryClient:          spireClient,
-			IgnoreNamespaces:     mainConfig.ignoreNamespacesRegex,
-			GCInterval:           mainConfig.ctrlConfig.GCInterval,
-			ClassName:            mainConfig.ctrlConfig.ClassName,
-			WatchClassless:       mainConfig.ctrlConfig.WatchClassless,
-			ParentIDTemplate:     mainConfig.parentIDTemplate,
-			Reconcile:            mainConfig.reconcile,
-			EntryIDPrefix:        mainConfig.ctrlConfig.EntryIDPrefix,
-			EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
-			StaticManifestPath:   mainConfig.ctrlConfig.StaticManifestPath,
+			TrustDomain:              trustDomain,
+			ClusterName:              mainConfig.ctrlConfig.ClusterName,
+			ClusterDomain:            mainConfig.ctrlConfig.ClusterDomain,
+			K8sClient:                nil,
+			EntryClient:              spireClient,
+			IgnoreNamespaces:         mainConfig.ignoreNamespacesRegex,
+			GCInterval:               mainConfig.ctrlConfig.GCInterval,
+			ClassName:                mainConfig.ctrlConfig.ClassName,
+			WatchClassless:           mainConfig.ctrlConfig.WatchClassless,
+			ParentIDTemplate:         mainConfig.parentIDTemplate,
+			Reconcile:                mainConfig.reconcile,
+			EntryIDPrefix:            mainConfig.ctrlConfig.EntryIDPrefix,
+			EntryIDPrefixCleanup:     mainConfig.ctrlConfig.EntryIDPrefixCleanup,
+			StaticManifestPath:       mainConfig.ctrlConfig.StaticManifestPath,
+			ExpandEnvStaticManifests: mainConfig.ctrlConfig.ExpandEnvStaticManifests,
 		})
 		go func() {
 			err = entryReconciler.Run(ctx)
@@ -532,12 +533,13 @@ func staticRun(mainConfig Config) (err error) {
 	}
 	if mainConfig.reconcile.ClusterFederatedTrustDomains {
 		federationRelationshipReconciler := spirefederationrelationship.Reconciler(spirefederationrelationship.ReconcilerConfig{
-			K8sClient:          nil,
-			TrustDomainClient:  spireClient,
-			GCInterval:         mainConfig.ctrlConfig.GCInterval,
-			ClassName:          mainConfig.ctrlConfig.ClassName,
-			WatchClassless:     mainConfig.ctrlConfig.WatchClassless,
-			StaticManifestPath: mainConfig.ctrlConfig.StaticManifestPath,
+			K8sClient:                nil,
+			TrustDomainClient:        spireClient,
+			GCInterval:               mainConfig.ctrlConfig.GCInterval,
+			ClassName:                mainConfig.ctrlConfig.ClassName,
+			WatchClassless:           mainConfig.ctrlConfig.WatchClassless,
+			StaticManifestPath:       mainConfig.ctrlConfig.StaticManifestPath,
+			ExpandEnvStaticManifests: mainConfig.ctrlConfig.ExpandEnvStaticManifests,
 		})
 		go func() {
 			err = federationRelationshipReconciler.Run(ctx)

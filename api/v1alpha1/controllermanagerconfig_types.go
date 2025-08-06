@@ -152,6 +152,9 @@ type ControllerManagerConfigurationSpec struct {
 
 	// When configured, read yaml objects from the specified path rather then from Kubernetes.
 	StaticManifestPath *string `json:"staticManifestPath,omitempty"`
+
+	// When true, any static manifest parsed will first have environment variables expanded.
+	ExpandEnvStaticManifests bool `json:"expandEnvStaticManifests"`
 }
 
 // ReconcileConfig configuration used to enable/disable syncing various types

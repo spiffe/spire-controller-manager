@@ -33,10 +33,9 @@ func loadClusterFederatedTrustDomainFile(path string, scheme *runtime.Scheme, ex
 	return &entry, nil
 }
 
-func ListClusterFederatedTrustDomains(_ context.Context, manifestPath string) ([]ClusterFederatedTrustDomain, error) {
+func ListClusterFederatedTrustDomains(_ context.Context, manifestPath string, expandEnv bool) ([]ClusterFederatedTrustDomain, error) {
 	scheme := runtime.NewScheme()
 	res := make([]ClusterFederatedTrustDomain, 0)
-	expandEnv := false
 	files, err := os.ReadDir(manifestPath)
 	if err != nil {
 		return nil, err
