@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"time"
 
-	spireapi "github.com/spiffe/spire-controller-manager/pkg/spireapi"
+	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
