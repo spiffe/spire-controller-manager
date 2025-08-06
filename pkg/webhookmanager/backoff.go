@@ -12,11 +12,11 @@ type backoffTimer struct {
 	backoff backoff.Backoff
 }
 
-func newBackoffTimer(clk clock.Clock, min, max time.Duration) *backoffTimer {
+func newBackoffTimer(clk clock.Clock, minDuration, maxDuration time.Duration) *backoffTimer {
 	t := &backoffTimer{
 		backoff: backoff.Backoff{
-			Min: min,
-			Max: max,
+			Min: minDuration,
+			Max: maxDuration,
 		},
 	}
 	t.timer = clk.NewTimer(t.backoff.Duration())

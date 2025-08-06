@@ -52,8 +52,8 @@ func objectName(o metav1.Object) string {
 	}).String()
 }
 
-func entryLogFields(entry spireapi.Entry) []interface{} {
-	return []interface{}{
+func entryLogFields(entry spireapi.Entry) []any {
+	return []any{
 		idKey, entry.ID,
 		parentIDKey, entry.ParentID.String(),
 		spiffeIDKey, entry.SPIFFEID.String(),

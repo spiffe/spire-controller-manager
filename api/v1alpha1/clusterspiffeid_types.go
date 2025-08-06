@@ -31,11 +31,11 @@ type ClusterSPIFFEIDSpec struct {
 
 	// TTL indicates an upper-bound time-to-live for X509 SVIDs minted for this
 	// ClusterSPIFFEID. If unset, a default will be chosen.
-	TTL metav1.Duration `json:"ttl,omitempty"`
+	TTL metav1.Duration `json:"ttl"`
 
 	// JWTTTL indicates an upper-bound time-to-live for JWT SVIDs minted for this
 	// ClusterSPIFFEID.
-	JWTTTL metav1.Duration `json:"jwtTtl,omitempty"`
+	JWTTTL metav1.Duration `json:"jwtTtl"`
 
 	// DNSNameTemplate represents templates for extra DNS names that are
 	// applicable to SVIDs minted for this ClusterSPIFFEID.
@@ -142,11 +142,11 @@ type ClusterSPIFFEIDStats struct {
 // ClusterSPIFFEID is the Schema for the clusterspiffeids API
 type ClusterSPIFFEID struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec ClusterSPIFFEIDSpec `json:"spec,omitempty"`
+	Spec ClusterSPIFFEIDSpec `json:"spec"`
 	// +optional
-	Status ClusterSPIFFEIDStatus `json:"status,omitempty"`
+	Status ClusterSPIFFEIDStatus `json:"status"`
 }
 
 //+kubebuilder:object:root=true
@@ -154,7 +154,7 @@ type ClusterSPIFFEID struct {
 // ClusterSPIFFEIDList contains a list of ClusterSPIFFEID
 type ClusterSPIFFEIDList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []ClusterSPIFFEID `json:"items"`
 }
 

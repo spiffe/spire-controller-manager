@@ -66,8 +66,8 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl
 func (r *PodReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	// Index endpoints by UID. Later when we reconcile the Pod this will make it easy to find the associated endpoints
 	// and auto populate DNS names.
-	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.Endpoints{}, reconciler.EndpointUID, func(rawObj client.Object) []string {
-		endpoints, ok := rawObj.(*corev1.Endpoints)
+	err := mgr.GetFieldIndexer().IndexField(ctx, &corev1.Endpoints{}, reconciler.EndpointUID, func(rawObj client.Object) []string { //nolint: staticcheck // Refactor is going be done as part of a https://github.com/spiffe/spire-controller-manager/issues/554
+		endpoints, ok := rawObj.(*corev1.Endpoints) //nolint: staticcheck // Refactor is going be done as part of a https://github.com/spiffe/spire-controller-manager/issues/554
 		if !ok {
 			log.FromContext(ctx).Error(nil, "unexpected type indexing fields", "type", fmt.Sprintf("%T", rawObj), "expecteed", "*corev1.Endpoints")
 			return nil

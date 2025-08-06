@@ -46,7 +46,7 @@ func (c trustDomainClient) ListFederationRelationships(ctx context.Context) ([]F
 	for {
 		resp, err := c.api.ListFederationRelationships(ctx, &trustdomainv1.ListFederationRelationshipsRequest{
 			PageToken: pageToken,
-			PageSize:  int32(federationRelationshipListPageSize),
+			PageSize:  federationRelationshipListPageSize,
 		})
 		if err != nil {
 			return nil, err

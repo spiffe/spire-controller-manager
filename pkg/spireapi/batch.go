@@ -23,12 +23,12 @@ var (
 	entryCreateBatchSize = 50
 	entryUpdateBatchSize = 50
 	entryDeleteBatchSize = 200
-	entryListPageSize    = 200
+	entryListPageSize    = int32(200)
 
 	federationRelationshipCreateBatchSize = 50
 	federationRelationshipUpdateBatchSize = 50
 	federationRelationshipDeleteBatchSize = 200
-	federationRelationshipListPageSize    = 200
+	federationRelationshipListPageSize    = int32(200)
 )
 
 func runBatch(size, batch int, fn func(start, end int) error) error {
@@ -36,10 +36,7 @@ func runBatch(size, batch int, fn func(start, end int) error) error {
 		batch = size
 	}
 	for i := 0; i < size; {
-		n := size - i
-		if n > batch {
-			n = batch
-		}
+		n := min(size-i, batch)
 		err := fn(i, i+n)
 		if err != nil {
 			return err

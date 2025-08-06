@@ -61,6 +61,7 @@ func (r *EndpointsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // SetupWithManager sets up the controller with the Manager.
 func (r *EndpointsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Endpoints{}).
+		For(&corev1.Endpoints{}). //nolint: staticcheck // Refactor is going be done as part of a https://github.com/spiffe/spire-controller-manager/issues/554
+
 		Complete(r)
 }

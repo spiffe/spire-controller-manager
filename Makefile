@@ -80,7 +80,7 @@ endif
 go_version := $(shell cat .go-version)
 build_dir := $(DIR)/.build/$(os1)-$(arch1)
 
-golangci_lint_version = v1.60.1
+golangci_lint_version = v2.3.1
 golangci_lint_dir = $(build_dir)/golangci_lint/$(golangci_lint_version)
 golangci_lint_bin = $(golangci_lint_dir)/golangci-lint
 golangci_lint_cache = $(golangci_lint_dir)/cache
@@ -94,7 +94,7 @@ $(golangci_lint_bin):
 	$(E)rm -rf $(dir $(golangci_lint_dir))
 	$(E)mkdir -p $(golangci_lint_dir)
 	$(E)mkdir -p $(golangci_lint_cache)
-	$(E)GOBIN=$(golangci_lint_dir) $(go_path) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(golangci_lint_version)
+	$(E)GOBIN=$(golangci_lint_dir) $(go_path) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(golangci_lint_version)
 
 ##@ Development
 

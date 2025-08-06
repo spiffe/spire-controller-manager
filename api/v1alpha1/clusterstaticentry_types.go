@@ -29,8 +29,8 @@ type ClusterStaticEntrySpec struct {
 	ParentID      string          `json:"parentID"`
 	Selectors     []string        `json:"selectors"`
 	FederatesWith []string        `json:"federatesWith,omitempty"`
-	X509SVIDTTL   metav1.Duration `json:"x509SVIDTTL,omitempty"`
-	JWTSVIDTTL    metav1.Duration `json:"jwtSVIDTTL,omitempty"`
+	X509SVIDTTL   metav1.Duration `json:"x509SVIDTTL"`
+	JWTSVIDTTL    metav1.Duration `json:"jwtSVIDTTL"`
 	DNSNames      []string        `json:"dnsNames,omitempty"`
 	Hint          string          `json:"hint,omitempty"`
 	Admin         bool            `json:"admin,omitempty"`
@@ -60,10 +60,10 @@ type ClusterStaticEntryStatus struct {
 // ClusterStaticEntry is the Schema for the clusterstaticentries API
 type ClusterStaticEntry struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   ClusterStaticEntrySpec   `json:"spec,omitempty"`
-	Status ClusterStaticEntryStatus `json:"status,omitempty"`
+	Spec   ClusterStaticEntrySpec   `json:"spec"`
+	Status ClusterStaticEntryStatus `json:"status"`
 }
 
 //+kubebuilder:object:root=true
@@ -71,7 +71,7 @@ type ClusterStaticEntry struct {
 // ClusterStaticEntryList contains a list of ClusterStaticEntry
 type ClusterStaticEntryList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []ClusterStaticEntry `json:"items"`
 }
 

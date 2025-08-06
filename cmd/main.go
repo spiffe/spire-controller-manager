@@ -214,10 +214,10 @@ func parseConfig() (Config, error) {
 
 	if retval.ctrlConfig.StaticManifestPath != nil {
 		if retval.options.LeaderElection {
-			return retval, fmt.Errorf("Leader election is not possible with static manifests")
+			return retval, errors.New("the Leader election is not possible with static manifests")
 		}
 		if retval.reconcile.ClusterSPIFFEIDs {
-			return retval, fmt.Errorf("ClusterSPIFFEID reconciliation is not possible with static manifests")
+			return retval, errors.New("ClusterSPIFFEID reconciliation is not possible with static manifests")
 		}
 	}
 
@@ -228,7 +228,7 @@ func parseConfig() (Config, error) {
 		printCleanup = *retval.ctrlConfig.EntryIDPrefixCleanup
 		*retval.ctrlConfig.EntryIDPrefixCleanup = addDotSuffix(*retval.ctrlConfig.EntryIDPrefixCleanup)
 		if retval.ctrlConfig.EntryIDPrefix != "" && retval.ctrlConfig.EntryIDPrefix == *retval.ctrlConfig.EntryIDPrefixCleanup {
-			return retval, fmt.Errorf("if entryIDPrefixCleanup is specified, it can not be the same value as entryIDPrefix")
+			return retval, errors.New("if entryIDPrefixCleanup is specified, it can not be the same value as entryIDPrefix")
 		}
 	}
 
@@ -524,7 +524,7 @@ func staticRun(mainConfig Config) (err error) {
 			ExpandEnvStaticManifests: mainConfig.ctrlConfig.ExpandEnvStaticManifests,
 		})
 		go func() {
-			err = entryReconciler.Run(ctx)
+			err := entryReconciler.Run(ctx)
 			if err != nil {
 				setupLog.Error(err, "failure starting entry reconciler", "controller", "ClusterStaticEntry")
 			}
@@ -542,7 +542,7 @@ func staticRun(mainConfig Config) (err error) {
 			ExpandEnvStaticManifests: mainConfig.ctrlConfig.ExpandEnvStaticManifests,
 		})
 		go func() {
-			err = federationRelationshipReconciler.Run(ctx)
+			err := federationRelationshipReconciler.Run(ctx)
 			if err != nil {
 				setupLog.Error(err, "failure starting federation relationship reconciler", "controller", "ClusterFederatedTrustDomain")
 			}
