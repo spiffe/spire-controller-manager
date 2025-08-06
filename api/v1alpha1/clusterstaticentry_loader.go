@@ -33,10 +33,9 @@ func loadClusterStaticEntryFile(path string, scheme *runtime.Scheme, expandEnv b
 	return &entry, nil
 }
 
-func ListClusterStaticEntries(_ context.Context, manifestPath string) ([]ClusterStaticEntry, error) {
+func ListClusterStaticEntries(_ context.Context, manifestPath string, expandEnv bool) ([]ClusterStaticEntry, error) {
 	scheme := runtime.NewScheme()
 	res := make([]ClusterStaticEntry, 0)
-	expandEnv := false
 	files, err := os.ReadDir(manifestPath)
 	if err != nil {
 		return nil, err
