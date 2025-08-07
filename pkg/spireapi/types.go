@@ -148,8 +148,8 @@ func entryToAPI(in Entry) *apitypes.Entry {
 		SpiffeId:      spiffeIDToAPI(in.SPIFFEID),
 		ParentId:      spiffeIDToAPI(in.ParentID),
 		Selectors:     selectorsToAPI(in.Selectors),
-		X509SvidTtl:   int32(in.X509SVIDTTL / time.Second),
-		JwtSvidTtl:    int32(in.JWTSVIDTTL / time.Second),
+		X509SvidTtl:   int32(in.X509SVIDTTL / time.Second), //nolint: gosec // SPIRE API uses int32 for TTLs
+		JwtSvidTtl:    int32(in.JWTSVIDTTL / time.Second),  //nolint: gosec // SPIRE API uses int32 for TTLs
 		FederatesWith: trustDomainsToAPI(in.FederatesWith),
 		Admin:         in.Admin,
 		DnsNames:      in.DNSNames,
@@ -264,11 +264,11 @@ func selectorsToAPI(ins []Selector) []*apitypes.Selector {
 func selectorFromAPI(in *apitypes.Selector) (Selector, error) {
 	switch {
 	case in.Type == "":
-		return Selector{}, fmt.Errorf("selector type is empty")
+		return Selector{}, errors.New("selector type is empty")
 	case in.Value == "":
-		return Selector{}, fmt.Errorf("selector value is empty")
+		return Selector{}, errors.New("selector value is empty")
 	case strings.Contains(in.Type, ":"):
-		return Selector{}, fmt.Errorf("selector type cannot contain a colon")
+		return Selector{}, errors.New("selector type cannot contain a colon")
 	}
 	return Selector{
 		Type:  in.Type,
@@ -595,7 +595,7 @@ func statusFromAPI(in *apitypes.Status) Status {
 		}
 	}
 	return Status{
-		Code:    codes.Code(in.Code),
+		Code:    codes.Code(in.Code), //nolint:gosec // SPIRE API uses int32 for codes
 		Message: in.Message,
 	}
 }

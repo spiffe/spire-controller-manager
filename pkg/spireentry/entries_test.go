@@ -44,7 +44,8 @@ func TestRenderPodEntry(t *testing.T) {
 		},
 	}
 	endpointsList := &corev1.EndpointsList{
-		Items: []corev1.Endpoints{
+		Items: []corev1.Endpoints{ //nolint: staticcheck // Refactor is going be done as part of a https://github.com/spiffe/spire-controller-manager/issues/554
+
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "endpoint",

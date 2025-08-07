@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"time"
 
-	spireapi "github.com/spiffe/spire-controller-manager/pkg/spireapi"
+	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
@@ -112,15 +112,15 @@ type ControllerManagerConfigurationSpec struct {
 
 	// Metrics contains the controller metrics configuration
 	// +optional
-	Metrics ControllerMetrics `json:"metrics,omitempty"`
+	Metrics ControllerMetrics `json:"metrics"`
 
 	// Health contains the controller health configuration
 	// +optional
-	Health ControllerHealth `json:"health,omitempty"`
+	Health ControllerHealth `json:"health"`
 
 	// Webhook contains the controllers webhook configuration
 	// +optional
-	Webhook ControllerWebhook `json:"webhook,omitempty"`
+	Webhook ControllerWebhook `json:"webhook"`
 
 	// ClassName contains the name of a class to watch CRs for. Others will be ignored.
 	// If unset all will be watched.

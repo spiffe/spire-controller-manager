@@ -36,7 +36,7 @@ import (
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	admissionregistrationapiv1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 	"k8s.io/client-go/tools/cache"
@@ -399,20 +399,20 @@ func startInformer(ctx context.Context, config Config) (cache.Store, chan struct
 		ObjectType:   &admissionregistrationv1.ValidatingWebhookConfiguration{},
 		ResyncPeriod: time.Hour,
 		Handler: cache.FilteringResourceEventHandler{
-			FilterFunc: func(obj interface{}) bool {
+			FilterFunc: func(obj any) bool {
 				o, ok := obj.(*admissionregistrationv1.ValidatingWebhookConfiguration)
 				return ok && o.Name == config.WebhookName
 			},
 			Handler: cache.ResourceEventHandlerFuncs{
-				AddFunc: func(_ interface{}) {
+				AddFunc: func(_ any) {
 					log.Info("Received webhook added event")
 					notify()
 				},
-				UpdateFunc: func(_, _ interface{}) {
+				UpdateFunc: func(_, _ any) {
 					log.Info("Received webhook updated event")
 					notify()
 				},
-				DeleteFunc: func(_ interface{}) {
+				DeleteFunc: func(_ any) {
 					log.Info("Received webhook deleted event")
 					notify()
 				},

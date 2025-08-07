@@ -60,8 +60,7 @@ func TestReconciler(t *testing.T) {
 		err := <-errCh
 		assert.True(t, errors.Is(err, context.Canceled), "expected canceled error; got %f", err)
 	})
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	go func() {
 		errCh <- r.Run(ctx)
 	}()
