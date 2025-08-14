@@ -46,13 +46,12 @@ func ListClusterStaticEntries(_ context.Context, manifestPath string, expandEnv 
 		}
 		fullfile := path.Join(manifestPath, file.Name())
 		entry, err := loadClusterStaticEntryFile(fullfile, scheme, expandEnv)
+		if err != nil {
+			return nil, err
+		}
 		// Ignore files of the wrong type in manifestPath
 		if entry.APIVersion != "spire.spiffe.io/v1alpha1" || entry.Kind != "ClusterStaticEntry" {
 			continue
-		}
-		// Right file type, but error loading
-		if err != nil {
-			return nil, err
 		}
 		res = append(res, *entry)
 	}
