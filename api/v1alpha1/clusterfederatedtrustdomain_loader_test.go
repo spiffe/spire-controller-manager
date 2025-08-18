@@ -98,7 +98,7 @@ func TestFederatedLoadNotOkConfig(t *testing.T) {
 
 	cftd, err := spirev1alpha1.LoadClusterFederatedTrustDomainFile(path, scheme, false)
 	require.Error(t, err)
-	require.Equal(t, cftd, nil)
+	require.Nil(t, cftd)
 }
 
 func TestFederatedLoadStaticNotOkConfig(t *testing.T) {
