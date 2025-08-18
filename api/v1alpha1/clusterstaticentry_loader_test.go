@@ -94,8 +94,9 @@ func TestStaticLoadNotOkConfig(t *testing.T) {
 	path := filepath.Join(tempDir, "file.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(cseNotOKFileContent), 0600))
 
-	_, err := spirev1alpha1.LoadClusterStaticEntryFile(path, scheme, false)
+	cse, err := spirev1alpha1.LoadClusterStaticEntryFile(path, scheme, false)
 	require.Error(t, err)
+	require.Nil(t, cse)
 }
 
 func TestStaticLoadStaticNotOkConfig(t *testing.T) {
