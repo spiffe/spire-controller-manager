@@ -96,8 +96,9 @@ func TestFederatedLoadNotOkConfig(t *testing.T) {
 	path := filepath.Join(tempDir, "file.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(cftdNotOKFileContent), 0600))
 
-	_, err := spirev1alpha1.LoadClusterFederatedTrustDomainFile(path, scheme, false)
+	cftd, err := spirev1alpha1.LoadClusterFederatedTrustDomainFile(path, scheme, false)
 	require.Error(t, err)
+	require.Equal(t, cftd, nil)
 }
 
 func TestFederatedLoadStaticNotOkConfig(t *testing.T) {
