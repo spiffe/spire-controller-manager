@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
-func loadClusterStaticEntryFile(path string, scheme *runtime.Scheme, expandEnv bool) (*ClusterStaticEntry, error) {
+func LoadClusterStaticEntryFile(path string, scheme *runtime.Scheme, expandEnv bool) (*ClusterStaticEntry, error) {
 	var entry ClusterStaticEntry
 	content, err := os.ReadFile(path)
 	if err != nil {

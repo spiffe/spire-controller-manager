@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
-func loadClusterFederatedTrustDomainFile(path string, scheme *runtime.Scheme, expandEnv bool) (*ClusterFederatedTrustDomain, error) {
+func LoadClusterFederatedTrustDomainFile(path string, scheme *runtime.Scheme, expandEnv bool) (*ClusterFederatedTrustDomain, error) {
 	var entry ClusterFederatedTrustDomain
 	content, err := os.ReadFile(path)
 	if err != nil {
