@@ -45,7 +45,7 @@ func ListClusterStaticEntries(_ context.Context, manifestPath string, expandEnv 
 			continue
 		}
 		fullfile := path.Join(manifestPath, file.Name())
-		entry, err := loadClusterStaticEntryFile(fullfile, scheme, expandEnv)
+		entry, err := LoadClusterStaticEntryFile(fullfile, scheme, expandEnv)
 		if err != nil {
 			return nil, err
 		}

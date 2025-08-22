@@ -45,7 +45,7 @@ func ListClusterFederatedTrustDomains(_ context.Context, manifestPath string, ex
 			continue
 		}
 		fullfile := path.Join(manifestPath, file.Name())
-		entry, err := loadClusterFederatedTrustDomainFile(fullfile, scheme, expandEnv)
+		entry, err := LoadClusterFederatedTrustDomainFile(fullfile, scheme, expandEnv)
 		if err != nil {
 			return nil, err
 		}
