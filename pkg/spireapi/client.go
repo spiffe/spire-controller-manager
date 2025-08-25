@@ -45,8 +45,7 @@ func DialSocket(path string, grpcConfig *GrpcConfig) (Client, error) {
 	} else {
 		target = "unix:" + path
 	}
-
-	grpcOptions := getGrpcConfig(grpcConfig)
+	grpcOptions := append(getGrpcConfig(grpcConfig), grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 
 	grpcClient, err := grpc.NewClient(target, grpcOptions...)
 	if err != nil {
