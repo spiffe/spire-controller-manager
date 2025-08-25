@@ -40,19 +40,12 @@ type GrpcConfig struct {
 
 func DialSocket(path string, grpcConfig *GrpcConfig) (Client, error) {
 	var target string
-	var waitForBundle = `{
-	          "methodConfig": [{
-	            "name": [{"service": "spire.api.server.bundle.v1.Bundle", "method": "GetBundle"}],
-				"waitForReady": true,
-				"timeout": "5s"
-	        }]
-	    }`
 	if filepath.IsAbs(path) {
 		target = "unix://" + path
 	} else {
 		target = "unix:" + path
 	}
-	grpcOptions := append(getGrpcConfig(grpcConfig), grpc.WithDefaultServiceConfig(waitForBundle))
+	grpcOptions := append(getGrpcConfig(grpcConfig), grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 
 	grpcClient, err := grpc.NewClient(target, grpcOptions...)
 	if err != nil {
