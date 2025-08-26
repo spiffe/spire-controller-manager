@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
-func loadClusterFederatedTrustDomainFile(path string, scheme *runtime.Scheme, expandEnv bool) (*ClusterFederatedTrustDomain, error) {
+func LoadClusterFederatedTrustDomainFile(path string, scheme *runtime.Scheme, expandEnv bool) (*ClusterFederatedTrustDomain, error) {
 	var entry ClusterFederatedTrustDomain
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -45,14 +45,13 @@ func ListClusterFederatedTrustDomains(_ context.Context, manifestPath string, ex
 			continue
 		}
 		fullfile := path.Join(manifestPath, file.Name())
-		entry, err := loadClusterFederatedTrustDomainFile(fullfile, scheme, expandEnv)
+		entry, err := LoadClusterFederatedTrustDomainFile(fullfile, scheme, expandEnv)
+		if err != nil {
+			return nil, err
+		}
 		// Ignore files of the wrong type in manifestPath
 		if entry.APIVersion != "spire.spiffe.io/v1alpha1" || entry.Kind != "ClusterFederatedTrustDomain" {
 			continue
-		}
-		// Right file type, but error loading
-		if err != nil {
-			return nil, err
 		}
 		res = append(res, *entry)
 	}
