@@ -1,5 +1,6 @@
 # SPIRE Controller Manager
 
+
 [![Build Status](https://github.com/spiffe/spire-controller-manager/actions/workflows/nightly_build.yaml/badge.svg)](https://github.com/spiffe/spire-controller-manager/actions/workflows/nightly_build.yaml)
 [![Pre-Production Phase](https://github.com/spiffe/spiffe/blob/main/.img/maturity/pre-prod.svg)](https://github.com/spiffe/spiffe/blob/main/MATURITY.md#pre-production)
 
