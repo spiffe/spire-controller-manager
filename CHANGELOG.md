@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.3] - 2025-08-28
+
+### Added
+
+- Support for configuring the log encoder format (#539)
+- Support for configuring gRPC maximum call receive message size (#547)
+- Support for expanding environment variables in static manifest files (#549)
+
+### Fixed
+
+- Fixed webhook error at startup by adding proper wait for SPIRE Server socket availability (#558)
+- Fixed static manifest loading issues (#561)
+
 ## [0.6.2] - 2025-04-17
 
 ### Added
