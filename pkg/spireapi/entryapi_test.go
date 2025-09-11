@@ -163,6 +163,7 @@ func TestGetUnsupportedFields(t *testing.T) {
 		cleanUnsupportedFields bool
 		createEntryErr         error
 		deleteEntryErr         error
+		entryExists            bool
 
 		expectErr    error
 		expectFields map[Field]struct{}
@@ -195,6 +196,11 @@ func TestGetUnsupportedFields(t *testing.T) {
 				StoreSVIDField:  {},
 			},
 		},
+		{
+			desc:         "entry exists",
+			entryExists:  true,
+			expectFields: make(map[Field]struct{}),
+		},
 	} {
 		t.Run(tc.desc, func(t *testing.T) {
 			server, client := startEntryAPIServer(t)
@@ -202,6 +208,19 @@ func TestGetUnsupportedFields(t *testing.T) {
 			server.batchCreateEntriesErr = tc.createEntryErr
 			server.batchDeleteEntriesErr = tc.deleteEntryErr
 			server.clearUnsupportedFields = tc.cleanUnsupportedFields
+
+			if tc.entryExists {
+				server.setEntries(t,
+					Entry{
+						ParentID:    spiffeid.RequireFromString("spiffe://domain.test/spire-controller-manager/unsupported-fields-test"),
+						SPIFFEID:    spiffeid.RequireFromString("spiffe://domain.test/spire-controller-manager/unsupported-fields-test"),
+						Selectors:   []Selector{{Type: "a", Value: "1"}},
+						X509SVIDTTL: 60,
+						JWTSVIDTTL:  60,
+						StoreSVID:   true,
+						Hint:        "hint",
+					})
+			}
 
 			resp, err := client.GetUnsupportedFields(ctx, "domain.test")
 			if tc.expectErr != nil {
@@ -412,7 +431,7 @@ func (s *entryServer) BatchCreateEntry(_ context.Context, req *entryv1.BatchCrea
 				Message: st.Message(),
 			},
 		}
-		if st.Code() == codes.OK {
+		if st.Code() == codes.OK || st.Code() == codes.AlreadyExists {
 			result.Entry = entry
 		}
 		resp.Results = append(resp.Results, result)
