@@ -110,7 +110,7 @@ func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[F
 	}
 
 	result := resp.Results[0]
-	if result.Status.Code != int32(codes.OK) {
+	if result.Status.Code != int32(codes.OK) && result.Status.Code != int32(codes.AlreadyExists) {
 		return nil, fmt.Errorf("failed to create entry: %v", result.Status.Message)
 	}
 
