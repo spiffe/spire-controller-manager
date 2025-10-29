@@ -29,8 +29,8 @@ type ClusterStaticEntrySpec struct {
 	ParentID      string          `json:"parentID"`
 	Selectors     []string        `json:"selectors"`
 	FederatesWith []string        `json:"federatesWith,omitempty"`
-	X509SVIDTTL   metav1.Duration `json:"x509SVIDTTL"`
-	JWTSVIDTTL    metav1.Duration `json:"jwtSVIDTTL"`
+	X509SVIDTTL   metav1.Duration `json:"x509SVIDTTL,omitempty"`
+	JWTSVIDTTL    metav1.Duration `json:"jwtSVIDTTL,omitempty"`
 	DNSNames      []string        `json:"dnsNames,omitempty"`
 	Hint          string          `json:"hint,omitempty"`
 	Admin         bool            `json:"admin,omitempty"`
