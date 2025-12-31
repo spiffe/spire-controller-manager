@@ -62,7 +62,8 @@ type ClusterStaticEntry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   ClusterStaticEntrySpec   `json:"spec"`
+	Spec ClusterStaticEntrySpec `json:"spec"`
+	// +optional
 	Status ClusterStaticEntryStatus `json:"status"`
 }
 

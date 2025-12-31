@@ -80,7 +80,8 @@ type ClusterFederatedTrustDomain struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   ClusterFederatedTrustDomainSpec   `json:"spec"`
+	Spec ClusterFederatedTrustDomainSpec `json:"spec"`
+	// +optional
 	Status ClusterFederatedTrustDomainStatus `json:"status"`
 }
 
