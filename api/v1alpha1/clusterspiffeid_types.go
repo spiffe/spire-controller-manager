@@ -31,11 +31,11 @@ type ClusterSPIFFEIDSpec struct {
 
 	// TTL indicates an upper-bound time-to-live for X509 SVIDs minted for this
 	// ClusterSPIFFEID. If unset, a default will be chosen.
-	TTL metav1.Duration `json:"ttl"`
+	TTL metav1.Duration `json:"ttl,omitempty"`
 
 	// JWTTTL indicates an upper-bound time-to-live for JWT SVIDs minted for this
 	// ClusterSPIFFEID.
-	JWTTTL metav1.Duration `json:"jwtTtl"`
+	JWTTTL metav1.Duration `json:"jwtTtl,omitempty"`
 
 	// DNSNameTemplate represents templates for extra DNS names that are
 	// applicable to SVIDs minted for this ClusterSPIFFEID.

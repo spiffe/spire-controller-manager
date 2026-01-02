@@ -86,6 +86,7 @@ type ControllerManagerConfigurationSpec struct {
 
 	// CacheNamespace if specified restricts the manager's cache to watch objects in
 	// the desired namespace. Defaults to all namespaces.
+	//
 	// Deprecated: use cacheNamespaces instead
 	//
 	// Note: If a namespace is specified, controllers can still Watch for a
