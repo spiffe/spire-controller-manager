@@ -61,9 +61,19 @@ func ListNamespaces(ctx context.Context, c client.Client, namespaceSelector labe
 	return list.Items, nil
 }
 
+func ListNodes(ctx context.Context, c client.Client) ([]corev1.Node, error) {
+	list := new(corev1.NodeList)
+	if err := c.List(ctx, list, client.UnsafeDisableDeepCopy); err != nil {
+		return nil, err
+	}
+	return list.Items, nil
+}
+
 func ListNamespacePods(ctx context.Context, c client.Client, namespace string, podSelector labels.Selector) ([]corev1.Pod, error) {
 	opts := []client.ListOption{
 		client.InNamespace(namespace),
+		// NOTE: Disable deepcopy for better performance since pod objects are read only
+		client.UnsafeDisableDeepCopy,
 	}
 	if podSelector != nil {
 		opts = append(opts, client.MatchingLabelsSelector{Selector: podSelector})

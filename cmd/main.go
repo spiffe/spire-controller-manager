@@ -350,19 +350,21 @@ func run(mainConfig Config) (err error) {
 	var entryReconciler reconciler.Reconciler
 	if mainConfig.reconcile.ClusterSPIFFEIDs || mainConfig.reconcile.ClusterStaticEntries {
 		entryReconciler = spireentry.Reconciler(spireentry.ReconcilerConfig{
-			TrustDomain:          trustDomain,
-			ClusterName:          mainConfig.ctrlConfig.ClusterName,
-			ClusterDomain:        mainConfig.ctrlConfig.ClusterDomain,
-			K8sClient:            mgr.GetClient(),
-			EntryClient:          spireClient,
-			IgnoreNamespaces:     mainConfig.ignoreNamespacesRegex,
-			GCInterval:           mainConfig.ctrlConfig.GCInterval,
-			ClassName:            mainConfig.ctrlConfig.ClassName,
-			WatchClassless:       mainConfig.ctrlConfig.WatchClassless,
-			ParentIDTemplate:     mainConfig.parentIDTemplate,
-			Reconcile:            mainConfig.reconcile,
-			EntryIDPrefix:        mainConfig.ctrlConfig.EntryIDPrefix,
-			EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
+			TrustDomain:            trustDomain,
+			ClusterName:            mainConfig.ctrlConfig.ClusterName,
+			ClusterDomain:          mainConfig.ctrlConfig.ClusterDomain,
+			K8sClient:              mgr.GetClient(),
+			EntryClient:            spireClient,
+			IgnoreNamespaces:       mainConfig.ignoreNamespacesRegex,
+			GCInterval:             mainConfig.ctrlConfig.GCInterval,
+			ClassName:              mainConfig.ctrlConfig.ClassName,
+			WatchClassless:         mainConfig.ctrlConfig.WatchClassless,
+			ParentIDTemplate:       mainConfig.parentIDTemplate,
+			Reconcile:              mainConfig.reconcile,
+			EntryIDPrefix:          mainConfig.ctrlConfig.EntryIDPrefix,
+			EntryIDPrefixCleanup:   mainConfig.ctrlConfig.EntryIDPrefixCleanup,
+			EnableEntryRenderCache: mainConfig.ctrlConfig.EnableEntryRenderCache,
+			EntryRenderCacheSize:   mainConfig.ctrlConfig.EntryRenderCacheSize,
 		})
 	}
 
@@ -522,6 +524,8 @@ func staticRun(mainConfig Config) (err error) {
 			EntryIDPrefixCleanup:     mainConfig.ctrlConfig.EntryIDPrefixCleanup,
 			StaticManifestPath:       mainConfig.ctrlConfig.StaticManifestPath,
 			ExpandEnvStaticManifests: mainConfig.ctrlConfig.ExpandEnvStaticManifests,
+			EnableEntryRenderCache:   mainConfig.ctrlConfig.EnableEntryRenderCache,
+			EntryRenderCacheSize:     mainConfig.ctrlConfig.EntryRenderCacheSize,
 		})
 		go func() {
 			err := entryReconciler.Run(ctx)
