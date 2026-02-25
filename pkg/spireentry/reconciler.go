@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -31,6 +32,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"google.golang.org/grpc/codes"
@@ -52,12 +54,12 @@ import (
 const (
 	// joinTokenSpiffePrefix is the prefix that is the part of the parent SPIFFE ID for join token entries.
 	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L714
-	//nolint: gosec // not a credential
+	// nolint: gosec // not a credential
 	joinTokenSpiffePrefix = "/spire/agent/join_token/"
 
 	// joinTokenSelectorType is the selector type used in the selector for join token entries.
 	// Ref: https://github.com/spiffe/spire/blob/v1.8.7/pkg/server/api/agent/v1/service.go#L515
-	//nolint: gosec // not a credential
+	// nolint: gosec // not a credential
 	joinTokenSelectorType = "spiffe_id"
 )
 
@@ -81,7 +83,16 @@ type ReconcilerConfig struct {
 	// GCInterval how long to sit idle (i.e. untriggered) before doing
 	// another reconcile.
 	GCInterval time.Duration
+
+	// EntryRenderCacheSize is the maximum number of entries in the LRU cache
+	// for rendered pod entries. If zero, defaults to defaultEntryRenderCacheSize.
+	EntryRenderCacheSize int
 }
+
+const (
+	// defaultEntryRenderCacheSize is the default size for the LRU cache
+	defaultEntryRenderCacheSize = 300000
+)
 
 func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 	r := &entryReconciler{
@@ -89,6 +100,17 @@ func Reconciler(config ReconcilerConfig) reconciler.Reconciler {
 		promCounter:              metrics.PromCounters,
 		staticManifestPath:       config.StaticManifestPath,
 		expandEnvStaticManifests: config.ExpandEnvStaticManifests,
+	}
+
+	cacheSize := config.EntryRenderCacheSize
+	if cacheSize <= 0 {
+		cacheSize = defaultEntryRenderCacheSize
+	}
+	renderCache, err := lru.New[string, *cachedEntry](cacheSize)
+	if err != nil {
+		log.Log.WithName("entry-reconciler").Error(err, "Failed to create entry cache, running without cache")
+	} else {
+		r.renderCache = renderCache
 	}
 	return reconciler.New(reconciler.Config{
 		Kind:       "entry",
@@ -105,6 +127,26 @@ type entryReconciler struct {
 	nextGetUnsupportedFields time.Time
 	staticManifestPath       *string
 	expandEnvStaticManifests bool
+
+	renderCache *lru.Cache[string, *cachedEntry] // thread-safe LRU cache for pod entries
+
+}
+
+type cachedEntry struct {
+	entry       *spireapi.Entry
+	podRV       string // Pod RV
+	nodeRV      string // Node RV
+	specHash    string // Hash of ClusterSPIFFEID spec
+	endpointsRV string // Concatenated Endpoints RVs
+}
+
+// isValid checks whether the cached entry is still fresh by comparing
+// the RVs and hashes against the current state.
+func (c *cachedEntry) isValid(podRV, nodeRV, specHash, endpointsRV string) bool {
+	return c.podRV == podRV &&
+		c.nodeRV == nodeRV &&
+		c.specHash == specHash &&
+		c.endpointsRV == endpointsRV
 }
 
 func (r *entryReconciler) reconcile(ctx context.Context) {
@@ -147,7 +189,15 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			log.Error(err, "Failed to list ClusterSPIFFEIDs")
 			return
 		}
-		r.addClusterSPIFFEIDEntriesState(ctx, state, clusterSPIFFEIDs)
+
+		// Pre-load all nodes into a map to avoid per-pod Get() calls,
+		// which each incur a deep copy and mutex lock on the informer cache.
+		nodeMap, err := r.buildNodeMap(ctx)
+		if err != nil {
+			log.Error(err, "Failed to list nodes")
+			return
+		}
+		r.addClusterSPIFFEIDEntriesState(ctx, state, clusterSPIFFEIDs, nodeMap)
 	}
 
 	var toDelete []spireapi.Entry
@@ -353,6 +403,18 @@ func (r *entryReconciler) listClusterSPIFFEIDs(ctx context.Context) ([]*ClusterS
 	return out, nil
 }
 
+func (r *entryReconciler) buildNodeMap(ctx context.Context) (map[string]*corev1.Node, error) {
+	nodes, err := k8sapi.ListNodes(ctx, r.config.K8sClient)
+	if err != nil {
+		return nil, err
+	}
+	nodeMap := make(map[string]*corev1.Node, len(nodes))
+	for i := range nodes {
+		nodeMap[nodes[i].Name] = &nodes[i]
+	}
+	return nodeMap, nil
+}
+
 func (r *entryReconciler) listNamespaces(ctx context.Context, namespaceSelector labels.Selector) ([]corev1.Namespace, error) {
 	return k8sapi.ListNamespaces(ctx, r.config.K8sClient, namespaceSelector)
 }
@@ -377,7 +439,7 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 	}
 }
 
-func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID) {
+func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, state entriesState, clusterSPIFFEIDs []*ClusterSPIFFEID, nodeMap map[string]*corev1.Node) {
 	log := log.FromContext(ctx)
 	podsWithNonFallbackApplied := make(map[types.UID]struct{})
 	// Process all the fallback clusterSPIFFEIDs last.
@@ -398,6 +460,14 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 			// TODO: should this be prevented via admission webhook? should
 			// we dump this failure into the status?
 			log.Error(err, "Failed to parse ClusterSPIFFEID spec")
+			continue
+		}
+
+		// Compute spec hash once for all pods in this ClusterSPIFFEID
+		// This avoids recalculating the same hash for every pod
+		specHash, err := computeObjectHash(spec)
+		if err != nil {
+			log.Error(err, "Failed to hash ClusterSPIFFEID spec")
 			continue
 		}
 
@@ -435,7 +505,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 					continue
 				}
 
-				entry, err := r.renderPodEntry(ctx, spec, &pods[i])
+				entry, err := r.renderPodEntry(ctx, spec, &pods[i], specHash, nodeMap)
 				switch {
 				case err != nil:
 					log.Error(err, "Failed to render entry")
@@ -453,20 +523,79 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 	}
 }
 
-func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, pod *corev1.Pod) (*spireapi.Entry, error) {
-	// TODO: should we be caching this? probably not since it grabs from the
-	// controller client, which is cached already.
-	node := new(corev1.Node)
-	if err := r.config.K8sClient.Get(ctx, types.NamespacedName{Name: pod.Spec.NodeName}, node); err != nil {
-		return nil, client.IgnoreNotFound(err)
+// podEntryCacheKey generates a cache key for a pod entry based on pod UID.
+// We use UID alone (not UID+ResourceVersion+xxxHash) as the key so that each pod
+// occupies exactly one LRU slot. ResourceVersions and other volatile fields
+// are checked separately via cachedEntry.isValid; this avoids accumulating
+// stale entries in the cache when pods or nodes are updated.
+func podEntryCacheKey(podUID types.UID) string {
+	return string(podUID)
+}
+
+// computeObjectHash computes a SHA256 hash of an object by serializing it to JSON.
+func computeObjectHash(obj interface{}) (string, error) {
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return "", err
 	}
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:]), nil
+}
+
+// computeEndpointsRV builds a compact string from individual Endpoint
+// ResourceVersions. This is much cheaper than JSON-serializing the full objects
+// and is sufficient for change detection since RV changes on any mutation.
+func computeEndpointsRV(items []corev1.Endpoints) string {
+	var sb strings.Builder
+	for i := range items {
+		if i > 0 {
+			sb.WriteByte(',')
+		}
+		sb.WriteString(items[i].ResourceVersion)
+	}
+	return sb.String()
+}
+
+func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, pod *corev1.Pod, specHash string, nodeMap map[string]*corev1.Node) (*spireapi.Entry, error) {
+	// Get node from cache map instead of making per-pod Get() calls
+	node, ok := nodeMap[pod.Spec.NodeName]
+	if !ok {
+		return nil, fmt.Errorf("node %s not found in cache", pod.Spec.NodeName)
+	}
+
 	endpointsList := &corev1.EndpointsList{}
+	endpointsRV := ""
 	if spec.AutoPopulateDNSNames {
 		if err := r.config.K8sClient.List(ctx, endpointsList, client.InNamespace(pod.Namespace), client.MatchingFields{reconciler.EndpointUID: string(pod.UID)}); err != nil && !apierrors.IsNotFound(err) {
 			return nil, err
 		}
+		if len(endpointsList.Items) > 0 {
+			endpointsRV = computeEndpointsRV(endpointsList.Items)
+		}
 	}
-	return renderPodEntry(spec, node, pod, endpointsList, r.config.TrustDomain, r.config.ClusterName, r.config.ClusterDomain, r.config.ParentIDTemplate)
+	// 1. Get rendered entry from cache
+	cacheKey := podEntryCacheKey(pod.UID)
+	if r.renderCache != nil {
+		if cached, ok := r.renderCache.Get(cacheKey); ok && cached.isValid(pod.ResourceVersion, node.ResourceVersion, specHash, endpointsRV) {
+			return cached.entry, nil
+		}
+	}
+	// 2. Perform render entry if cache miss
+	entry, err := renderPodEntry(spec, node, pod, endpointsList, r.config.TrustDomain, r.config.ClusterName, r.config.ClusterDomain, r.config.ParentIDTemplate)
+	if err != nil {
+		return nil, err
+	}
+	// 3. Cache the entry
+	if r.renderCache != nil {
+		r.renderCache.Add(cacheKey, &cachedEntry{
+			specHash:    specHash,
+			nodeRV:      node.ResourceVersion,
+			podRV:       pod.ResourceVersion,
+			endpointsRV: endpointsRV,
+			entry:       entry,
+		})
+	}
+	return entry, nil
 }
 
 func (r *entryReconciler) createEntries(ctx context.Context, declaredEntries []declaredEntry) {
