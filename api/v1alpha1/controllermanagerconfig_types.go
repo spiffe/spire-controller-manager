@@ -156,6 +156,17 @@ type ControllerManagerConfigurationSpec struct {
 
 	// When true, any static manifest parsed will first have environment variables expanded.
 	ExpandEnvStaticManifests bool `json:"expandEnvStaticManifests"`
+
+	// EnableEntryRenderCache enables the LRU cache for rendered pod entries.
+	// Defaults to false.
+	// +optional
+	EnableEntryRenderCache bool `json:"enableEntryRenderCache,omitempty"`
+
+	// EntryRenderCacheSize is the maximum number of entries in the LRU cache for
+	// rendered pod entries. Only used when enableEntryRenderCache is true.
+	// Defaults to 300000 if unset or zero.
+	// +optional
+	EntryRenderCacheSize int `json:"entryRenderCacheSize,omitempty"`
 }
 
 // ReconcileConfig configuration used to enable/disable syncing various types

@@ -362,7 +362,9 @@ func run(mainConfig Config) (err error) {
 			ParentIDTemplate:     mainConfig.parentIDTemplate,
 			Reconcile:            mainConfig.reconcile,
 			EntryIDPrefix:        mainConfig.ctrlConfig.EntryIDPrefix,
-			EntryIDPrefixCleanup: mainConfig.ctrlConfig.EntryIDPrefixCleanup,
+			EntryIDPrefixCleanup:   mainConfig.ctrlConfig.EntryIDPrefixCleanup,
+			EnableEntryRenderCache: mainConfig.ctrlConfig.EnableEntryRenderCache,
+			EntryRenderCacheSize:   mainConfig.ctrlConfig.EntryRenderCacheSize,
 		})
 	}
 
@@ -522,6 +524,8 @@ func staticRun(mainConfig Config) (err error) {
 			EntryIDPrefixCleanup:     mainConfig.ctrlConfig.EntryIDPrefixCleanup,
 			StaticManifestPath:       mainConfig.ctrlConfig.StaticManifestPath,
 			ExpandEnvStaticManifests: mainConfig.ctrlConfig.ExpandEnvStaticManifests,
+			EnableEntryRenderCache:   mainConfig.ctrlConfig.EnableEntryRenderCache,
+			EntryRenderCacheSize:     mainConfig.ctrlConfig.EntryRenderCacheSize,
 		})
 		go func() {
 			err := entryReconciler.Run(ctx)
