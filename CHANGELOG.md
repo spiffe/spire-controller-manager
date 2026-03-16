@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.4] - 2026-03-16
+
+### Added
+
+- Support for configuring an LRU cache for entry rendering to optimize reconcile performance (`enableEntryRenderCache`, disabled by default) (#632)
+
+### Fixed
+
+- Failed to recover from an entry left in a partially updated state while removing unsupported fields (#591)
+
+### Updated
+
+- Migrated to the latest controller runtime (#605)
+
 ## [0.6.3] - 2025-08-28
 
 ### Added
