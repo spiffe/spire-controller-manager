@@ -24,10 +24,8 @@ import (
 	"github.com/spiffe/go-spiffe/v2/bundle/spiffebundle"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -35,8 +33,7 @@ import (
 var clusterfederatedtrustdomainlog = logf.Log.WithName("clusterfederatedtrustdomain-resource")
 
 func (r *ClusterFederatedTrustDomain) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+	return ctrl.NewWebhookManagedBy(mgr, r).
 		WithValidator(&ClusterFederatedTrustDomainCustomValidator{}).
 		Complete()
 }
@@ -50,30 +47,22 @@ type ClusterFederatedTrustDomainCustomValidator struct {
 	// TODO(user): Add more fields as needed for validation
 }
 
-var _ webhook.CustomValidator = &ClusterFederatedTrustDomainCustomValidator{}
+var _ admission.Validator[*ClusterFederatedTrustDomain] = &ClusterFederatedTrustDomainCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomainCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	o, ok := obj.(*ClusterFederatedTrustDomain)
-	if !ok {
-		return nil, fmt.Errorf("expected a ClusterFederatedTrustDomain object but got %T", obj)
-	}
+func (r *ClusterFederatedTrustDomainCustomValidator) ValidateCreate(_ context.Context, o *ClusterFederatedTrustDomain) (admission.Warnings, error) {
 	clusterfederatedtrustdomainlog.Info("validate create", "name", o.Name)
 	return r.validate(o)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomainCustomValidator) ValidateUpdate(_ context.Context, _ runtime.Object, nobj runtime.Object) (admission.Warnings, error) {
-	o, ok := nobj.(*ClusterFederatedTrustDomain)
-	if !ok {
-		return nil, fmt.Errorf("expected a ClusterFederatedTrustDomain object but got %T", nobj)
-	}
+func (r *ClusterFederatedTrustDomainCustomValidator) ValidateUpdate(_ context.Context, _ *ClusterFederatedTrustDomain, o *ClusterFederatedTrustDomain) (admission.Warnings, error) {
 	clusterfederatedtrustdomainlog.Info("validate update", "name", o.Name)
 	return r.validate(o)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type
-func (r *ClusterFederatedTrustDomainCustomValidator) ValidateDelete(context.Context, runtime.Object) (admission.Warnings, error) {
+func (r *ClusterFederatedTrustDomainCustomValidator) ValidateDelete(context.Context, *ClusterFederatedTrustDomain) (admission.Warnings, error) {
 	// Deletes are not validated.
 	return nil, nil
 }
