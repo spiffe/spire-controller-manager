@@ -267,7 +267,3 @@ type ControllerWebhook struct {
 	// +optional
 	CertDir string `json:"certDir,omitempty"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ControllerManagerConfig{})
-}
