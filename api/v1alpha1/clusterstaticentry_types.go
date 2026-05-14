@@ -75,7 +75,3 @@ type ClusterStaticEntryList struct {
 	metav1.ListMeta `json:"metadata"`
 	Items           []ClusterStaticEntry `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ClusterStaticEntry{}, &ClusterStaticEntryList{})
-}

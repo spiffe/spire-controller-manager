@@ -157,7 +157,3 @@ type ClusterSPIFFEIDList struct {
 	metav1.ListMeta `json:"metadata"`
 	Items           []ClusterSPIFFEID `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ClusterSPIFFEID{}, &ClusterSPIFFEIDList{})
-}

@@ -93,7 +93,3 @@ type ClusterFederatedTrustDomainList struct {
 	metav1.ListMeta `json:"metadata"`
 	Items           []ClusterFederatedTrustDomain `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&ClusterFederatedTrustDomain{}, &ClusterFederatedTrustDomainList{})
-}
