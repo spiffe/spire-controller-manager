@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5] - 2026-03-16
+
+### Updated
+
+- Migrated controller runtime to v0.24.1 (#670)
+- Migrated dependencies affected by CVEs (#680, #681)
+
 ## [0.6.4] - 2026-03-16
 
 ### Added
