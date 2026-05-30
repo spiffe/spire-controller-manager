@@ -5,6 +5,9 @@
 ### Updated
 
 - Migrated controller runtime to v0.24.1 (#670)
+
+### Security
+
 - Migrated dependencies affected by CVEs (#680, #681)
 
 ## [0.6.4] - 2026-03-16
