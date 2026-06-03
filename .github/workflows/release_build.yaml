@@ -26,7 +26,7 @@ jobs:
       - name: Export image
         run: tar -czvf images.tar.gz *-image.tar
       - name: Archive image
-        uses: actions/upload-artifact@v7.0.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: images
           path: images.tar.gz
@@ -79,7 +79,7 @@ jobs:
           name: images
           path: .
       - name: Log in to GHCR
-        uses: docker/login-action@v4.0.0
+        uses: docker/login-action@v4.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
