@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.6] - 2026-06-04
+
+### Fixed
+
+- Log configuration from config file not being applied at startup (#667)
+
+### Security
+
+- Updated Golang to 1.26.4 to address security fixes in the `crypto/x509` package (#685)
+
 ## [0.6.5] - 2026-05-30
 
 ### Updated
