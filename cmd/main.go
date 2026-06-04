@@ -77,7 +77,7 @@ const (
 
 var (
 	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	setupLog = zap.New(zap.UseDevMode(true)).WithName("setup")
 )
 
 func init() {
@@ -143,9 +143,6 @@ func parseConfig() (Config, error) {
 	}
 
 	retval.options = ctrl.Options{Scheme: scheme}
-
-	// Setup logger to zap's default log level so errors parsing the config which contains the desired log level are logged
-	_ = setLogger(&opts, "", "")
 
 	if configFileFlag != "" {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &retval.options, &retval.ctrlConfig, expandEnvFlag); err != nil {
