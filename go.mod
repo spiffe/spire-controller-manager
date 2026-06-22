@@ -11,7 +11,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.30.0
 	github.com/onsi/gomega v1.41.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/spiffe/go-spiffe/v2 v2.8.0
+	github.com/spiffe/go-spiffe/v2 v2.8.1
 	github.com/spiffe/spire-api-sdk v1.15.1
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
