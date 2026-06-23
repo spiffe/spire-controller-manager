@@ -148,6 +148,9 @@ func parseConfig() (Config, error) {
 		if err := spirev1alpha1.LoadOptionsFromFile(configFileFlag, scheme, &retval.options, &retval.ctrlConfig, expandEnvFlag); err != nil {
 			return retval, fmt.Errorf("unable to load the config file: %w", err)
 		}
+		if retval.ctrlConfig.GCInterval <= 0 {
+			retval.ctrlConfig.GCInterval = defaultGCInterval
+		}
 		for _, ignoredNamespace := range retval.ctrlConfig.IgnoreNamespaces {
 			regex, err := regexp.Compile(ignoredNamespace)
 			if err != nil {
