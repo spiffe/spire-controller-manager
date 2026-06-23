@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jpillora/backoff v1.0.0
-	github.com/onsi/ginkgo/v2 v2.30.0
+	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.41.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/spiffe/go-spiffe/v2 v2.8.0
