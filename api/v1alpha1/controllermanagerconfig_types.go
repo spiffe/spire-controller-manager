@@ -53,7 +53,7 @@ type ControllerManagerConfig struct {
 	// is otherwise idle. This impacts how quickly SPIRE state will converge
 	// after CRDs are removed or SPIRE state is mutated out from underneath
 	// the controller.
-	GCInterval time.Duration `json:"gcInterval"`
+	GCInterval time.Duration `json:"gcInterval,omitempty"`
 
 	// SPIREServerSocketPath is the path to the SPIRE Server API socket
 	SPIREServerSocketPath string `json:"spireServerSocketPath"`
