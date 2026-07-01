@@ -1,20 +1,34 @@
 name: DCO
 on:
-  pull_request:
+  pull_request: {}
+  workflow_dispatch: {}
   merge_group:
-  push:
-    branches:
-      - main
+    types:
+      - checks_requested
+
+permissions:
+  contents: read
+
 jobs:
-  check_dco:
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: read
-    name: Check DCO
+  check-dco:
+    runs-on: ubuntu-latest
     steps:
-      - name: Run dco-check
-        uses: christophebedard/dco-check@ec8bfc43106afe98b323ace9133650df10497e12 # 0.5.1
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Skip DCO check in merge queue
+        if: github.event_name == 'merge_group'
+        run: |
+          echo "Skipping DCO check for merge queue - DCO is validated on PR commits before entering the queue"
+          exit 0
+      - name: Set up Python 3.x
+        if: github.event_name != 'merge_group'
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          args: --exclude-pattern 'dependabot\[bot\]@users\.noreply\.github\.com'
+          python-version: '3.x'
+      - name: Check DCO
+        if: github.event_name != 'merge_group'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip3 install -U dco-check
+          dco-check --exclude-pattern 'dependabot\[bot\]@users\.noreply\.github\.com'
