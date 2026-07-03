@@ -1,0 +1,145 @@
+package controller
+
+import (
+	"context"
+	"fmt"
+	"path/filepath"
+	"runtime"
+	"testing"
+
+	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
+	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+)
+
+func newFilterTestScheme(t *testing.T) *k8sruntime.Scheme {
+	t.Helper()
+	scheme := k8sruntime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
+	return scheme
+}
+
+func startFilterTestEnv(t *testing.T) *rest.Config {
+	t.Helper()
+
+	env := &envtest.Environment{
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing: true,
+		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s",
+			fmt.Sprintf("1.28.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+	}
+
+	restCfg, err := env.Start()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, env.Stop()) })
+	return restCfg
+}
+
+// createClusterSPIFFEIDsRange creates objects in [from, to). The first object
+// (index 0) always carries the child-server label; all others have no labels.
+// This mirrors production: 1 child-server entry among many workload entries.
+func createClusterSPIFFEIDsRange(ctx context.Context, t *testing.T, c client.Client, from, to int) {
+	t.Helper()
+	for i := from; i < to; i++ {
+		obj := &spirev1alpha1.ClusterSPIFFEID{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("test-spiffeid-%05d", i),
+			},
+			Spec: spirev1alpha1.ClusterSPIFFEIDSpec{
+				SPIFFEIDTemplate: fmt.Sprintf("spiffe://test/workload-%d", i),
+			},
+		}
+		if i == 0 {
+			obj.Labels = map[string]string{"spire.spiffe.io/child-server": "true"}
+		}
+		require.NoError(t, c.Create(ctx, obj))
+	}
+}
+
+func deleteClusterSPIFFEIDsRange(ctx context.Context, t *testing.T, c client.Client, from, to int) {
+	t.Helper()
+	for i := from; i < to; i++ {
+		obj := &spirev1alpha1.ClusterSPIFFEID{}
+		key := types.NamespacedName{Name: fmt.Sprintf("test-spiffeid-%05d", i)}
+		if err := c.Get(ctx, key, obj); err == nil {
+			_ = c.Delete(ctx, obj)
+		}
+	}
+}
+
+// liveHeapAlloc starts a cache against restCfg, waits for it to sync, then
+// measures live HeapAlloc while the cache is running (after two GC passes).
+// Returns heap bytes and the number of items in the cache.
+func liveHeapAlloc(ctx context.Context, t *testing.T, restCfg *rest.Config, scheme *k8sruntime.Scheme, selector labels.Selector) (heapAlloc uint64, itemCount int) {
+	t.Helper()
+
+	cacheOpts := cache.Options{Scheme: scheme}
+	if selector != nil {
+		cacheOpts.ByObject = map[client.Object]cache.ByObject{
+			&spirev1alpha1.ClusterSPIFFEID{}: {Label: selector},
+		}
+	}
+
+	c, err := cache.New(restCfg, cacheOpts)
+	require.NoError(t, err)
+
+	cacheCtx, cancel := context.WithCancel(ctx)
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		_ = c.Start(cacheCtx)
+	}()
+
+	synced := c.WaitForCacheSync(cacheCtx)
+	require.True(t, synced, "cache did not sync")
+
+	var list spirev1alpha1.ClusterSPIFFEIDList
+	require.NoError(t, c.List(cacheCtx, &list))
+	itemCount = len(list.Items)
+
+	runtime.GC()
+	runtime.GC()
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	heapAlloc = stats.HeapAlloc
+
+	cancel()
+	<-stopped
+	return heapAlloc, itemCount
+}
+
+// TestClusterSPIFFEIDCacheFilter_Correctness verifies that the label selector
+// restricts the cache to only matching objects.
+func TestClusterSPIFFEIDCacheFilter_Correctness(t *testing.T) {
+	const total = 200
+	ctx := context.Background()
+	restCfg := startFilterTestEnv(t)
+	scheme := newFilterTestScheme(t)
+
+	directClient, err := client.New(restCfg, client.Options{Scheme: scheme})
+	require.NoError(t, err)
+
+	createClusterSPIFFEIDsRange(ctx, t, directClient, 0, total)
+	t.Cleanup(func() { deleteClusterSPIFFEIDsRange(ctx, t, directClient, 0, total) })
+
+	t.Run("unfiltered cache returns all objects", func(t *testing.T) {
+		_, count := liveHeapAlloc(ctx, t, restCfg, scheme, nil)
+		require.Equal(t, total, count)
+	})
+
+	t.Run("filtered cache returns only the single labeled object", func(t *testing.T) {
+		sel := labels.SelectorFromSet(labels.Set{"spire.spiffe.io/child-server": "true"})
+		_, count := liveHeapAlloc(ctx, t, restCfg, scheme, sel)
+		require.Equal(t, 1, count)
+	})
+}
