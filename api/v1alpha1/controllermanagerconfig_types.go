@@ -133,6 +133,14 @@ type ControllerManagerConfigurationSpec struct {
 	// +optional
 	WatchClassless bool `json:"watchClassless,omitempty"`
 
+	// ClusterSPIFFEIDLabelSelector if specified, restricts the ClusterSPIFFEID
+	// informer cache to only objects matching the given labels. When empty, all
+	// ClusterSPIFFEID objects are cached (default behavior).
+	// Useful in SPIRE setups to limit the controller manager cache
+	// to only the targeted ClusterSPIFFEIDs it needs to reconcile.
+	// +optional
+	ClusterSPIFFEIDLabelSelector map[string]string `json:"clusterSPIFFEIDLabelSelector,omitempty"`
+
 	// If specified, uses a different parent id template for linking pods to nodes
 	// +optional
 	ParentIDTemplate string `json:"parentIDTemplate,omitempty"`
