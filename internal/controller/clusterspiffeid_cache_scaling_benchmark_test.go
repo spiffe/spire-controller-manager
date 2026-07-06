@@ -9,9 +9,60 @@ import (
 	"strings"
 	"testing"
 
+	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/labels"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// liveHeapAlloc starts a cache against restCfg, waits for it to sync, then
+// measures live HeapAlloc while the cache is running (after two GC passes).
+// Returns heap bytes and the number of items in the cache.
+func liveHeapAlloc(ctx context.Context, t *testing.T, restCfg *rest.Config, scheme *k8sruntime.Scheme, selector labels.Selector) (heapAlloc uint64, itemCount int) {
+	t.Helper()
+
+	cacheOpts := cache.Options{Scheme: scheme}
+	if selector != nil {
+		cacheOpts.ByObject = map[client.Object]cache.ByObject{
+			&spirev1alpha1.ClusterSPIFFEID{}: {Label: selector},
+		}
+	}
+
+	c, err := cache.New(restCfg, cacheOpts)
+	if err != nil {
+		t.Fatalf("failed to create cache: %v", err)
+	}
+
+	cacheCtx, cancel := context.WithCancel(ctx)
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		_ = c.Start(cacheCtx)
+	}()
+
+	synced := c.WaitForCacheSync(cacheCtx)
+	if !synced {
+		t.Fatal("cache did not sync")
+	}
+
+	var list spirev1alpha1.ClusterSPIFFEIDList
+	if err := c.List(cacheCtx, &list); err != nil {
+		t.Fatalf("failed to list: %v", err)
+	}
+	itemCount = len(list.Items)
+
+	runtime.GC()
+	runtime.GC()
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	heapAlloc = stats.HeapAlloc
+
+	cancel()
+	<-stopped
+	return heapAlloc, itemCount
+}
 
 // benchStep holds the result for one step of the scaling benchmark.
 type benchStep struct {

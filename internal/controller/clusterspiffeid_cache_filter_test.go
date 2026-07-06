@@ -21,6 +21,39 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
+// cacheItemCount starts a cache against restCfg with an optional label selector,
+// waits for it to sync, and returns the number of cached items.
+func cacheItemCount(ctx context.Context, t *testing.T, restCfg *rest.Config, scheme *k8sruntime.Scheme, selector labels.Selector) int {
+	t.Helper()
+
+	cacheOpts := cache.Options{Scheme: scheme}
+	if selector != nil {
+		cacheOpts.ByObject = map[client.Object]cache.ByObject{
+			&spirev1alpha1.ClusterSPIFFEID{}: {Label: selector},
+		}
+	}
+
+	c, err := cache.New(restCfg, cacheOpts)
+	require.NoError(t, err)
+
+	cacheCtx, cancel := context.WithCancel(ctx)
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		_ = c.Start(cacheCtx)
+	}()
+
+	synced := c.WaitForCacheSync(cacheCtx)
+	require.True(t, synced, "cache did not sync")
+
+	var list spirev1alpha1.ClusterSPIFFEIDList
+	require.NoError(t, c.List(cacheCtx, &list))
+
+	cancel()
+	<-stopped
+	return len(list.Items)
+}
+
 func newFilterTestScheme(t *testing.T) *k8sruntime.Scheme {
 	t.Helper()
 	scheme := k8sruntime.NewScheme()
@@ -77,47 +110,6 @@ func deleteClusterSPIFFEIDsRange(ctx context.Context, t *testing.T, c client.Cli
 	}
 }
 
-// liveHeapAlloc starts a cache against restCfg, waits for it to sync, then
-// measures live HeapAlloc while the cache is running (after two GC passes).
-// Returns heap bytes and the number of items in the cache.
-func liveHeapAlloc(ctx context.Context, t *testing.T, restCfg *rest.Config, scheme *k8sruntime.Scheme, selector labels.Selector) (heapAlloc uint64, itemCount int) {
-	t.Helper()
-
-	cacheOpts := cache.Options{Scheme: scheme}
-	if selector != nil {
-		cacheOpts.ByObject = map[client.Object]cache.ByObject{
-			&spirev1alpha1.ClusterSPIFFEID{}: {Label: selector},
-		}
-	}
-
-	c, err := cache.New(restCfg, cacheOpts)
-	require.NoError(t, err)
-
-	cacheCtx, cancel := context.WithCancel(ctx)
-	stopped := make(chan struct{})
-	go func() {
-		defer close(stopped)
-		_ = c.Start(cacheCtx)
-	}()
-
-	synced := c.WaitForCacheSync(cacheCtx)
-	require.True(t, synced, "cache did not sync")
-
-	var list spirev1alpha1.ClusterSPIFFEIDList
-	require.NoError(t, c.List(cacheCtx, &list))
-	itemCount = len(list.Items)
-
-	runtime.GC()
-	runtime.GC()
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
-	heapAlloc = stats.HeapAlloc
-
-	cancel()
-	<-stopped
-	return heapAlloc, itemCount
-}
-
 // TestClusterSPIFFEIDCacheFilter_Correctness verifies that the label selector
 // restricts the cache to only matching objects.
 func TestClusterSPIFFEIDCacheFilter_Correctness(t *testing.T) {
@@ -133,13 +125,13 @@ func TestClusterSPIFFEIDCacheFilter_Correctness(t *testing.T) {
 	t.Cleanup(func() { deleteClusterSPIFFEIDsRange(ctx, t, directClient, 0, total) })
 
 	t.Run("unfiltered cache returns all objects", func(t *testing.T) {
-		_, count := liveHeapAlloc(ctx, t, restCfg, scheme, nil)
+		count := cacheItemCount(ctx, t, restCfg, scheme, nil)
 		require.Equal(t, total, count)
 	})
 
 	t.Run("filtered cache returns only the single labeled object", func(t *testing.T) {
 		sel := labels.SelectorFromSet(labels.Set{"spire.spiffe.io/child-server": "true"})
-		_, count := liveHeapAlloc(ctx, t, restCfg, scheme, sel)
+		count := cacheItemCount(ctx, t, restCfg, scheme, sel)
 		require.Equal(t, 1, count)
 	})
 }
