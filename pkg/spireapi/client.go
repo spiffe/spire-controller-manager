@@ -21,6 +21,7 @@ import (
 	"io"
 	"path/filepath"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -70,6 +71,10 @@ func DialSocket(path string, grpcConfig *GrpcConfig) (Client, error) {
 func getGrpcConfig(grpcConfig *GrpcConfig) []grpc.DialOption {
 	grpcOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		// otelgrpc attaches a client-side stats handler that creates per-RPC spans
+		// as children of any span present in the context. When tracing is disabled
+		// (the no-op provider is global), this is near-zero cost.
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	}
 
 	if grpcConfig != nil {

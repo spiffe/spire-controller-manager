@@ -55,6 +55,7 @@ import (
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/spiffe/spire-controller-manager/pkg/spireentry"
 	"github.com/spiffe/spire-controller-manager/pkg/spirefederationrelationship"
+	"github.com/spiffe/spire-controller-manager/pkg/tracing"
 	"github.com/spiffe/spire-controller-manager/pkg/webhookmanager"
 	//+kubebuilder:scaffold:imports
 )
@@ -88,6 +89,7 @@ func init() {
 	k8sMetrics.Registry.MustRegister(
 		metrics.PromCounters[metrics.StaticEntryFailures],
 	)
+	metrics.Register(k8sMetrics.Registry)
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -272,6 +274,20 @@ func run(mainConfig Config) (err error) {
 	}
 
 	ctx := ctrl.SetupSignalHandler()
+
+	// Initialise OpenTelemetry tracing. When Tracing.Enabled is false (the default),
+	// a no-op TracerProvider is installed and shutdown is a no-op — zero overhead.
+	tracingShutdown, err := tracing.Init(ctx, tracing.Config{
+		Enabled:      mainConfig.ctrlConfig.Tracing.Enabled,
+		OTLPEndpoint: mainConfig.ctrlConfig.Tracing.OTLPEndpoint,
+		SampleRatio:  mainConfig.ctrlConfig.Tracing.SampleRatio,
+		ClusterName:  mainConfig.ctrlConfig.ClusterName,
+	}, "spire-controller-manager", "")
+	if err != nil {
+		setupLog.Error(err, "failed to initialise tracing")
+		return err
+	}
+	defer func() { _ = tracingShutdown(ctx) }()
 
 	setupLog.Info("Dialing SPIRE Server socket")
 	spireClient, err := spireapi.DialSocket(mainConfig.ctrlConfig.SPIREServerSocketPath, mainConfig.ctrlConfig.Grpc)

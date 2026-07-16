@@ -19,12 +19,15 @@ package spireapi
 import (
 	"context"
 	"fmt"
+	"time"
 
 	entryv1 "github.com/spiffe/spire-api-sdk/proto/spire/api/server/entry/v1"
 	"github.com/spiffe/spire-api-sdk/proto/spire/api/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/spiffe/spire-controller-manager/pkg/metrics"
 )
 
 const (
@@ -57,6 +60,12 @@ type entryClient struct {
 }
 
 func (c entryClient) ListEntries(ctx context.Context) ([]Entry, error) {
+	// Time the entire paginated read. This is the ~66 s phase identified in Investigation.md §2.6.
+	start := time.Now()
+	defer func() {
+		metrics.SPIREAPIRequestDuration.WithLabelValues(metrics.OpListEntries).Observe(time.Since(start).Seconds())
+	}()
+
 	var entries []*types.Entry
 	var pageToken string
 	for {
@@ -143,11 +152,15 @@ func (c entryClient) GetUnsupportedFields(ctx context.Context, td string) (map[F
 func (c entryClient) CreateEntries(ctx context.Context, entries []Entry) ([]Status, error) {
 	statuses := make([]Status, 0, len(entries))
 	err := runBatch(len(entries), entryCreateBatchSize, func(start, end int) error {
+		batchStart := time.Now()
 		resp, err := c.api.BatchCreateEntry(ctx, &entryv1.BatchCreateEntryRequest{
 			Entries: entriesToAPI(entries[start:end]),
 		})
+		metrics.SPIREAPIRequestDuration.WithLabelValues(metrics.OpBatchCreate).Observe(time.Since(batchStart).Seconds())
 		if err == nil {
 			for _, result := range resp.Results {
+				code := grpcCodeLabel(result.Status.Code)
+				metrics.EntryWriteTotal.WithLabelValues(metrics.OpBatchCreate, code).Inc()
 				statuses = append(statuses, statusFromAPI(result.Status))
 			}
 		}
@@ -159,11 +172,15 @@ func (c entryClient) CreateEntries(ctx context.Context, entries []Entry) ([]Stat
 func (c entryClient) UpdateEntries(ctx context.Context, entries []Entry) ([]Status, error) {
 	statuses := make([]Status, 0, len(entries))
 	err := runBatch(len(entries), entryUpdateBatchSize, func(start, end int) error {
+		batchStart := time.Now()
 		resp, err := c.api.BatchUpdateEntry(ctx, &entryv1.BatchUpdateEntryRequest{
 			Entries: entriesToAPI(entries[start:end]),
 		})
+		metrics.SPIREAPIRequestDuration.WithLabelValues(metrics.OpBatchUpdate).Observe(time.Since(batchStart).Seconds())
 		if err == nil {
 			for _, result := range resp.Results {
+				code := grpcCodeLabel(result.Status.Code)
+				metrics.EntryWriteTotal.WithLabelValues(metrics.OpBatchUpdate, code).Inc()
 				statuses = append(statuses, statusFromAPI(result.Status))
 			}
 		}
@@ -175,15 +192,35 @@ func (c entryClient) UpdateEntries(ctx context.Context, entries []Entry) ([]Stat
 func (c entryClient) DeleteEntries(ctx context.Context, entryIDs []string) ([]Status, error) {
 	statuses := make([]Status, 0, len(entryIDs))
 	err := runBatch(len(entryIDs), entryDeleteBatchSize, func(start, end int) error {
+		batchStart := time.Now()
 		resp, err := c.api.BatchDeleteEntry(ctx, &entryv1.BatchDeleteEntryRequest{
 			Ids: entryIDs[start:end],
 		})
+		metrics.SPIREAPIRequestDuration.WithLabelValues(metrics.OpBatchDelete).Observe(time.Since(batchStart).Seconds())
 		if err == nil {
 			for _, result := range resp.Results {
+				code := grpcCodeLabel(result.Status.Code)
+				metrics.EntryWriteTotal.WithLabelValues(metrics.OpBatchDelete, code).Inc()
 				statuses = append(statuses, statusFromAPI(result.Status))
 			}
 		}
 		return err
 	})
 	return statuses, err
+}
+
+// grpcCodeLabel maps a gRPC status code (from BatchXxx responses) to a Prometheus label value.
+// The primary codes of interest: ok confirms success; already_exists and not_found indicate
+// wasted work from two replicas racing without leader election.
+func grpcCodeLabel(code int32) string {
+	switch codes.Code(code) {
+	case codes.OK:
+		return metrics.CodeOK
+	case codes.AlreadyExists:
+		return metrics.CodeAlreadyExists
+	case codes.NotFound:
+		return metrics.CodeNotFound
+	default:
+		return metrics.CodeError
+	}
 }
