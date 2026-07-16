@@ -26,6 +26,11 @@ clusterSPIFFEIDLabelSelector:
   spire.spiffe.io/child-server: "true"
 `
 
+	filterByClassNameConfig = `
+className: spire-mgmt-external-server
+filterByClassName: true
+`
+
 	fileContent = `
 apiVersion: spire.spiffe.io/v1alpha1
 kind: ControllerManagerConfig
@@ -302,6 +307,50 @@ func TestLoadOptionsWithClusterSPIFFEIDLabelSelector(t *testing.T) {
 			err := spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig, false)
 			require.NoError(t, err)
 			require.Equal(t, tt.expectSelector, ctrlConfig.ClusterSPIFFEIDLabelSelector)
+		})
+	}
+}
+
+func TestLoadOptionsWithFilterByClassName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
+
+	for _, tt := range []struct {
+		name                    string
+		extraConfig             string
+		expectClassName         string
+		expectFilterByClassName bool
+	}{
+		{
+			name:                    "not set",
+			expectFilterByClassName: false,
+		},
+		{
+			name:                    "set",
+			extraConfig:             filterByClassNameConfig,
+			expectClassName:         "spire-mgmt-external-server",
+			expectFilterByClassName: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+			path := filepath.Join(tempDir, "config.yaml")
+
+			config := fileContent + tt.extraConfig
+			require.NoError(t, os.WriteFile(path, []byte(config), 0600))
+
+			options := ctrl.Options{Scheme: scheme}
+			ctrlConfig := spirev1alpha1.ControllerManagerConfig{
+				IgnoreNamespaces:                   []string{"kube-system", "kube-public", "spire-system"},
+				GCInterval:                         time.Minute,
+				ValidatingWebhookConfigurationName: "foo-webhook",
+			}
+
+			err := spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig, false)
+			require.NoError(t, err)
+			require.Equal(t, tt.expectClassName, ctrlConfig.ClassName)
+			require.Equal(t, tt.expectFilterByClassName, ctrlConfig.FilterByClassName)
 		})
 	}
 }

@@ -141,6 +141,16 @@ type ControllerManagerConfigurationSpec struct {
 	// +optional
 	ClusterSPIFFEIDLabelSelector map[string]string `json:"clusterSPIFFEIDLabelSelector,omitempty"`
 
+	// FilterByClassName, if set, restricts the ClusterSPIFFEID informer cache
+	// to objects labeled with this controller's ClassName, using the
+	// well-known "spire.spiffe.io/class-name" label. It is shorthand for
+	// adding {"spire.spiffe.io/class-name": ClassName} to
+	// ClusterSPIFFEIDLabelSelector. If ClusterSPIFFEIDLabelSelector already
+	// sets that label to a different value, this value takes precedence.
+	// Requires ClassName to be set.
+	// +optional
+	FilterByClassName bool `json:"filterByClassName,omitempty"`
+
 	// If specified, uses a different parent id template for linking pods to nodes
 	// +optional
 	ParentIDTemplate string `json:"parentIDTemplate,omitempty"`
