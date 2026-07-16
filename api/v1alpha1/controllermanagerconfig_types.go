@@ -167,6 +167,32 @@ type ControllerManagerConfigurationSpec struct {
 	// Defaults to 300000 if unset or zero.
 	// +optional
 	EntryRenderCacheSize int `json:"entryRenderCacheSize,omitempty"`
+
+	// Tracing holds OpenTelemetry tracing configuration.
+	// Tracing is disabled by default; enabling it has zero overhead when no
+	// OTLP endpoint is reachable because spans are batched and dropped on error.
+	// +optional
+	Tracing TracingConfig `json:"tracing,omitempty"`
+}
+
+// TracingConfig holds OpenTelemetry distributed tracing configuration.
+type TracingConfig struct {
+	// Enabled controls whether distributed tracing is active.
+	// When false (the default), a no-op TracerProvider is installed so all
+	// instrumentation call sites are present but cost nothing at runtime.
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// OTLPEndpoint is the OTLP/gRPC endpoint to export traces to
+	// (e.g. "otel-collector.monitoring:4317"). When unset, the standard
+	// OTEL_EXPORTER_OTLP_ENDPOINT environment variable is honoured.
+	// +optional
+	OTLPEndpoint string `json:"otlpEndpoint,omitempty"`
+
+	// SampleRatio is the fraction of reconcile traces to sample (0.0–1.0).
+	// Omitting the field or setting it to 0 defaults to 1.0 (100 % sampling).
+	// +optional
+	SampleRatio float64 `json:"sampleRatio,omitempty"`
 }
 
 // ReconcileConfig configuration used to enable/disable syncing various types
