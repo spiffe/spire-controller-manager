@@ -21,8 +21,13 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"k8s.io/utils/clock"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/spiffe/spire-controller-manager/pkg/metrics"
+	"github.com/spiffe/spire-controller-manager/pkg/tracing"
 )
 
 const EndpointUID string = "subsets.addresses.targetRef.uid"
@@ -48,26 +53,30 @@ func New(config Config) Reconciler {
 		config.Clock = clock.RealClock{}
 	}
 	return &reconciler{
-		kind:       config.Kind,
-		reconcile:  config.Reconcile,
-		gcInterval: config.GCInterval,
-		clock:      config.Clock,
-		triggerCh:  make(chan struct{}),
+		kind:        config.Kind,
+		reconcile:   config.Reconcile,
+		gcInterval:  config.GCInterval,
+		clock:       config.Clock,
+		triggerCh:   make(chan struct{}),
+		lastTrigger: metrics.TriggerPeriodic,
 	}
 }
 
 type reconciler struct {
-	kind       string
-	reconcile  func(ctx context.Context)
-	gcInterval time.Duration
-	clock      clock.Clock
-	triggerCh  chan struct{}
+	kind        string
+	reconcile   func(ctx context.Context)
+	gcInterval  time.Duration
+	clock       clock.Clock
+	triggerCh   chan struct{}
+	lastTrigger string // metrics.TriggerTriggered | metrics.TriggerPeriodic
 }
 
 func (r *reconciler) Trigger() {
 	select {
 	case r.triggerCh <- struct{}{}:
+		metrics.ReconcileTriggerTotal.WithLabelValues("enqueued").Inc()
 	default:
+		metrics.ReconcileTriggerTotal.WithLabelValues("dropped").Inc()
 	}
 }
 
@@ -83,7 +92,20 @@ func (r *reconciler) Run(ctx context.Context) error {
 	var timer clock.Timer
 	for {
 		log.V(2).Info("Starting reconciliation")
-		r.reconcile(ctx)
+
+		// Start an OTel span for the full reconcile pass. When tracing is
+		// disabled, Tracer() returns a no-op tracer so this is zero-cost.
+		passCtx, span := tracing.Tracer().Start(ctx, fmt.Sprintf("%s.reconcile", r.kind),
+			trace.WithAttributes(attribute.String("trigger", r.lastTrigger)),
+		)
+
+		start := time.Now()
+		r.reconcile(passCtx)
+		dur := time.Since(start)
+		span.End()
+
+		metrics.ReconcileDuration.WithLabelValues(r.kind, r.lastTrigger, metrics.ResultOK).Observe(dur.Seconds())
+
 		log.V(2).Info("Reconciliation finished")
 
 		log.V(2).Info("Waiting for next reconciliation")
@@ -101,8 +123,10 @@ func (r *reconciler) Run(ctx context.Context) error {
 			return ctx.Err()
 		case <-timer.C():
 			log.V(2).Info("Performing periodic reconciliation")
+			r.lastTrigger = metrics.TriggerPeriodic
 		case <-r.triggerCh:
 			log.V(2).Info("Performing triggered reconciliation")
+			r.lastTrigger = metrics.TriggerTriggered
 		}
 	}
 }

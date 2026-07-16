@@ -35,6 +35,8 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,6 +51,7 @@ import (
 	"github.com/spiffe/spire-controller-manager/pkg/namespace"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
+	"github.com/spiffe/spire-controller-manager/pkg/tracing"
 )
 
 const (
@@ -163,8 +166,12 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 	unsupportedFields := r.unsupportedFields
 
-	// Load current entries from SPIRE server.
-	currentEntries, deleteOnlyEntries, err := r.listEntries(ctx)
+	// --- Phase: list_entries (reads all current SPIRE entries — the ~66 s bottleneck) ---
+	stopListEntries := metrics.ObservePhase(metrics.PhaseListEntries)
+	listCtx, listSpan := tracing.Tracer().Start(ctx, "entry.list_entries")
+	currentEntries, deleteOnlyEntries, err := r.listEntries(listCtx)
+	listSpan.End()
+	stopListEntries()
 	if err != nil {
 		log.Error(err, "Failed to list SPIRE entries")
 		return
@@ -178,8 +185,12 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 
 	clusterStaticEntries := []*ClusterStaticEntry{}
 	if r.config.Reconcile.ClusterStaticEntries {
-		// Load and add entry state for ClusterStaticEntries
+		// --- Phase: list_static_entries ---
+		stopListStatic := metrics.ObservePhase(metrics.PhaseListStaticEntries)
+		_, staticSpan := tracing.Tracer().Start(ctx, "entry.list_static_entries")
 		clusterStaticEntries, err = r.listClusterStaticEntries(ctx, r.expandEnvStaticManifests)
+		staticSpan.End()
+		stopListStatic()
 		if err != nil {
 			log.Error(err, "Failed to list ClusterStaticEntries")
 			return
@@ -189,22 +200,39 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 
 	clusterSPIFFEIDs := []*ClusterSPIFFEID{}
 	if r.config.Reconcile.ClusterSPIFFEIDs {
-		// Load and add entry state for ClusterSPIFFEIDs
+		// --- Phase: list_cluster_spiffeids ---
+		stopListCSID := metrics.ObservePhase(metrics.PhaseListClusterSPIFFEIDs)
+		_, csidSpan := tracing.Tracer().Start(ctx, "entry.list_cluster_spiffeids")
 		clusterSPIFFEIDs, err = r.listClusterSPIFFEIDs(ctx)
+		csidSpan.End()
+		stopListCSID()
 		if err != nil {
 			log.Error(err, "Failed to list ClusterSPIFFEIDs")
 			return
 		}
 
-		// Pre-load all nodes into a map to avoid per-pod Get() calls,
-		// which each incur a deep copy and mutex lock on the informer cache.
+		// --- Phase: build_node_map (pre-load all nodes to avoid per-pod Get() calls) ---
+		stopBuildNodeMap := metrics.ObservePhase(metrics.PhaseBuildNodeMap)
+		_, nodeSpan := tracing.Tracer().Start(ctx, "entry.build_node_map")
 		nodeMap, err := r.buildNodeMap(ctx)
+		nodeSpan.End()
+		stopBuildNodeMap()
 		if err != nil {
 			log.Error(err, "Failed to list nodes")
 			return
 		}
+
+		// --- Phase: render_state (render entry for every matching pod) ---
+		stopRenderState := metrics.ObservePhase(metrics.PhaseRenderState)
+		_, renderSpan := tracing.Tracer().Start(ctx, "entry.render_state")
 		r.addClusterSPIFFEIDEntriesState(ctx, state, clusterSPIFFEIDs, nodeMap)
+		renderSpan.End()
+		stopRenderState()
 	}
+
+	// --- Phase: diff (compute create / update / delete sets) ---
+	stopDiff := metrics.ObservePhase(metrics.PhaseDiff)
+	_, diffSpan := tracing.Tracer().Start(ctx, "entry.diff")
 
 	var toDelete []spireapi.Entry
 	var toCreate []declaredEntry
@@ -247,15 +275,50 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 	}
 
 	toDelete = append(toDelete, deleteOnlyEntries...)
+	diffSpan.End()
+	stopDiff()
+
+	// Record batch sizes for correlation with RPC latency.
+	metrics.ReconcileBatchEntries.WithLabelValues(metrics.OpBatchDelete).Set(float64(len(toDelete)))
+	metrics.ReconcileBatchEntries.WithLabelValues(metrics.OpBatchCreate).Set(float64(len(toCreate)))
+	metrics.ReconcileBatchEntries.WithLabelValues(metrics.OpBatchUpdate).Set(float64(len(toUpdate)))
+
+	// --- Phase: delete ---
 	if len(toDelete) > 0 {
-		r.deleteEntries(ctx, toDelete)
+		stopDelete := metrics.ObservePhase(metrics.PhaseDelete)
+		deleteCtx, deleteSpan := tracing.Tracer().Start(ctx, "entry.delete",
+			trace.WithAttributes(attribute.Int("count", len(toDelete))),
+		)
+		r.deleteEntries(deleteCtx, toDelete)
+		deleteSpan.End()
+		stopDelete()
 	}
+
+	// --- Phase: create ---
 	if len(toCreate) > 0 {
-		r.createEntries(ctx, toCreate)
+		stopCreate := metrics.ObservePhase(metrics.PhaseCreate)
+		createCtx, createSpan := tracing.Tracer().Start(ctx, "entry.create",
+			trace.WithAttributes(attribute.Int("count", len(toCreate))),
+		)
+		r.createEntries(createCtx, toCreate)
+		createSpan.End()
+		stopCreate()
 	}
+
+	// --- Phase: update ---
 	if len(toUpdate) > 0 {
-		r.updateEntries(ctx, toUpdate)
+		stopUpdate := metrics.ObservePhase(metrics.PhaseUpdate)
+		updateCtx, updateSpan := tracing.Tracer().Start(ctx, "entry.update",
+			trace.WithAttributes(attribute.Int("count", len(toUpdate))),
+		)
+		r.updateEntries(updateCtx, toUpdate)
+		updateSpan.End()
+		stopUpdate()
 	}
+
+	// --- Phase: status_update ---
+	stopStatus := metrics.ObservePhase(metrics.PhaseStatusUpdate)
+	_, statusSpan := tracing.Tracer().Start(ctx, "entry.status_update")
 
 	// Update the ClusterStaticEntry statuses
 	for _, clusterStaticEntry := range clusterStaticEntries {
@@ -289,6 +352,9 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 			log.Error(err, "Failed to update status")
 		}
 	}
+
+	statusSpan.End()
+	stopStatus()
 }
 
 func (r *entryReconciler) reconcileClass(className string) bool {
@@ -441,7 +507,7 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 			continue
 		}
 		clusterStaticEntry.NextStatus.Rendered = true
-		state.AddDeclared(*entry, clusterStaticEntry)
+		state.AddDeclared(*entry, clusterStaticEntry, time.Time{})
 	}
 }
 
@@ -521,7 +587,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 				case entry != nil:
 					// renderPodEntry will return a nil entry if requisite k8s
 					// objects disappeared from underneath.
-					state.AddDeclared(*entry, clusterSPIFFEID)
+					state.AddDeclared(*entry, clusterSPIFFEID, pods[i].CreationTimestamp.Time)
 					if !clusterSPIFFEID.Spec.Fallback {
 						podsWithNonFallbackApplied[pods[i].UID] = struct{}{}
 					}
@@ -581,8 +647,10 @@ func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha
 		// 1. Get rendered entry from cache
 		endpointsRV := computeEndpointsRV(endpointsList.Items)
 		if cached, ok := r.renderCache.Get(podEntryCacheKey(pod.UID)); ok && cached.isValid(pod.ResourceVersion, node.ResourceVersion, specHash, endpointsRV) {
+			metrics.EntryRenderCacheTotal.WithLabelValues(metrics.CacheHit).Inc()
 			return cached.entry, nil
 		}
+		metrics.EntryRenderCacheTotal.WithLabelValues(metrics.CacheMiss).Inc()
 		// 2. Perform render entry if cache miss
 		entry, err := renderPodEntry(spec, node, pod, endpointsList, r.config.TrustDomain, r.config.ClusterName, r.config.ClusterDomain, r.config.ParentIDTemplate)
 		if err != nil {
@@ -617,6 +685,12 @@ func (r *entryReconciler) createEntries(ctx context.Context, declaredEntries []d
 		case codes.OK:
 			log.Info("Created entry", entryLogFields(declaredEntries[i].Entry)...)
 			declaredEntries[i].By.IncrementEntrySuccess()
+			// SLI: record pod-attestation delay for genuinely new pod entries.
+			// AlreadyExists races (from double execution without leader election)
+			// are excluded because the entry already existed — no real latency event.
+			if !declaredEntries[i].PodCreated.IsZero() {
+				metrics.PodAttestationDelay.Observe(time.Since(declaredEntries[i].PodCreated).Seconds())
+			}
 		default:
 			declaredEntries[i].By.IncrementEntryFailures()
 			log.Error(status.Err(), "Failed to create entry", entryLogFields(declaredEntries[i].Entry)...)
@@ -669,11 +743,15 @@ func (es entriesState) AddCurrent(entry spireapi.Entry) {
 	s.Current = append(s.Current, entry)
 }
 
-func (es entriesState) AddDeclared(entry spireapi.Entry, by byObject) {
+// AddDeclared records a desired entry. podCreated should be the pod's CreationTimestamp
+// for entries that originate from a ClusterSPIFFEID pod selector; pass a zero time for
+// static entries so the SLI observation is skipped in createEntries.
+func (es entriesState) AddDeclared(entry spireapi.Entry, by byObject, podCreated time.Time) {
 	s := es.stateFor(entry)
 	s.Declared = append(s.Declared, declaredEntry{
-		Entry: entry,
-		By:    by,
+		Entry:      entry,
+		By:         by,
+		PodCreated: podCreated,
 	})
 }
 
@@ -695,6 +773,10 @@ type entryState struct {
 type declaredEntry struct {
 	Entry spireapi.Entry
 	By    byObject
+	// PodCreated is the pod.CreationTimestamp for entries that map to a pod. It is
+	// used to record the pod_attestation_delay_seconds SLI on successful entry creation.
+	// Zero for entries that do not originate from a pod (e.g. ClusterStaticEntries).
+	PodCreated time.Time
 }
 
 type entryKey string
