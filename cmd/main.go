@@ -21,6 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path/filepath"
@@ -37,10 +38,13 @@ import (
 	"k8s.io/client-go/rest"
 
 	"go.uber.org/zap/zapcore"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -114,6 +118,21 @@ func addDotSuffix(val string) string {
 		val += "."
 	}
 	return val
+}
+
+// clusterSPIFFEIDCacheLabels derives the label set used to restrict the
+// ClusterSPIFFEID informer cache from the given configuration. If
+// FilterByClassName is set, it is merged into (and takes precedence over)
+// ClusterSPIFFEIDLabelSelector.
+func clusterSPIFFEIDCacheLabels(ctrlConfig spirev1alpha1.ControllerManagerConfig) map[string]string {
+	cacheLabels := maps.Clone(ctrlConfig.ClusterSPIFFEIDLabelSelector)
+	if ctrlConfig.FilterByClassName {
+		if cacheLabels == nil {
+			cacheLabels = make(map[string]string, 1)
+		}
+		cacheLabels[spirev1alpha1.ClassNameLabel] = ctrlConfig.ClassName
+	}
+	return cacheLabels
 }
 
 func parseConfig() (Config, error) {
@@ -241,6 +260,7 @@ func parseConfig() (Config, error) {
 		"spire server socket path", retval.ctrlConfig.SPIREServerSocketPath,
 		"class name", retval.ctrlConfig.ClassName,
 		"handle crs without class name", retval.ctrlConfig.WatchClassless,
+		"filter ClusterSPIFFEID cache by class name", retval.ctrlConfig.FilterByClassName,
 		"reconcile ClusterSPIFFEIDs", retval.reconcile.ClusterSPIFFEIDs,
 		"reconcile ClusterFederatedTrustDomains", retval.reconcile.ClusterFederatedTrustDomains,
 		"reconcile ClusterStaticEntries", retval.reconcile.ClusterStaticEntries,
@@ -255,6 +275,8 @@ func parseConfig() (Config, error) {
 		return retval, errors.New("cluster name is required configuration")
 	case retval.ctrlConfig.ValidatingWebhookConfigurationName == "":
 		return retval, errors.New("validating webhook configuration name is required configuration")
+	case retval.ctrlConfig.FilterByClassName && retval.ctrlConfig.ClassName == "":
+		return retval, errors.New("filterByClassName requires className to be set")
 	case retval.ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir != "":
 		setupLog.Info("certDir configuration is ignored", "certDir", retval.ctrlConfig.ControllerManagerConfigurationSpec.Webhook.CertDir)
 	}
@@ -338,6 +360,15 @@ func run(mainConfig Config) (err error) {
 		if err := webhookManager.Init(ctx); err != nil {
 			setupLog.Error(err, "failed to mint initial webhook certificate")
 			return err
+		}
+	}
+
+	clusterSPIFFEIDLabels := clusterSPIFFEIDCacheLabels(mainConfig.ctrlConfig)
+	if len(clusterSPIFFEIDLabels) > 0 {
+		mainConfig.options.Cache.ByObject = map[client.Object]cache.ByObject{
+			&spirev1alpha1.ClusterSPIFFEID{}: {
+				Label: labels.SelectorFromSet(clusterSPIFFEIDLabels),
+			},
 		}
 	}
 
