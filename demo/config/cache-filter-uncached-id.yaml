@@ -1,0 +1,16 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: cache-filter-uncached
+  # Deliberately NOT labeled with spire.spiffe.io/class-name. Everything else
+  # (className, podSelector) is identical to cache-filter-cached, so the only
+  # reason this must not yield a registration entry is the informer cache
+  # label selector installed by filterByClassName. Note that className below
+  # still matches the controller, which means the pre-existing className
+  # reconcile filter would NOT exclude this object -- only the cache filter does.
+spec:
+  className: demo-class
+  spiffeIDTemplate: spiffe://cluster1.demo/cache-filter-uncached
+  podSelector:
+    matchLabels:
+      spire.spiffe.io/spiffeid: greeter-server

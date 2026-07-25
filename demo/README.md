@@ -124,6 +124,42 @@ List the SPIRE registration entries and federated trust domain relationships tha
     $ ./cluster2 scripts/show-spire-entries.sh
     $ ./cluster2 scripts/show-spire-federated-bundles.sh
 
+## Optional: filtering the ClusterSPIFFEID cache by class name
+
+By default the controller manager caches every ClusterSPIFFEID in the cluster.
+Setting `filterByClassName: true` (alongside a `className`) restricts its
+informer cache to ClusterSPIFFEIDs labeled with the well-known
+`spire.spiffe.io/class-name` label, so unrelated objects are never fetched from
+the Kubernetes API. This keeps memory usage flat in setups where one controller
+only needs to reconcile a small subset of the ClusterSPIFFEIDs present.
+
+> **Important:** label the ClusterSPIFFEIDs you want reconciled *before*
+> enabling the filter. Turning it on first leaves the cache empty, and the
+> controller will delete the registration entries it no longer sees.
+
+Label the existing greeter-server ClusterSPIFFEID so it survives the switch:
+
+    $ ./cluster1 kubectl label clusterspiffeid greeter-server \
+        spire.spiffe.io/class-name=demo-class --overwrite
+
+Swap in the config that enables filtering and restart the controller:
+
+    $ ./cluster1 kubectl create configmap spire-controller-manager-config \
+        -n spire-system \
+        --from-file=spire-controller-manager-config.yaml=config/cluster1/spire/spire-controller-manager-config-cache-filter.yaml \
+        --dry-run=client -o yaml | ./cluster1 kubectl apply -f -
+    $ ./cluster1 kubectl rollout restart -nspire-system deployment/spire-server
+
+Apply two ClusterSPIFFEIDs that are identical except for the class-name label:
+
+    $ ./cluster1 kubectl apply -f config/cache-filter-cached-id.yaml
+    $ ./cluster1 kubectl apply -f config/cache-filter-uncached-id.yaml
+
+Only the labeled one is cached, so only it produces a registration entry —
+`cache-filter-cached` appears and `cache-filter-uncached` never does:
+
+    $ ./cluster1 scripts/show-spire-entries.sh
+
 When you are finished, delete the clusters:
 
     $ ./cluster1 kind delete cluster

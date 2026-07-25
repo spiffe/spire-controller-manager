@@ -1,0 +1,28 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ControllerManagerConfig
+metrics:
+  bindAddress: 127.0.0.1:8082
+health:
+  healthProbeBindAddress: 0.0.0.0:8083
+leaderElection:
+  leaderElect: true
+  resourceName: 98c9c988.spiffe.io
+  resourceNamespace: spire-system
+clusterName: cluster1
+logLevel: info
+trustDomain: cluster1.demo
+# Only reconcile resources carrying this className...
+className: demo-class
+# ...and additionally restrict the ClusterSPIFFEID informer cache to objects
+# labeled spire.spiffe.io/class-name: demo-class. Objects without that label
+# are never delivered to the controller at all.
+filterByClassName: true
+# The pre-existing demo resources carry no className, so keep reconciling them.
+# Note this governs *reconcile* filtering only -- the cache filter above still
+# applies, which is why greeter-server-id.yaml must be labeled to survive.
+watchClassless: true
+ignoreNamespaces:
+  - kube-system
+  - kube-public
+  - spire-system
+  - local-path-storage
