@@ -530,6 +530,13 @@ func (in *ControllerManagerConfigurationSpec) DeepCopyInto(out *ControllerManage
 	out.Metrics = in.Metrics
 	out.Health = in.Health
 	in.Webhook.DeepCopyInto(&out.Webhook)
+	if in.ClusterSPIFFEIDLabelSelector != nil {
+		in, out := &in.ClusterSPIFFEIDLabelSelector, &out.ClusterSPIFFEIDLabelSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.Reconcile != nil {
 		in, out := &in.Reconcile, &out.Reconcile
 		*out = new(ReconcileConfig)
