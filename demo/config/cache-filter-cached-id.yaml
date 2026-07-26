@@ -1,0 +1,14 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: cache-filter-cached
+  # This label matches the cache selector derived from filterByClassName, so
+  # this ClusterSPIFFEID lands in the informer cache and gets reconciled.
+  labels:
+    spire.spiffe.io/class-name: demo-class
+spec:
+  className: demo-class
+  spiffeIDTemplate: spiffe://cluster1.demo/cache-filter-cached
+  podSelector:
+    matchLabels:
+      spire.spiffe.io/spiffeid: greeter-server

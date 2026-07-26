@@ -27,6 +27,11 @@ import (
 
 const GroupName = "spire.spiffe.io"
 
+// ClassNameLabel is the well-known label used to identify the ClassName of
+// a ClusterSPIFFEID, used by FilterByClassName to derive a cache label
+// selector.
+const ClassNameLabel = GroupName + "/class-name"
+
 var (
 	SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)

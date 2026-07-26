@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0] - 2026-07-25
+
+### Added
+
+- Support for restricting the `ClusterSPIFFEID` informer cache to objects matching specific labels (`clusterSPIFFEIDLabelSelector`) or to the controller's own className (`filterByClassName`), reducing memory usage in large clusters (#710)
+
+### Fixed
+
+- A `gcInterval` of zero being loaded from the configuration file, causing the garbage collection loop to consume 100% CPU (#699)
+
+### Updated
+
+- Updated Golang to 1.26.5 (#723)
+
 ## [0.6.6] - 2026-06-04
 
 ### Fixed
