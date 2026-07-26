@@ -21,6 +21,39 @@ the following fields are defined:
 | `watchClassless`                     | OPTIONAL |                                                  | If className is set, also watch for resources that do not have any className set.                                                                                                                             |
 | `staticManifestPath`                 | OPTIONAL |                                                  | If specified, manifests will be read from disk instead of from Kubernetes                                                                                                                                     |
 | `grpc`                               | OPTIONAL |                                                  | Allows configuring the GRPC config used when connecting to the SPIRE server API.                                                                                                                              |
+| `tlsProfile`                         | OPTIONAL |                                                  | TLS security profile for terminating endpoints such as the admission webhook server. When unset, Go TLS defaults are used.                                                                                  |
+
+### TLS Profile
+
+The `tlsProfile` block applies only to TLS-terminating endpoints (currently the admission webhook server).
+
+| Field                          | Required | Default | Description                                                                                                                                                                                                 |
+|--------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `tlsProfile.minTLSVersion`     | OPTIONAL |         | Minimum TLS version in Kubernetes-style naming (for example `VersionTLS12`). When unset, the minimum TLS version is not changed.                                                                          |
+| `tlsProfile.cipherSuites`      | OPTIONAL |         | Allowed cipher suites in IANA naming (for example `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`). When unset, Go defaults are used. TLS 1.3 cipher suites cannot be configured individually in Go.                |
+| `tlsProfile.curvePreferences`  | OPTIONAL |         | Ordered list of allowed key exchange curves or groups (for example `X25519MLKEM768`, `X25519`, `secp256r1`). When unset, Go defaults are used.                                                            |
+
+Example:
+
+```yaml
+tlsProfile:
+  minTLSVersion: VersionTLS12
+  cipherSuites:
+    - TLS_AES_128_GCM_SHA256
+    - TLS_AES_256_GCM_SHA384
+    - TLS_CHACHA20_POLY1305_SHA256
+    - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+    - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+    - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+    - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+  curvePreferences:
+    - X25519MLKEM768
+    - X25519
+    - secp256r1
+    - secp384r1
+```
 
 GRPC Config Options
 

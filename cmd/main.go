@@ -50,6 +50,7 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/spiffe/spire-controller-manager/internal/controller"
+	"github.com/spiffe/spire-controller-manager/pkg/common/tlspolicy"
 	"github.com/spiffe/spire-controller-manager/pkg/metrics"
 	"github.com/spiffe/spire-controller-manager/pkg/reconciler"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
@@ -283,6 +284,12 @@ func run(mainConfig Config) (err error) {
 	// file to keep rotation simple.
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to
 	// obtain the certificates so we don't have to touch disk.
+	webhookTLSConfig, err := tlspolicy.TLSConfig(mainConfig.ctrlConfig.TLSProfile)
+	if err != nil {
+		setupLog.Error(err, "failed to configure webhook TLS")
+		return err
+	}
+
 	var webhookManager *webhookmanager.Manager
 	if webhookEnabled {
 		const keyPairName = "keypair.pem"
@@ -303,7 +310,13 @@ func run(mainConfig Config) (err error) {
 			KeyName:  keyPairName,
 			TLSOpts: []func(*tls.Config){
 				func(s *tls.Config) {
-					s.MinVersion = tls.VersionTLS12
+					s.MinVersion = webhookTLSConfig.MinVersion
+					if len(webhookTLSConfig.CipherSuites) > 0 {
+						s.CipherSuites = webhookTLSConfig.CipherSuites
+					}
+					if len(webhookTLSConfig.CurvePreferences) > 0 {
+						s.CurvePreferences = webhookTLSConfig.CurvePreferences
+					}
 				},
 			},
 		})
