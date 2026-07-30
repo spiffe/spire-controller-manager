@@ -66,7 +66,7 @@ func parseCurvePreferences(names []string) ([]tls.CurveID, error) {
 			continue
 		}
 
-		//commonly configured curves
+		// commonly configured curves
 		switch strings.ToLower(name) {
 		case "curvep256", "p-256", "p256", "secp256r1":
 			curves = append(curves, tls.CurveP256)
