@@ -19,7 +19,7 @@ func TestTLSConfigNil(t *testing.T) {
 }
 
 func TestTLSConfigEmpty(t *testing.T) {
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{})
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{})
 	require.NoError(t, err)
 	require.Equal(t, uint16(tls.VersionTLS12), cfg.MinVersion)
 	require.Empty(t, cfg.CipherSuites)
@@ -27,7 +27,7 @@ func TestTLSConfigEmpty(t *testing.T) {
 }
 
 func TestTLSConfigProfile(t *testing.T) {
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		MinTLSVersion: "VersionTLS13",
 		CipherSuites:  []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"},
 		CurvePreferences: []string{
@@ -42,7 +42,7 @@ func TestTLSConfigProfile(t *testing.T) {
 }
 
 func TestTLSConfigMinTLSVersionOnly(t *testing.T) {
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		MinTLSVersion: "VersionTLS12",
 	})
 	require.NoError(t, err)
@@ -52,7 +52,7 @@ func TestTLSConfigMinTLSVersionOnly(t *testing.T) {
 }
 
 func TestTLSConfigCipherSuitesOnly(t *testing.T) {
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CipherSuites: []string{
 			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
@@ -65,7 +65,7 @@ func TestTLSConfigCipherSuitesOnly(t *testing.T) {
 }
 
 func TestTLSConfigInvalidMinTLSVersion(t *testing.T) {
-	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		MinTLSVersion: "VersionTLS99",
 	})
 	require.Error(t, err)
@@ -73,7 +73,7 @@ func TestTLSConfigInvalidMinTLSVersion(t *testing.T) {
 }
 
 func TestTLSConfigInvalidCipherSuite(t *testing.T) {
-	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CipherSuites: []string{"TLS_NOT_A_CIPHER"},
 	})
 	require.Error(t, err)
@@ -81,7 +81,7 @@ func TestTLSConfigInvalidCipherSuite(t *testing.T) {
 }
 
 func TestTLSConfigInvalidCurve(t *testing.T) {
-	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CurvePreferences: []string{"unknown-curve"},
 	})
 	require.Error(t, err)
@@ -114,7 +114,7 @@ func TestTLSConfigCurvePreferences(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+			cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 				CurvePreferences: []string{tt.input},
 			})
 			require.NoError(t, err)
@@ -124,7 +124,7 @@ func TestTLSConfigCurvePreferences(t *testing.T) {
 }
 
 func TestTLSConfigCurvePreferencesDecimalID(t *testing.T) {
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CurvePreferences: []string{fmt.Sprintf("%d", tls.X25519)},
 	})
 	require.NoError(t, err)
@@ -132,7 +132,7 @@ func TestTLSConfigCurvePreferencesDecimalID(t *testing.T) {
 }
 
 func TestTLSConfigCurvePreferencesSkipsEmptyAndTrimsWhitespace(t *testing.T) {
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CurvePreferences: []string{"", "  X25519  ", " secp256r1"},
 	})
 	require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestTLSConfigCurvePreferencesSkipsEmptyAndTrimsWhitespace(t *testing.T) {
 }
 
 func TestTLSConfigCurvePreferencesInvalidDecimalID(t *testing.T) {
-	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	_, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CurvePreferences: []string{"999999"},
 	})
 	require.Error(t, err)
@@ -148,7 +148,7 @@ func TestTLSConfigCurvePreferencesInvalidDecimalID(t *testing.T) {
 }
 
 func TestTLSConfigCurvePreferencesPreservesOrder(t *testing.T) {
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CurvePreferences: []string{
 			"X25519MLKEM768",
 			"X25519",
@@ -169,7 +169,7 @@ func TestTLSConfigCipherSuitesPreservesOrder(t *testing.T) {
 	first := "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
 	second := "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
 
-	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSProfileConfig{
+	cfg, err := tlspolicy.TLSConfig(&spirev1alpha1.TLSConfig{
 		CipherSuites: []string{first, second},
 	})
 	require.NoError(t, err)

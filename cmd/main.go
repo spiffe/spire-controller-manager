@@ -309,7 +309,7 @@ func run(mainConfig Config) (err error) {
 	// file to keep rotation simple.
 	// TODO: upstream a change to the WebhookServer so it can use callbacks to
 	// obtain the certificates so we don't have to touch disk.
-	webhookTLSConfig, err := tlspolicy.TLSConfig(mainConfig.ctrlConfig.TLSProfile)
+	webhookTLSConfig, err := tlspolicy.TLSConfig(mainConfig.ctrlConfig.TLSConfig)
 	if err != nil {
 		setupLog.Error(err, "failed to configure webhook TLS")
 		return err

@@ -355,13 +355,13 @@ func TestLoadOptionsWithFilterByClassName(t *testing.T) {
 	}
 }
 
-func TestLoadOptionsFromFileTLSProfileConfig(t *testing.T) {
+func TestLoadOptionsFromFileTLSConfig(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
 
 	content := fileContent + `
-tlsProfile:
+tlsConfig:
   minTLSVersion: VersionTLS12
   cipherSuites:
     - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
@@ -380,8 +380,8 @@ tlsProfile:
 	}
 	require.NoError(t, spirev1alpha1.LoadOptionsFromFile(path, scheme, &ctrl.Options{Scheme: scheme}, &ctrlConfig, false))
 
-	require.NotNil(t, ctrlConfig.TLSProfile)
-	require.Equal(t, "VersionTLS12", ctrlConfig.TLSProfile.MinTLSVersion)
-	require.Equal(t, []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}, ctrlConfig.TLSProfile.CipherSuites)
-	require.Equal(t, []string{"X25519", "secp256r1"}, ctrlConfig.TLSProfile.CurvePreferences)
+	require.NotNil(t, ctrlConfig.TLSConfig)
+	require.Equal(t, "VersionTLS12", ctrlConfig.TLSConfig.MinTLSVersion)
+	require.Equal(t, []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}, ctrlConfig.TLSConfig.CipherSuites)
+	require.Equal(t, []string{"X25519", "secp256r1"}, ctrlConfig.TLSConfig.CurvePreferences)
 }

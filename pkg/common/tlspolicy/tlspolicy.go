@@ -11,35 +11,35 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
-// TLSConfig parses tlsProfile and returns a tls.Config.
-// When profile is nil or empty, MinVersion is set to TLS 1.2.
-func TLSConfig(profile *spirev1alpha1.TLSProfileConfig) (*tls.Config, error) {
+// TLSConfig parses tlsConfig and returns a tls.Config.
+// When tlsConfig is nil or empty, MinVersion is set to TLS 1.2.
+func TLSConfig(tlsCfg *spirev1alpha1.TLSConfig) (*tls.Config, error) {
 	cfg := &tls.Config{MinVersion: tls.VersionTLS12}
-	if profile == nil {
+	if tlsCfg == nil {
 		return cfg, nil
 	}
-	if profile.MinTLSVersion == "" && len(profile.CipherSuites) == 0 && len(profile.CurvePreferences) == 0 {
+	if tlsCfg.MinTLSVersion == "" && len(tlsCfg.CipherSuites) == 0 && len(tlsCfg.CurvePreferences) == 0 {
 		return cfg, nil
 	}
 
-	if profile.MinTLSVersion != "" {
-		minVersion, err := cliflag.TLSVersion(profile.MinTLSVersion)
+	if tlsCfg.MinTLSVersion != "" {
+		minVersion, err := cliflag.TLSVersion(tlsCfg.MinTLSVersion)
 		if err != nil {
-			return nil, fmt.Errorf("invalid minTLSVersion %q: %w", profile.MinTLSVersion, err)
+			return nil, fmt.Errorf("invalid minTLSVersion %q: %w", tlsCfg.MinTLSVersion, err)
 		}
 		cfg.MinVersion = minVersion
 	}
 
-	if len(profile.CipherSuites) > 0 {
-		cipherSuites, err := cliflag.TLSCipherSuites(profile.CipherSuites)
+	if len(tlsCfg.CipherSuites) > 0 {
+		cipherSuites, err := cliflag.TLSCipherSuites(tlsCfg.CipherSuites)
 		if err != nil {
 			return nil, fmt.Errorf("invalid cipherSuites: %w", err)
 		}
 		cfg.CipherSuites = cipherSuites
 	}
 
-	if len(profile.CurvePreferences) > 0 {
-		curves, err := parseCurvePreferences(profile.CurvePreferences)
+	if len(tlsCfg.CurvePreferences) > 0 {
+		curves, err := parseCurvePreferences(tlsCfg.CurvePreferences)
 		if err != nil {
 			return nil, fmt.Errorf("invalid curvePreferences: %w", err)
 		}
