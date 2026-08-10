@@ -23,7 +23,7 @@ the following fields are defined:
 | `filterByClassName`                  | OPTIONAL |                                                  | If set, restricts the ClusterSPIFFEID informer cache to objects labeled with this controller's `className`, using the well-known `spire.spiffe.io/class-name` label. Shorthand for adding `{"spire.spiffe.io/class-name": className}` to `clusterSPIFFEIDLabelSelector`; if that selector already sets the label to a different value, this option's value takes precedence. Requires `className` to be set. |
 | `staticManifestPath`                 | OPTIONAL |                                                  | If specified, manifests will be read from disk instead of from Kubernetes                                                                                                                                     |
 | `grpc`                               | OPTIONAL |                                                  | Allows configuring the GRPC config used when connecting to the SPIRE server API.                                                                                                                              |
-| `tlsConfig`                         | OPTIONAL |                                                  | TLS security config for terminating endpoints such as the admission webhook server. When unset, Go TLS defaults are used.                                                                                  |
+| `tlsConfig`                         | OPTIONAL |                                                  | TLS security config for terminating endpoints such as the admission webhook server. When unset, the minimum TLS version defaults to TLS 1.2.                                                                                  |
 
 ### TLS Config
 
@@ -31,25 +31,17 @@ The `tlsConfig` block applies only to TLS-terminating endpoints (currently the a
 
 | Field                          | Required | Default | Description                                                                                                                                                                                                 |
 |--------------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `tlsConfig.minTLSVersion`     | OPTIONAL |         | Minimum TLS version in Kubernetes-style naming (for example `VersionTLS12`). When unset, the minimum TLS version is not changed.                                                                          |
-| `tlsConfig.cipherSuites`      | OPTIONAL |         | Allowed cipher suites in IANA naming (for example `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`). When unset, Go defaults are used. TLS 1.3 cipher suites cannot be configured individually in Go.                |
-| `tlsConfig.curvePreferences`  | OPTIONAL |         | Ordered list of allowed key exchange curves or groups (for example `X25519MLKEM768`, `X25519`, `secp256r1`). When unset, Go defaults are used.                                                            |
+| `tlsConfig.minTLSVersion`     | OPTIONAL | TLS 1.2 | Minimum TLS version in Kubernetes-style naming (for example `VersionTLS12`, `VersionTLS13`). Values below TLS 1.2 are raised to TLS 1.2. TLS 1.3 connections may still be negotiated when the minimum is TLS 1.2.                                                                          |
+| `tlsConfig.cipherSuites`      | OPTIONAL |         | Allowed cipher suites in IANA naming for TLS 1.2 connections (for example `TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256`). Insecure cipher suites are logged and skipped. When unset or all entries are unsupported, Go defaults are used. Ignored with a log message when `minTLSVersion` is `VersionTLS13` or higher because Go negotiates TLS 1.3 cipher suites automatically.                |
+| `tlsConfig.curvePreferences`  | OPTIONAL |         | Ordered list of allowed key exchange curves or groups (for example `X25519MLKEM768`, `X25519`, `secp256r1`). Decimal curve IDs are supported and validated via component-base. Classical and hybrid curves may be configured together. With `minTLSVersion` below `VersionTLS13`, hybrid curves are kept for TLS 1.3 connections but are ignored for TLS 1.2; at least one classical curve is required. When unset or all entries are unsupported, Go defaults are used.                                                            |
+
+Unsupported or incompatible values are logged at startup. Invalid values that cannot be parsed cause the controller manager to fail at startup.
 
 Example:
 
 ```yaml
 tlsConfig:
-  minTLSVersion: VersionTLS12
-  cipherSuites:
-    - TLS_AES_128_GCM_SHA256
-    - TLS_AES_256_GCM_SHA384
-    - TLS_CHACHA20_POLY1305_SHA256
-    - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-    - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-    - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-    - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-    - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
-    - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+  minTLSVersion: VersionTLS13
   curvePreferences:
     - X25519MLKEM768
     - X25519
