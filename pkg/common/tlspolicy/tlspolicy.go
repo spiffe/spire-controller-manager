@@ -17,6 +17,7 @@ import (
 // When tlsConfig is nil or empty, MinVersion is set to TLS 1.2.
 func TLSConfig(tlsCfg *spirev1alpha1.TLSConfig, log logr.Logger) (*tls.Config, error) {
 	if log.GetSink() == nil {
+		// Production call site will have a logger, so we don't need to discard logs.
 		log = logr.Discard()
 	}
 
