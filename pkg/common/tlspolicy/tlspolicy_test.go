@@ -47,20 +47,6 @@ func TestTLSConfigValid(t *testing.T) {
 			wantMin: tls.VersionTLS13,
 		},
 		{
-			name: "minTLSVersion VersionTLS10 floored to TLS 1.2",
-			in: &spirev1alpha1.TLSConfig{
-				MinTLSVersion: "VersionTLS10",
-			},
-			wantMin: tls.VersionTLS12,
-		},
-		{
-			name: "minTLSVersion VersionTLS11 floored to TLS 1.2",
-			in: &spirev1alpha1.TLSConfig{
-				MinTLSVersion: "VersionTLS11",
-			},
-			wantMin: tls.VersionTLS12,
-		},
-		{
 			name: "cipherSuites only",
 			in: &spirev1alpha1.TLSConfig{
 				CipherSuites: []string{
@@ -277,6 +263,20 @@ func TestTLSConfigInvalid(t *testing.T) {
 				MinTLSVersion: "VersionTLS99",
 			},
 			errPart: "invalid minTLSVersion",
+		},
+		{
+			name: "minTLSVersion VersionTLS10 rejected",
+			in: &spirev1alpha1.TLSConfig{
+				MinTLSVersion: "VersionTLS10",
+			},
+			errPart: "must be VersionTLS12 or higher",
+		},
+		{
+			name: "minTLSVersion VersionTLS11 rejected",
+			in: &spirev1alpha1.TLSConfig{
+				MinTLSVersion: "VersionTLS11",
+			},
+			errPart: "must be VersionTLS12 or higher",
 		},
 		{
 			name: "unknown cipherSuite",

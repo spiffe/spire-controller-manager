@@ -76,7 +76,7 @@ type ControllerManagerConfig struct {
 // TLSConfig configures TLS security settings for terminating endpoints.
 type TLSConfig struct {
 	// MinTLSVersion is the minimum TLS version in Kubernetes-style naming
-	// (for example "VersionTLS12").
+	// (for example "VersionTLS12"). Values below VersionTLS12 are rejected.
 	// +optional
 	MinTLSVersion string `json:"minTLSVersion,omitempty"`
 

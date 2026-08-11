@@ -35,7 +35,7 @@ func TLSConfig(tlsCfg *spirev1alpha1.TLSConfig, log logr.Logger) (*tls.Config, e
 			return nil, fmt.Errorf("invalid minTLSVersion %q: %w", tlsCfg.MinTLSVersion, err)
 		}
 		if minVersion < tls.VersionTLS12 {
-			minVersion = tls.VersionTLS12
+			return nil, fmt.Errorf("minTLSVersion %q must be VersionTLS12 or higher", tlsCfg.MinTLSVersion)
 		}
 		cfg.MinVersion = minVersion
 	}
