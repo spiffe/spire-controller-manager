@@ -565,6 +565,12 @@ func computeEndpointsRV(items []corev1.Endpoints) string { //nolint:staticcheck
 }
 
 func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, pod *corev1.Pod, specHash string, nodeMap map[string]*corev1.Node) (*spireapi.Entry, error) {
+	if pod.Spec.NodeName == "" {
+		// The pod has not been scheduled yet. Reconciliation is triggered
+		// again once it is, at which point the entry can be rendered.
+		return nil, nil
+	}
+
 	node, ok := nodeMap[pod.Spec.NodeName]
 	if !ok {
 		return nil, fmt.Errorf("node %s not found in cache", pod.Spec.NodeName)
