@@ -1,11 +1,14 @@
 package spireentry
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/spire-controller-manager/pkg/spireapi"
 	"github.com/stretchr/testify/require"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func TestMakeEntryKey(t *testing.T) {
@@ -120,6 +123,48 @@ func TestFilterJoinTokenEntries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := filterJoinTokenEntries(tc.entries)
 			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestIsCRDNotInstalledErr(t *testing.T) {
+	gk := schema.GroupKind{Group: "spire.spiffe.io", Kind: "ClusterStaticEntry"}
+
+	testCases := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "no kind match error",
+			err:      &apimeta.NoKindMatchError{GroupKind: gk},
+			expected: true,
+		},
+		{
+			name:     "no resource match error",
+			err:      &apimeta.NoResourceMatchError{PartialResource: gk.WithVersion("v1alpha1").GroupVersion().WithResource("clusterstaticentries")},
+			expected: true,
+		},
+		{
+			name:     "wrapped no kind match error",
+			err:      errors.Join(errors.New("failed to list"), &apimeta.NoKindMatchError{GroupKind: gk}),
+			expected: true,
+		},
+		{
+			name:     "unrelated error",
+			err:      errors.New("some other failure"),
+			expected: false,
+		},
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, isCRDNotInstalledErr(tc.err))
 		})
 	}
 }
