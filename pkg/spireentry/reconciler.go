@@ -183,10 +183,7 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		clusterStaticEntries, err = r.listClusterStaticEntries(ctx, r.expandEnvStaticManifests)
 		if err != nil {
 			if isCRDNotInstalledErr(err) {
-				// The ClusterStaticEntry CRD isn't installed. Log this
-				// distinctly from other list failures so it's clear from the
-				// logs what's wrong and how to fix it (see issue #177),
-				// rather than an unqualified error every reconcile.
+				// See issue #177.
 				log.Info("ClusterStaticEntry CRD not installed; install it to enable ClusterStaticEntry reconciliation", "error", err.Error())
 			} else {
 				log.Error(err, "Failed to list ClusterStaticEntries")
