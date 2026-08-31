@@ -8,6 +8,78 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestResolveSPIREServerConn(t *testing.T) {
+	for _, test := range []struct {
+		name               string
+		ctrlConfig         spirev1alpha1.ControllerManagerConfig
+		spireAPISocketFlag string
+		expectedSocketPath string
+		expectedAddress    string
+		expectedErr        string
+	}{
+		{
+			name:               "nothing set defaults to the default socket path",
+			expectedSocketPath: defaultSPIREServerSocketPath,
+		},
+		{
+			name: "socket path set in config is preserved",
+			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
+				SPIREServerSocketPath: "/some/socket.sock",
+			},
+			expectedSocketPath: "/some/socket.sock",
+		},
+		{
+			name:               "deprecated flag is used when config is unset",
+			spireAPISocketFlag: "/flag/socket.sock",
+			expectedSocketPath: "/flag/socket.sock",
+		},
+		{
+			name: "config wins over deprecated flag when both are set",
+			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
+				SPIREServerSocketPath: "/some/socket.sock",
+			},
+			spireAPISocketFlag: "/flag/socket.sock",
+			expectedSocketPath: "/some/socket.sock",
+		},
+		{
+			name: "address set in config is preserved and socket path is left empty",
+			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
+				SPIREServerAddress: "spire-server.spire.svc:8081",
+			},
+			expectedAddress: "spire-server.spire.svc:8081",
+		},
+		{
+			name: "address and socket path are mutually exclusive",
+			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
+				SPIREServerAddress:    "spire-server.spire.svc:8081",
+				SPIREServerSocketPath: "/some/socket.sock",
+			},
+			expectedErr: "spireServerSocketPath and spireServerAddress are mutually exclusive",
+		},
+		{
+			name: "address and deprecated flag are mutually exclusive",
+			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
+				SPIREServerAddress: "spire-server.spire.svc:8081",
+			},
+			spireAPISocketFlag: "/flag/socket.sock",
+			expectedErr:        "spireServerAddress and the spire-api-socket flag are mutually exclusive",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctrlConfig := test.ctrlConfig
+			err := resolveSPIREServerConn(&ctrlConfig, test.spireAPISocketFlag)
+			if test.expectedErr != "" {
+				require.EqualError(t, err, test.expectedErr)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, test.expectedSocketPath, ctrlConfig.SPIREServerSocketPath)
+			require.Equal(t, test.expectedAddress, ctrlConfig.SPIREServerAddress)
+		})
+	}
+}
+
 func TestParseClusterDomainCNAME(t *testing.T) {
 	for _, test := range []struct {
 		name           string

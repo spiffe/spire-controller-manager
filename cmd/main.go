@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -135,6 +136,41 @@ func clusterSPIFFEIDCacheLabels(ctrlConfig spirev1alpha1.ControllerManagerConfig
 	return cacheLabels
 }
 
+// resolveSPIREServerConn determines how the controller manager will connect
+// to the SPIRE Server: either over the local Unix domain socket
+// (SPIREServerSocketPath), or over TCP using SPIFFE mTLS
+// (SPIREServerAddress). The two are mutually exclusive. If neither is set
+// (and the deprecated spire-api-socket flag is unset), the default socket
+// path is used.
+func resolveSPIREServerConn(ctrlConfig *spirev1alpha1.ControllerManagerConfig, spireAPISocketFlag string) error {
+	if ctrlConfig.SPIREServerAddress != "" {
+		if spireAPISocketFlag != "" {
+			return errors.New("spireServerAddress and the spire-api-socket flag are mutually exclusive")
+		}
+		if ctrlConfig.SPIREServerSocketPath != "" {
+			return errors.New("spireServerSocketPath and spireServerAddress are mutually exclusive")
+		}
+		return nil
+	}
+
+	switch {
+	case ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
+		// Neither is set. Use the default.
+		ctrlConfig.SPIREServerSocketPath = defaultSPIREServerSocketPath
+	case ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag == "":
+		// Configuration file value is set. Use it.
+	case ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag != "":
+		// Deprecated flag value is set. Use it but warn.
+		ctrlConfig.SPIREServerSocketPath = spireAPISocketFlag
+		setupLog.Error(nil, "The spire-api-socket flag is deprecated and will be removed in a future release; use the configuration file instead")
+	case ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag != "":
+		// Both are set. Warn and ignore the deprecated flag.
+		setupLog.Error(nil, "Ignoring deprecated spire-api-socket flag which will be removed in a future release")
+	}
+
+	return nil
+}
+
 func parseConfig() (Config, error) {
 	var retval Config
 	var configFileFlag string
@@ -186,20 +222,10 @@ func parseConfig() (Config, error) {
 	}
 	setupLog.Info("Logger configured", "level", opts.Level)
 
-	// Determine the SPIRE Server socket path
-	switch {
-	case retval.ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag == "":
-		// Neither is set. Use the default.
-		retval.ctrlConfig.SPIREServerSocketPath = defaultSPIREServerSocketPath
-	case retval.ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag == "":
-		// Configuration file value is set. Use it.
-	case retval.ctrlConfig.SPIREServerSocketPath == "" && spireAPISocketFlag != "":
-		// Deprecated flag value is set. Use it but warn.
-		retval.ctrlConfig.SPIREServerSocketPath = spireAPISocketFlag
-		setupLog.Error(nil, "The spire-api-socket flag is deprecated and will be removed in a future release; use the configuration file instead")
-	case retval.ctrlConfig.SPIREServerSocketPath != "" && spireAPISocketFlag != "":
-		// Both are set. Warn and ignore the deprecated flag.
-		setupLog.Error(nil, "Ignoring deprecated spire-api-socket flag which will be removed in a future release")
+	// Determine how to connect to the SPIRE Server (local socket or TCP
+	// address).
+	if err := resolveSPIREServerConn(&retval.ctrlConfig, spireAPISocketFlag); err != nil {
+		return retval, err
 	}
 
 	// Attempt to auto detect cluster domain if it wasn't specified
@@ -258,6 +284,7 @@ func parseConfig() (Config, error) {
 		"ignore namespaces", retval.ctrlConfig.IgnoreNamespaces,
 		"gc interval", retval.ctrlConfig.GCInterval,
 		"spire server socket path", retval.ctrlConfig.SPIREServerSocketPath,
+		"spire server address", retval.ctrlConfig.SPIREServerAddress,
 		"class name", retval.ctrlConfig.ClassName,
 		"handle crs without class name", retval.ctrlConfig.WatchClassless,
 		"filter ClusterSPIFFEID cache by class name", retval.ctrlConfig.FilterByClassName,
@@ -284,6 +311,16 @@ func parseConfig() (Config, error) {
 	return retval, nil
 }
 
+func dialSPIREServer(ctx context.Context, ctrlConfig spirev1alpha1.ControllerManagerConfig, trustDomain spiffeid.TrustDomain) (spireapi.Client, error) {
+	if ctrlConfig.SPIREServerAddress != "" {
+		setupLog.Info("Dialing SPIRE Server address", "address", ctrlConfig.SPIREServerAddress)
+		return spireapi.DialAddress(ctx, ctrlConfig.SPIREServerAddress, trustDomain, ctrlConfig.WorkloadAPIAddr, ctrlConfig.Grpc)
+	}
+
+	setupLog.Info("Dialing SPIRE Server socket")
+	return spireapi.DialSocket(ctrlConfig.SPIREServerSocketPath, ctrlConfig.Grpc)
+}
+
 func run(mainConfig Config) (err error) {
 	webhookEnabled := os.Getenv("ENABLE_WEBHOOKS") != "false"
 
@@ -295,10 +332,9 @@ func run(mainConfig Config) (err error) {
 
 	ctx := ctrl.SetupSignalHandler()
 
-	setupLog.Info("Dialing SPIRE Server socket")
-	spireClient, err := spireapi.DialSocket(mainConfig.ctrlConfig.SPIREServerSocketPath, mainConfig.ctrlConfig.Grpc)
+	spireClient, err := dialSPIREServer(ctx, mainConfig.ctrlConfig, trustDomain)
 	if err != nil {
-		setupLog.Error(err, "unable to dial SPIRE Server socket")
+		setupLog.Error(err, "unable to dial SPIRE Server")
 		return err
 	}
 	defer spireClient.Close()
@@ -525,10 +561,9 @@ func staticRun(mainConfig Config) (err error) {
 
 	ctx := ctrl.SetupSignalHandler()
 
-	setupLog.Info("Dialing SPIRE Server socket")
-	spireClient, err := spireapi.DialSocket(mainConfig.ctrlConfig.SPIREServerSocketPath, mainConfig.ctrlConfig.Grpc)
+	spireClient, err := dialSPIREServer(ctx, mainConfig.ctrlConfig, trustDomain)
 	if err != nil {
-		setupLog.Error(err, "unable to dial SPIRE Server socket")
+		setupLog.Error(err, "unable to dial SPIRE Server")
 		return err
 	}
 	defer spireClient.Close()
