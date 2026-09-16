@@ -38,6 +38,7 @@ import (
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -181,7 +182,12 @@ func (r *entryReconciler) reconcile(ctx context.Context) {
 		// Load and add entry state for ClusterStaticEntries
 		clusterStaticEntries, err = r.listClusterStaticEntries(ctx, r.expandEnvStaticManifests)
 		if err != nil {
-			log.Error(err, "Failed to list ClusterStaticEntries")
+			if isCRDNotInstalledErr(err) {
+				// See issue #177.
+				log.Info("ClusterStaticEntry CRD not installed; install it to enable ClusterStaticEntry reconciliation", "error", err.Error())
+			} else {
+				log.Error(err, "Failed to list ClusterStaticEntries")
+			}
 			return
 		}
 		r.addClusterStaticEntryEntriesState(ctx, state, clusterStaticEntries)
@@ -393,6 +399,13 @@ func (r *entryReconciler) listClusterStaticEntries(ctx context.Context, expandEn
 	return out, nil
 }
 
+// isCRDNotInstalledErr returns true if err indicates that the RESTMapper
+// could not find a matching kind, which happens when the corresponding CRD
+// is not installed in the cluster.
+func isCRDNotInstalledErr(err error) bool {
+	return apimeta.IsNoMatchError(err)
+}
+
 func (r *entryReconciler) listClusterSPIFFEIDs(ctx context.Context) ([]*ClusterSPIFFEID, error) {
 	clusterSPIFFEIDs, err := k8sapi.ListClusterSPIFFEIDs(ctx, r.config.K8sClient)
 	if err != nil {
@@ -565,6 +578,12 @@ func computeEndpointsRV(items []corev1.Endpoints) string { //nolint:staticcheck
 }
 
 func (r *entryReconciler) renderPodEntry(ctx context.Context, spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, pod *corev1.Pod, specHash string, nodeMap map[string]*corev1.Node) (*spireapi.Entry, error) {
+	if pod.Spec.NodeName == "" {
+		// The pod has not been scheduled yet. Reconciliation is triggered
+		// again once it is, at which point the entry can be rendered.
+		return nil, nil
+	}
+
 	node, ok := nodeMap[pod.Spec.NodeName]
 	if !ok {
 		return nil, fmt.Errorf("node %s not found in cache", pod.Spec.NodeName)
