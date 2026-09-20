@@ -55,8 +55,27 @@ type ControllerManagerConfig struct {
 	// the controller.
 	GCInterval time.Duration `json:"gcInterval,omitempty"`
 
-	// SPIREServerSocketPath is the path to the SPIRE Server API socket
-	SPIREServerSocketPath string `json:"spireServerSocketPath"`
+	// SPIREServerSocketPath is the path to the SPIRE Server API socket.
+	// Mutually exclusive with SPIREServerAddress.
+	SPIREServerSocketPath string `json:"spireServerSocketPath,omitempty"`
+
+	// SPIREServerAddress is the host:port of the SPIRE Server API. When set,
+	// the controller manager connects to the SPIRE Server over TCP using
+	// SPIFFE mTLS instead of the local Unix domain socket, authenticating
+	// itself with an X509-SVID obtained from the SPIFFE Workload API at
+	// WorkloadAPIAddr. The caller's SPIFFE ID must be granted admin rights
+	// on the SPIRE Server (e.g. via a registration entry with the admin
+	// flag, or the server's admin_ids configuration).
+	// Mutually exclusive with SPIREServerSocketPath.
+	// +optional
+	SPIREServerAddress string `json:"spireServerAddress,omitempty"`
+
+	// WorkloadAPIAddr is the address of the SPIFFE Workload API used to
+	// obtain the controller manager's own X509-SVID when SPIREServerAddress
+	// is set. Defaults to the SPIFFE_ENDPOINT_SOCKET environment variable
+	// (as used by the go-spiffe Workload API client) when unset.
+	// +optional
+	WorkloadAPIAddr string `json:"workloadAPIAddr,omitempty"`
 
 	// LogLevel is the log level for the controller manager
 	LogLevel string `json:"logLevel"`
