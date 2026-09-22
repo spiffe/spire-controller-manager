@@ -171,3 +171,50 @@ func TestParentIDTemplateRenderPodEntry(t *testing.T) {
 
 	require.Equal(t, entry.ParentID.String(), fmt.Sprintf("spiffe://%s/spire/agent/x509pop/test.example.org", td))
 }
+
+func TestParentIDTemplateCanUsePodFields(t *testing.T) {
+	spec := &spirev1alpha1.ClusterSPIFFEIDSpec{
+		SPIFFEIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}",
+	}
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:  "node-uid",
+			Name: "node-a",
+		},
+	}
+	// Pods of a runtime whose agents attest per pod get a parent for each pod,
+	// and every other pod keeps the node's agent. The branch reads the node
+	// selector that the runtime class adds at admission, which cannot change
+	// afterwards.
+	parentIDTemplate, err := template.New("testParentIDTemplate").Parse(
+		`{{ if eq (index .PodSpec.NodeSelector "example.org/runtime") "per-pod-agent" }}` +
+			`spiffe://{{ .TrustDomain }}/spire/agent/per-pod/{{ .NodeMeta.Name }}/pod/{{ .PodMeta.UID }}` +
+			`{{ else }}spiffe://{{ .TrustDomain }}/spire/agent/k8s_psat/{{ .ClusterName }}/{{ .NodeMeta.UID }}{{ end }}`)
+	require.NoError(t, err)
+
+	parsedSpec, err := spirev1alpha1.ParseClusterSPIFFEIDSpec(spec)
+	require.NoError(t, err)
+	td, err := spiffeid.TrustDomainFromString(trustDomain)
+	require.NoError(t, err)
+
+	perPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "namespace",
+			UID:       "pod-uid",
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "test",
+			NodeSelector:       map[string]string{"example.org/runtime": "per-pod-agent"},
+		},
+	}
+	entry, err := renderPodEntry(parsedSpec, node, perPod, &corev1.EndpointsList{}, td, clusterName, clusterDomain, parentIDTemplate)
+	require.NoError(t, err)
+	require.Equal(t, fmt.Sprintf("spiffe://%s/spire/agent/per-pod/node-a/pod/pod-uid", td), entry.ParentID.String())
+
+	plain := perPod.DeepCopy()
+	plain.Spec.NodeSelector = nil
+	entry, err = renderPodEntry(parsedSpec, node, plain, &corev1.EndpointsList{}, td, clusterName, clusterDomain, parentIDTemplate)
+	require.NoError(t, err)
+	require.Equal(t, fmt.Sprintf("spiffe://%s/spire/agent/k8s_psat/%s/node-uid", td, clusterName), entry.ParentID.String())
+}

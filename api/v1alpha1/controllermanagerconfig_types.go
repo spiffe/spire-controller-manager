@@ -172,7 +172,12 @@ type ControllerManagerConfigurationSpec struct {
 	// +optional
 	FilterByClassName bool `json:"filterByClassName,omitempty"`
 
-	// If specified, uses a different parent id template for linking pods to nodes
+	// If specified, uses a different parent id template for linking pods to nodes.
+	// The template can use the pod's fields as well as the node's. The parent
+	// decides which agent may issue a pod's identity, so use only pod fields
+	// that cannot change after the pod is admitted, such as the UID,
+	// namespace, service account, or node selector, and not labels or
+	// annotations.
 	// +optional
 	ParentIDTemplate string `json:"parentIDTemplate,omitempty"`
 

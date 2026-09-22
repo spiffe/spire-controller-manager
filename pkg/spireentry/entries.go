@@ -82,6 +82,8 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 		ClusterDomain: clusterDomain,
 		NodeMeta:      &node.ObjectMeta,
 		NodeSpec:      &node.Spec,
+		PodMeta:       &pod.ObjectMeta,
+		PodSpec:       &pod.Spec,
 	}
 
 	if parentIDTemplate == nil {
@@ -92,9 +94,6 @@ func renderPodEntry(spec *spirev1alpha1.ParsedClusterSPIFFEIDSpec, node *corev1.
 	if err != nil {
 		return nil, fmt.Errorf("failed to render parent ID: %w", err)
 	}
-
-	data.PodMeta = &pod.ObjectMeta
-	data.PodSpec = &pod.Spec
 
 	spiffeID, err := renderSPIFFEID(spec.SPIFFEIDTemplate, data, trustDomain)
 	if err != nil {
