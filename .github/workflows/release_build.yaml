@@ -3,6 +3,7 @@ on:
   push:
     tags:
       - 'v[0-9].[0-9]+.[0-9]+'
+      - 'v[0-9].[0-9]+.[0-9]+-edera.[0-9]+'
 jobs:
   build-image:
     runs-on: ubuntu-22.04
