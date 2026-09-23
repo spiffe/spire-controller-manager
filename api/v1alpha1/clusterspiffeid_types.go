@@ -149,6 +149,15 @@ type ClusterSPIFFEID struct {
 	Status ClusterSPIFFEIDStatus `json:"status"`
 }
 
+// AdditiveAnnotation set to "true" applies the ID without keeping fallback
+// ClusterSPIFFEIDs from applying to the same pods. It is an annotation so that
+// the stock CRD, which prunes unknown spec fields, keeps it.
+const AdditiveAnnotation = "spire-controller-manager.edera.dev/additive"
+
+func (c *ClusterSPIFFEID) IsAdditive() bool {
+	return c.Annotations[AdditiveAnnotation] == "true"
+}
+
 //+kubebuilder:object:root=true
 
 // ClusterSPIFFEIDList contains a list of ClusterSPIFFEID

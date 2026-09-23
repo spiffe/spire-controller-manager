@@ -30,6 +30,12 @@ The definition can be found [here](../api/v1alpha1/clusterspiffeid_types.go).
 | `fallback`                  | OPTIONAL | Apply this ID only if there are no other matching non fallback ClusterSPIFFEIDs. |
 | `className`                 | OPTIONAL | The class name of the SPIRE controller manager. |
 
+## Annotations
+
+| Annotation | Description |
+| ---------- | ----------- |
+| `spire-controller-manager.edera.dev/additive` | `"true"` applies this ID without keeping fallback ClusterSPIFFEIDs from applying to the same pods, for an identity that sits beside a workload's own, such as a delegate's. Cannot be combined with `fallback`. |
+
 ## ClusterSPIFFEIDStatus
 
 | Field | Description |

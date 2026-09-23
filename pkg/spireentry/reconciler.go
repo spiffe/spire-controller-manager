@@ -535,7 +535,7 @@ func (r *entryReconciler) addClusterSPIFFEIDEntriesState(ctx context.Context, st
 					// renderPodEntry will return a nil entry if requisite k8s
 					// objects disappeared from underneath.
 					state.AddDeclared(*entry, clusterSPIFFEID)
-					if !clusterSPIFFEID.Spec.Fallback {
+					if !clusterSPIFFEID.Spec.Fallback && !clusterSPIFFEID.IsAdditive() {
 						podsWithNonFallbackApplied[pods[i].UID] = struct{}{}
 					}
 				}

@@ -76,6 +76,14 @@ func (r *ClusterSPIFFEIDCustomValidator) ValidateDelete(context.Context, *Cluste
 }
 
 func (r *ClusterSPIFFEIDCustomValidator) validate(o *ClusterSPIFFEID) (admission.Warnings, error) {
+	if value, ok := o.Annotations[AdditiveAnnotation]; ok {
+		if value != "true" && value != "false" {
+			return nil, fmt.Errorf("%s must be \"true\" or \"false\", not %q", AdditiveAnnotation, value)
+		}
+		if value == "true" && o.Spec.Fallback {
+			return nil, fmt.Errorf("fallback and %s cannot both be set", AdditiveAnnotation)
+		}
+	}
 	_, err := ParseClusterSPIFFEIDSpec(&o.Spec)
 	return nil, err
 }
