@@ -1,0 +1,16 @@
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterStaticEntry
+metadata:
+  name: static-entry-path-only
+spec:
+  spiffeID: /static-spiffe-id-path-only
+  parentID: /static-parent-id-path-only
+  selectors: ["static:path-one", "static:path-two"]
+  federatesWith: ["cluster1.demo"]
+  x509SVIDTTL: "2h"
+  jwtSVIDTTL: "6m"
+  dnsNames: ["static-dns-path-only"]
+  hint: "static-hint-path-only"
+  admin: true
+  downstream: true
+  storeSVID: true

@@ -175,6 +175,7 @@ log-info "Configuring the greeter client ID in cluster2..."
 
 log-info "Configuring the static entry in cluster1..."
 ./cluster1 kubectl apply -f config/static-entry.yaml
+./cluster1 kubectl apply -f config/static-entry-path-only.yaml
 
 ############################################################################
 # Check status
@@ -214,18 +215,20 @@ if [ -z "$SUCCESS" ]; then
     fail-now "Client never received response from server :("
 fi
 
-log-info "Checking for the static entry..."
+log-info "Checking for the static entries..."
 SUCCESS=
 for ((i = 0; i < 90; i++)); do
-    if ./cluster1 scripts/show-spire-entries.sh | grep -q static-spiffe-id; then
-        log-info "Static entry created in cluster1"
+    ENTRIES=$(./cluster1 scripts/show-spire-entries.sh)
+    if echo "$ENTRIES" | grep -E -q 'spiffe://cluster1\.demo/static-spiffe-id$' \
+        && echo "$ENTRIES" | grep -q 'static-spiffe-id-path-only'; then
+        log-info "Static entries created in cluster1"
         SUCCESS=true
         break
     fi
     sleep 1
 done
 if [ -z "$SUCCESS" ]; then
-    fail-now "Static entry never created :("
+    fail-now "Static entries never created :("
 fi
 
 ############################################################################
@@ -326,7 +329,10 @@ log-info "Unlabeled ClusterSPIFFEID was correctly excluded from the cache"
 log-info "Checking that the greeter-server and static entries still exist..."
 ./cluster1 scripts/show-spire-entries.sh | grep -q "spiffe://cluster1.demo/greeter-server" \
     || fail-now "greeter-server entry disappeared after enabling the cache filter :("
-./cluster1 scripts/show-spire-entries.sh | grep -q static-spiffe-id \
-    || fail-now "static entry disappeared after enabling the cache filter :("
+ENTRIES=$(./cluster1 scripts/show-spire-entries.sh)
+echo "$ENTRIES" | grep -E -q 'spiffe://cluster1\.demo/static-spiffe-id$' \
+    || fail-now "full URI static entry disappeared after enabling the cache filter :("
+echo "$ENTRIES" | grep -q 'static-spiffe-id-path-only' \
+    || fail-now "path-only static entry disappeared after enabling the cache filter :("
 
 log-good "Success."
