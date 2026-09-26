@@ -33,12 +33,23 @@ import (
 
 var defaultParentIDTemplate = template.Must(template.New("defaultParentIDTemplate").Parse("spiffe://{{ .TrustDomain }}/spire/agent/k8s_psat/{{ .ClusterName }}/{{ .NodeMeta.UID }}"))
 
-func renderStaticEntry(spec *spirev1alpha1.ClusterStaticEntrySpec) (*spireapi.Entry, error) {
-	spiffeID, err := spiffeid.FromString(spec.SPIFFEID)
+func parseSPIFFEIDInput(input string, defaultTD spiffeid.TrustDomain) (spiffeid.ID, error) {
+	switch {
+	case strings.HasPrefix(input, "spiffe://"):
+		return spiffeid.FromString(input)
+	case strings.HasPrefix(input, "/"):
+		return spiffeid.FromPath(defaultTD, input)
+	default:
+		return spiffeid.ID{}, fmt.Errorf("invalid SPIFFE ID %q: must be a full spiffe:// URI or an absolute path starting with /", input)
+	}
+}
+
+func renderStaticEntry(spec *spirev1alpha1.ClusterStaticEntrySpec, trustDomain spiffeid.TrustDomain) (*spireapi.Entry, error) {
+	spiffeID, err := parseSPIFFEIDInput(spec.SPIFFEID, trustDomain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse SPIFFEID: %w", err)
 	}
-	parentID, err := spiffeid.FromString(spec.ParentID)
+	parentID, err := parseSPIFFEIDInput(spec.ParentID, trustDomain)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ParentID: %w", err)
 	}

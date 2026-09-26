@@ -171,3 +171,130 @@ func TestParentIDTemplateRenderPodEntry(t *testing.T) {
 
 	require.Equal(t, entry.ParentID.String(), fmt.Sprintf("spiffe://%s/spire/agent/x509pop/test.example.org", td))
 }
+
+func TestParseSPIFFEIDInput(t *testing.T) {
+	td, err := spiffeid.TrustDomainFromString(trustDomain)
+	require.NoError(t, err)
+
+	t.Run("full URI", func(t *testing.T) {
+		id, err := parseSPIFFEIDInput("spiffe://example.org/my-service", td)
+		require.NoError(t, err)
+		require.Equal(t, "spiffe://example.org/my-service", id.String())
+	})
+
+	t.Run("path only", func(t *testing.T) {
+		id, err := parseSPIFFEIDInput("/my-service", td)
+		require.NoError(t, err)
+		require.Equal(t, "spiffe://example.org/my-service", id.String())
+	})
+
+	t.Run("invalid without leading slash", func(t *testing.T) {
+		_, err := parseSPIFFEIDInput("my-service", td)
+		require.Error(t, err)
+	})
+
+	t.Run("empty string", func(t *testing.T) {
+		_, err := parseSPIFFEIDInput("", td)
+		require.Error(t, err)
+	})
+
+	t.Run("invalid full URI", func(t *testing.T) {
+		_, err := parseSPIFFEIDInput("spiffe://", td)
+		require.Error(t, err)
+	})
+
+	t.Run("not a URI", func(t *testing.T) {
+		_, err := parseSPIFFEIDInput("not-a-uri", td)
+		require.Error(t, err)
+	})
+
+	t.Run("invalid path segment", func(t *testing.T) {
+		_, err := parseSPIFFEIDInput("/bad/path/../segment", td)
+		require.Error(t, err)
+	})
+}
+
+func TestRenderStaticEntry(t *testing.T) {
+	td, err := spiffeid.TrustDomainFromString(trustDomain)
+	require.NoError(t, err)
+
+	t.Run("full URI", func(t *testing.T) {
+		spec := &spirev1alpha1.ClusterStaticEntrySpec{
+			SPIFFEID:  "spiffe://example.org/static-spiffe-id",
+			ParentID:  "spiffe://example.org/static-parent-id",
+			Selectors: []string{"static:one"},
+		}
+		entry, err := renderStaticEntry(spec, td)
+		require.NoError(t, err)
+		require.Equal(t, "spiffe://example.org/static-spiffe-id", entry.SPIFFEID.String())
+		require.Equal(t, "spiffe://example.org/static-parent-id", entry.ParentID.String())
+	})
+
+	t.Run("path only", func(t *testing.T) {
+		spec := &spirev1alpha1.ClusterStaticEntrySpec{
+			SPIFFEID:  "/static-spiffe-id",
+			ParentID:  "/static-parent-id",
+			Selectors: []string{"static:one"},
+		}
+		entry, err := renderStaticEntry(spec, td)
+		require.NoError(t, err)
+		require.Equal(t, "spiffe://example.org/static-spiffe-id", entry.SPIFFEID.String())
+		require.Equal(t, "spiffe://example.org/static-parent-id", entry.ParentID.String())
+	})
+
+	t.Run("foreign trust domain in full URI", func(t *testing.T) {
+		spec := &spirev1alpha1.ClusterStaticEntrySpec{
+			SPIFFEID:  "spiffe://other.example.org/static-spiffe-id",
+			ParentID:  "spiffe://other.example.org/static-parent-id",
+			Selectors: []string{"static:one"},
+		}
+		entry, err := renderStaticEntry(spec, td)
+		require.NoError(t, err)
+		require.Equal(t, "spiffe://other.example.org/static-spiffe-id", entry.SPIFFEID.String())
+		require.Equal(t, "spiffe://other.example.org/static-parent-id", entry.ParentID.String())
+	})
+
+	t.Run("empty spiffeID", func(t *testing.T) {
+		spec := &spirev1alpha1.ClusterStaticEntrySpec{
+			SPIFFEID:  "",
+			ParentID:  "/static-parent-id",
+			Selectors: []string{"static:one"},
+		}
+		_, err := renderStaticEntry(spec, td)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "SPIFFEID")
+	})
+
+	t.Run("empty parentID", func(t *testing.T) {
+		spec := &spirev1alpha1.ClusterStaticEntrySpec{
+			SPIFFEID:  "/static-spiffe-id",
+			ParentID:  "",
+			Selectors: []string{"static:one"},
+		}
+		_, err := renderStaticEntry(spec, td)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "ParentID")
+	})
+
+	t.Run("invalid spiffeID with valid parentID", func(t *testing.T) {
+		spec := &spirev1alpha1.ClusterStaticEntrySpec{
+			SPIFFEID:  "bad-id",
+			ParentID:  "/static-parent-id",
+			Selectors: []string{"static:one"},
+		}
+		_, err := renderStaticEntry(spec, td)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "SPIFFEID")
+	})
+
+	t.Run("valid spiffeID with invalid parentID", func(t *testing.T) {
+		spec := &spirev1alpha1.ClusterStaticEntrySpec{
+			SPIFFEID:  "/static-spiffe-id",
+			ParentID:  "spiffe://",
+			Selectors: []string{"static:one"},
+		}
+		_, err := renderStaticEntry(spec, td)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "ParentID")
+	})
+}

@@ -10,8 +10,8 @@ The definition can be found [here](../api/v1alpha1/clusterstaticentry_types.go).
 
 | Field | Required | Description |
 | ----- | -------- | ----------- |
-| `spiffeID`                  | REQUIRED | The SPIFFE ID of the workload or node alias |
-| `parentID`                  | REQUIRED | The parent ID of the node or nodes authorized for the entry or the SPIRE server ID for a node alias |
+| `spiffeID`                  | REQUIRED | Full SPIFFE ID or absolute path; see [SPIFFE ID and Parent ID formats](#spiiffe-id-and-parent-id-formats) below |
+| `parentID`                  | REQUIRED | Full SPIFFE ID or absolute path; see [SPIFFE ID and Parent ID formats](#spiiffe-id-and-parent-id-formats) below |
 | `selectors`                 | REQUIRED | One or more workload selectors (when registering a workload) or node selectors (when registering a node alias) |
 | `federatesWith`             | OPTIONAL | One or more trust domain names that target workloads federate with |
 | `x509SVIDTTL`               | OPTIONAL | Duration value indicating an upper bound on the time-to-live for X509-SVIDs issued to target workload |
@@ -22,6 +22,18 @@ The definition can be found [here](../api/v1alpha1/clusterstaticentry_types.go).
 | `downstream`                | OPTIONAL | Indicates that the entry describes a downstream SPIRE server. |
 | `storeSVID`                 | OPTIONAL | Indicates whether the issued SVID must be stored through an SVIDStore plugin. |
 | `className`                 | OPTIONAL | The class name of the SPIRE controller manager. |
+
+## SPIFFE ID and Parent ID formats
+
+Both `spiffeID` and `parentID` accept either:
+
+- A full SPIFFE URI (e.g. `spiffe://example.org/my-service`), or
+- An absolute path starting with `/` (e.g. `/my-service`).
+
+When a path is provided, the controller prepends `spiffe://` and the trust
+domain configured in the [SPIRE Controller Manager configuration](./spire-controller-manager-config.md).
+This allows the same `ClusterStaticEntry` to be reused across clusters that
+differ only in trust domain.
 
 ## ClusterStaticEntryStatus
 
