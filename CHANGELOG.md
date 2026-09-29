@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.8.0] - 2026-09-29
+
+<font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
+
+This version changes the container image to run as UID/GID 1000 instead of root. Before upgrading you __MUST__ do the following:
+
+- Ensure the controller can access the SPIRE Server socket and any mounted files (e.g. static manifests) as UID/GID 1000, or set `runAsUser: 0` and `runAsGroup: 0` in the container `securityContext` to keep the previous behavior.
+
+### Added
+
+- Support for configuring the TLS minimum version, cipher suites, and curve preferences of the webhook server (`tlsConfig`) (#725)
+- Support for path-only `spiffeID` and `parentID` in `ClusterStaticEntry`, resolved using the configured trust domain (#749)
+
+### Changed
+
+- Container image runs as UID/GID 1000 by default, matching the spire-server image, instead of root (#740)
+- A clear message is logged when the `ClusterStaticEntry` CRD is not installed, instead of repeating reconcile errors (#727)
+
+### Fixed
+
+- Pods not yet scheduled to a node being logged as errors and counted as entry render failures on every reconcile (#741)
+
+### Updated
+
+- Updated Golang to 1.27.1 (#744)
+
 ## [0.7.0] - 2026-07-25
 
 ### Added
