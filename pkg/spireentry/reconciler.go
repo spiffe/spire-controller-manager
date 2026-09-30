@@ -446,7 +446,7 @@ func (r *entryReconciler) addClusterStaticEntryEntriesState(ctx context.Context,
 	log := log.FromContext(ctx)
 	for _, clusterStaticEntry := range clusterStaticEntries {
 		log := log.WithValues(clusterSPIFFEIDLogKey, objectName(clusterStaticEntry))
-		entry, err := renderStaticEntry(&clusterStaticEntry.Spec)
+		entry, err := renderStaticEntry(&clusterStaticEntry.Spec, r.config.TrustDomain)
 		if err != nil {
 			log.Error(err, "Failed to render ClusterStaticEntry")
 			clusterStaticEntry.NextStatus.Rendered = false
