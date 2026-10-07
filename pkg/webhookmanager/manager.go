@@ -389,10 +389,10 @@ func startInformer(ctx context.Context, config Config) (cache.Store, chan struct
 	log := log.FromContext(ctx)
 	store, controller := cache.NewInformerWithOptions(cache.InformerOptions{
 		ListerWatcher: &cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			ListWithContextFunc: func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
 				return config.WebhookClient.List(ctx, options)
 			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			WatchFuncWithContext: func(ctx context.Context, options metav1.ListOptions) (watch.Interface, error) {
 				return config.WebhookClient.Watch(ctx, options)
 			},
 		},
