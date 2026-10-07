@@ -18,9 +18,11 @@ package spireapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffegrpc/grpccredentials"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
@@ -29,6 +31,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+const workloadAPISourceInitializationTimeout = 30 * time.Second
 
 type Client interface {
 	EntryClient
@@ -79,12 +83,12 @@ func DialAddress(ctx context.Context, addr string, trustDomain spiffeid.TrustDom
 		clientOptions = append(clientOptions, workloadapi.WithAddr(workloadAPIAddr))
 	}
 
-	source, err := workloadapi.NewX509Source(ctx, workloadapi.WithClientOptions(clientOptions...))
+	source, cancelSource, err := newX509Source(ctx, workloadapi.WithClientOptions(clientOptions...))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create X509Source: %w", err)
+		return nil, err
 	}
 
-	creds := grpccredentials.MTLSClientCredentials(source, source, tlsconfig.AuthorizeMemberOf(trustDomain))
+	creds := grpccredentials.MTLSClientCredentials(source, source, tlsconfig.AuthorizeID(spireServerID(trustDomain)))
 
 	grpcOptions := append([]grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
@@ -94,10 +98,41 @@ func DialAddress(ctx context.Context, addr string, trustDomain spiffeid.TrustDom
 	grpcClient, err := grpc.NewClient(addr, grpcOptions...)
 	if err != nil {
 		_ = source.Close()
+		cancelSource()
 		return nil, fmt.Errorf("failed to dial SPIRE Server address: %w", err)
 	}
 
-	return newClient(grpcClient, multiCloser{grpcClient, source}), nil
+	return newClient(grpcClient, closerFunc(func() error {
+		err := errors.Join(grpcClient.Close(), source.Close())
+		cancelSource()
+		return err
+	})), nil
+}
+
+func newX509Source(ctx context.Context, options ...workloadapi.X509SourceOption) (*workloadapi.X509Source, context.CancelFunc, error) {
+	sourceCtx, cancelSource := context.WithCancel(ctx)
+	timedOut := make(chan struct{})
+	timer := time.AfterFunc(workloadAPISourceInitializationTimeout, func() {
+		close(timedOut)
+		cancelSource()
+	})
+	source, err := workloadapi.NewX509Source(sourceCtx, options...)
+	if !timer.Stop() {
+		<-timedOut
+		if source != nil {
+			_ = source.Close()
+		}
+		return nil, nil, fmt.Errorf("timed out waiting for initial X509-SVID from the Workload API after %s", workloadAPISourceInitializationTimeout)
+	}
+	if err != nil {
+		cancelSource()
+		return nil, nil, fmt.Errorf("failed to create X509Source: %w", err)
+	}
+	return source, cancelSource, nil
+}
+
+func spireServerID(trustDomain spiffeid.TrustDomain) spiffeid.ID {
+	return spiffeid.RequireFromSegments(trustDomain, "spire", "server")
 }
 
 func newClient(cc grpc.ClientConnInterface, closer io.Closer) Client {
@@ -116,18 +151,10 @@ func newClient(cc grpc.ClientConnInterface, closer io.Closer) Client {
 	}
 }
 
-// multiCloser closes multiple io.Closers, returning the first error
-// encountered (if any) while still attempting to close all of them.
-type multiCloser []io.Closer
+type closerFunc func() error
 
-func (m multiCloser) Close() error {
-	var firstErr error
-	for _, closer := range m {
-		if err := closer.Close(); err != nil && firstErr == nil {
-			firstErr = err
-		}
-	}
-	return firstErr
+func (f closerFunc) Close() error {
+	return f()
 }
 
 func getCallOptions(grpcConfig *GrpcConfig) []grpc.DialOption {

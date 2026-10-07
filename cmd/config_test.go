@@ -64,6 +64,13 @@ func TestResolveSPIREServerConn(t *testing.T) {
 			spireAPISocketFlag: "/flag/socket.sock",
 			expectedErr:        "spireServerAddress and the spire-api-socket flag are mutually exclusive",
 		},
+		{
+			name: "workload API address requires a server address",
+			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
+				WorkloadAPIAddr: "unix:///spiffe-workload-api/spire-agent.sock",
+			},
+			expectedErr: "workloadAPIAddr requires spireServerAddress to be set",
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ctrlConfig := test.ctrlConfig

@@ -15,6 +15,8 @@ the following fields are defined:
 | `validatingWebhookConfigurationName` | OPTIONAL | `spire-controller-manager-webhook`               | The name of the validating admission controller webhook to manage                                                                                                                                             |
 | `gcInterval`                         | OPTIONAL | `10s`                                            | How often the SPIRE state is reconciled when the controller is otherwise idle. This impacts how quickly SPIRE state will converge after CRDs are removed or SPIRE state is mutated underneath the controller. |
 | `spireServerSocketPath`              | OPTIONAL | `/spire-server/api.sock`                         | The path the the SPIRE Server API socket                                                                                                                                                                      |
+| `spireServerAddress`                 | OPTIONAL |                                                  | The TCP host:port of the SPIRE Server API. Mutually exclusive with `spireServerSocketPath`. Uses SPIFFE mTLS and requires an admin-authorized X.509-SVID for the controller manager.                  |
+| `workloadAPIAddr`                    | OPTIONAL | `SPIFFE_ENDPOINT_SOCKET`                         | The SPIFFE Workload API address used to obtain the controller manager's X.509-SVID. Requires `spireServerAddress`.                                                                                            |
 | `logLevel`                           | OPTIONAL | `info`                                           | The log level for the controller manager. Supported values are `info`, `error`, `warn` and `debug`.                                                                                                           |
 | `logEncoding`                        | OPTIONAL | `console`                                        | The log encoder for the controller manager. Supported values are `console` and `json`.                                                                                                                        |
 | `className`                          | OPTIONAL |                                                  | Only sync resources that have the specified className set on them.                                                                                                                                            |
@@ -33,6 +35,12 @@ GRPC Config Options
 ## Kubernetes Mode
 
 By default, all objects are synced from the Kubernetes cluster the spire-controller-manager is running in.
+
+## TCP SPIFFE mTLS Mode
+
+To connect to the SPIRE Server API over TCP, set `spireServerAddress` instead of `spireServerSocketPath`. The controller manager must have a registration entry that gives its SPIFFE ID SPIRE Server admin access. Create that entry before starting the controller manager; it cannot create its own entry before it has admin access.
+
+A SPIRE Agent must run on the node hosting the controller manager so the controller manager can obtain its X.509-SVID from the SPIFFE Workload API. The SPIRE Server endpoint must present the `spiffe://<trust-domain>/spire/server` SPIFFE ID.
 
 ## Static Mode
 

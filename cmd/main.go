@@ -143,6 +143,10 @@ func clusterSPIFFEIDCacheLabels(ctrlConfig spirev1alpha1.ControllerManagerConfig
 // (and the deprecated spire-api-socket flag is unset), the default socket
 // path is used.
 func resolveSPIREServerConn(ctrlConfig *spirev1alpha1.ControllerManagerConfig, spireAPISocketFlag string) error {
+	if ctrlConfig.WorkloadAPIAddr != "" && ctrlConfig.SPIREServerAddress == "" {
+		return errors.New("workloadAPIAddr requires spireServerAddress to be set")
+	}
+
 	if ctrlConfig.SPIREServerAddress != "" {
 		if spireAPISocketFlag != "" {
 			return errors.New("spireServerAddress and the spire-api-socket flag are mutually exclusive")
