@@ -45,8 +45,16 @@ func TestResolveSPIREServerConn(t *testing.T) {
 			name: "address set in config is preserved and socket path is left empty",
 			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
 				SPIREServerAddress: "spire-server.spire.svc:8081",
+				EntryIDPrefix:      "my-controller",
 			},
 			expectedAddress: "spire-server.spire.svc:8081",
+		},
+		{
+			name: "address requires a non-empty entry ID prefix",
+			ctrlConfig: spirev1alpha1.ControllerManagerConfig{
+				SPIREServerAddress: "spire-server.spire.svc:8081",
+			},
+			expectedErr: "spireServerAddress requires a non-empty entryIDPrefix",
 		},
 		{
 			name: "address and socket path are mutually exclusive",

@@ -155,6 +155,9 @@ func resolveSPIREServerConn(ctrlConfig *spirev1alpha1.ControllerManagerConfig, s
 		if ctrlConfig.SPIREServerSocketPath != "" {
 			return errors.New("spireServerSocketPath and spireServerAddress are mutually exclusive")
 		}
+		if ctrlConfig.EntryIDPrefix == "" {
+			return errors.New("spireServerAddress requires a non-empty entryIDPrefix")
+		}
 		return nil
 	}
 
