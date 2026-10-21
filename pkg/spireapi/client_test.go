@@ -29,7 +29,7 @@ import (
 	"testing"
 	"time"
 
-	workload "github.com/spiffe/go-spiffe/v2/proto/spiffe/workload"
+	"github.com/spiffe/go-spiffe/v2/proto/spiffe/workload"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	entryv1 "github.com/spiffe/spire-api-sdk/proto/spire/api/server/entry/v1"
 	"github.com/stretchr/testify/assert"
