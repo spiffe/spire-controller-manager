@@ -285,6 +285,17 @@ func parseConfig() (Config, error) {
 	return retval, nil
 }
 
+// applyKubeAPIRateLimit overrides the client-side rate limit of the given
+// Kubernetes client configuration. Zero values leave the defaults untouched.
+func applyKubeAPIRateLimit(cfg *rest.Config, qps float32, burst int) {
+	if qps > 0 {
+		cfg.QPS = qps
+	}
+	if burst > 0 {
+		cfg.Burst = burst
+	}
+}
+
 func run(mainConfig Config) (err error) {
 	webhookEnabled := os.Getenv("ENABLE_WEBHOOKS") != "false"
 
@@ -385,7 +396,10 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mainConfig.options)
+	restConfig := ctrl.GetConfigOrDie()
+	applyKubeAPIRateLimit(restConfig, mainConfig.ctrlConfig.KubeAPIQPS, mainConfig.ctrlConfig.KubeAPIBurst)
+
+	mgr, err := ctrl.NewManager(restConfig, mainConfig.options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		return err

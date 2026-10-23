@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"k8s.io/client-go/rest"
+
 	spirev1alpha1 "github.com/spiffe/spire-controller-manager/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 )
@@ -124,6 +126,28 @@ func TestClusterSPIFFEIDCacheLabels(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			require.Equal(t, test.expectedLabels, clusterSPIFFEIDCacheLabels(test.ctrlConfig))
+		})
+	}
+}
+
+func TestApplyKubeAPIRateLimit(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		qps           float32
+		burst         int
+		expectedQPS   float32
+		expectedBurst int
+	}{
+		{name: "unset keeps defaults", expectedQPS: 20, expectedBurst: 30},
+		{name: "override both", qps: 100, burst: 200, expectedQPS: 100, expectedBurst: 200},
+		{name: "override qps only", qps: 50, expectedQPS: 50, expectedBurst: 30},
+		{name: "override burst only", burst: 60, expectedQPS: 20, expectedBurst: 60},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := &rest.Config{QPS: 20, Burst: 30}
+			applyKubeAPIRateLimit(cfg, test.qps, test.burst)
+			require.Equal(t, test.expectedQPS, cfg.QPS)
+			require.Equal(t, test.expectedBurst, cfg.Burst)
 		})
 	}
 }
