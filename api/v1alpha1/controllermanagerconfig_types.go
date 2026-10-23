@@ -66,6 +66,27 @@ type ControllerManagerConfig struct {
 
 	// Grpc is the grpc configuration for the controller manager communication with SPIRE Server API
 	Grpc *spireapi.GrpcConfig `json:"grpc,omitempty"`
+
+	// TLSConfig configures TLS security settings for terminating endpoints such
+	// as the admission webhook server.
+	// +optional
+	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
+}
+
+// TLSConfig configures TLS security settings for terminating endpoints.
+type TLSConfig struct {
+	// MinTLSVersion is the minimum TLS version in Kubernetes-style naming
+	// (for example "VersionTLS12"). Values below VersionTLS12 are rejected.
+	// +optional
+	MinTLSVersion string `json:"minTLSVersion,omitempty"`
+
+	// CipherSuites is the list of allowed cipher suites in IANA naming.
+	// +optional
+	CipherSuites []string `json:"cipherSuites,omitempty"`
+
+	// CurvePreferences is the ordered list of allowed key exchange curves or groups.
+	// +optional
+	CurvePreferences []string `json:"curvePreferences,omitempty"`
 }
 
 // ControllerManagerConfigurationSpec defines the desired state of GenericControllerManagerConfiguration.

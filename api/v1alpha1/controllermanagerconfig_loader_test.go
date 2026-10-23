@@ -354,3 +354,34 @@ func TestLoadOptionsWithFilterByClassName(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadOptionsFromFileTLSConfig(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
+
+	content := fileContent + `
+tlsConfig:
+  minTLSVersion: VersionTLS12
+  cipherSuites:
+    - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+  curvePreferences:
+    - X25519
+    - secp256r1
+`
+	tempDir := t.TempDir()
+	path := filepath.Join(tempDir, "config.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(content), 0600))
+
+	ctrlConfig := spirev1alpha1.ControllerManagerConfig{
+		ClusterName: "cluster2",
+		TrustDomain: "cluster2.demo",
+		GCInterval:  time.Minute,
+	}
+	require.NoError(t, spirev1alpha1.LoadOptionsFromFile(path, scheme, &ctrl.Options{Scheme: scheme}, &ctrlConfig, false))
+
+	require.NotNil(t, ctrlConfig.TLSConfig)
+	require.Equal(t, "VersionTLS12", ctrlConfig.TLSConfig.MinTLSVersion)
+	require.Equal(t, []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}, ctrlConfig.TLSConfig.CipherSuites)
+	require.Equal(t, []string{"X25519", "secp256r1"}, ctrlConfig.TLSConfig.CurvePreferences)
+}
