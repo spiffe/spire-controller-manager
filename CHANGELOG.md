@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.1] - 2026-10-23
+
+### Added
+
+- Support for connecting to the SPIRE Server API over TCP using SPIFFE mTLS (`spireServerAddress`, `workloadAPIAddr`), allowing the controller manager to run outside the SPIRE Server pod (#743)
+
+### Security
+
+- Updated Golang to 1.27.3 to address security fixes in the `crypto/x509` package (#770)
+
 ## [0.8.0] - 2026-09-29
 
 <font size='7'>:rotating_light: ***PLEASE READ BEFORE UPGRADING*** :rotating_light:</font>
