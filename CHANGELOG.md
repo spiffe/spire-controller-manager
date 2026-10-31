@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.1] - 2026-10-23
+
+### Added
+
+- Support for configuring the TLS minimum version, cipher suites, and curve preferences of the webhook server (`tlsConfig`) (#725)
+
+### Security
+
+- Updated Golang to 1.26.10 to address security fixes in the `crypto/x509`, `crypto/tls`, `net/http`, and other standard library packages
+
 ## [0.7.0] - 2026-07-25
 
 ### Added
