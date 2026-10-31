@@ -319,6 +319,17 @@ func parseConfig() (Config, error) {
 	return retval, nil
 }
 
+// applyKubeAPIRateLimit overrides the client-side rate limit of the given
+// Kubernetes client configuration. Zero values leave the defaults untouched.
+func applyKubeAPIRateLimit(cfg *rest.Config, qps float32, burst int) {
+	if qps > 0 {
+		cfg.QPS = qps
+	}
+	if burst > 0 {
+		cfg.Burst = burst
+	}
+}
+
 func dialSPIREServer(ctx context.Context, ctrlConfig spirev1alpha1.ControllerManagerConfig, trustDomain spiffeid.TrustDomain) (spireapi.Client, error) {
 	if ctrlConfig.SPIREServerAddress != "" {
 		setupLog.Info("Dialing SPIRE Server address", "address", ctrlConfig.SPIREServerAddress)
@@ -428,7 +439,10 @@ func run(mainConfig Config) (err error) {
 		}
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), mainConfig.options)
+	restConfig := ctrl.GetConfigOrDie()
+	applyKubeAPIRateLimit(restConfig, mainConfig.ctrlConfig.KubeAPIQPS, mainConfig.ctrlConfig.KubeAPIBurst)
+
+	mgr, err := ctrl.NewManager(restConfig, mainConfig.options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		return err
