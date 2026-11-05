@@ -108,6 +108,7 @@ func main() {
 		if err := staticRun(mainConfig); err != nil {
 			os.Exit(1)
 		}
+		return
 	}
 
 	if err := run(mainConfig); err != nil {
@@ -649,12 +650,15 @@ func staticRun(mainConfig Config) (err error) {
 		return err
 	}
 
-	wg.Wait()
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		return err
 	}
+
+	// The reconcilers run until the context is canceled. Wait for them to
+	// finish before returning.
+	wg.Wait()
 
 	return nil
 }
