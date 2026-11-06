@@ -55,6 +55,18 @@ type ControllerManagerConfig struct {
 	// the controller.
 	GCInterval time.Duration `json:"gcInterval,omitempty"`
 
+	// KubeAPIQPS is the maximum number of queries per second the client is
+	// allowed to send to the Kubernetes API server. Defaults to the
+	// controller-runtime default when unset or zero.
+	// +optional
+	KubeAPIQPS float32 `json:"kubeAPIQPS,omitempty"`
+
+	// KubeAPIBurst is the maximum burst of requests allowed to the Kubernetes
+	// API server above KubeAPIQPS. Defaults to the controller-runtime default
+	// when unset or zero.
+	// +optional
+	KubeAPIBurst int `json:"kubeAPIBurst,omitempty"`
+
 	// SPIREServerSocketPath is the path to the SPIRE Server API socket.
 	// Mutually exclusive with SPIREServerAddress.
 	SPIREServerSocketPath string `json:"spireServerSocketPath,omitempty"`

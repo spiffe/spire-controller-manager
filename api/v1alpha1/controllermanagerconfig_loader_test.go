@@ -385,3 +385,20 @@ tlsConfig:
 	require.Equal(t, []string{"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"}, ctrlConfig.TLSConfig.CipherSuites)
 	require.Equal(t, []string{"X25519", "secp256r1"}, ctrlConfig.TLSConfig.CurvePreferences)
 }
+
+func TestLoadOptionsFromFileKubeAPIRateLimit(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(spirev1alpha1.AddToScheme(scheme))
+
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	content := fileContent + "kubeAPIQPS: 100.5\nkubeAPIBurst: 200\n"
+	require.NoError(t, os.WriteFile(path, []byte(content), 0600))
+
+	options := ctrl.Options{Scheme: scheme}
+	ctrlConfig := spirev1alpha1.ControllerManagerConfig{}
+	require.NoError(t, spirev1alpha1.LoadOptionsFromFile(path, scheme, &options, &ctrlConfig, false))
+
+	require.Equal(t, float32(100.5), ctrlConfig.KubeAPIQPS)
+	require.Equal(t, 200, ctrlConfig.KubeAPIBurst)
+}
