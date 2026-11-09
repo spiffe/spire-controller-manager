@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.44.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/spiffe/go-spiffe/v2 v2.9.0
-	github.com/spiffe/spire-api-sdk v1.15.3
+	github.com/spiffe/spire-api-sdk v1.16.0
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/zap v1.28.0
 	google.golang.org/grpc v1.84.0
@@ -27,6 +27,7 @@ require (
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
