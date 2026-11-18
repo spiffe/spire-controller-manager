@@ -55,6 +55,19 @@ type ControllerManagerConfig struct {
 	// the controller.
 	GCInterval time.Duration `json:"gcInterval,omitempty"`
 
+	// KubeAPIQPS enables client-side rate limiting of requests to the
+	// Kubernetes API server, capped at this many queries per second. When
+	// unset, client-side rate limiting is disabled (the controller-runtime
+	// default) and the API server's priority and fairness applies.
+	// +optional
+	KubeAPIQPS float32 `json:"kubeAPIQPS,omitempty"`
+
+	// KubeAPIBurst is the maximum burst of requests allowed above KubeAPIQPS.
+	// Only used when KubeAPIQPS is set; client-go defaults it to 10 when
+	// unset.
+	// +optional
+	KubeAPIBurst int `json:"kubeAPIBurst,omitempty"`
+
 	// SPIREServerSocketPath is the path to the SPIRE Server API socket.
 	// Mutually exclusive with SPIREServerAddress.
 	SPIREServerSocketPath string `json:"spireServerSocketPath,omitempty"`
