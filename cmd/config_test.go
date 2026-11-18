@@ -225,16 +225,44 @@ func TestApplyKubeAPIRateLimit(t *testing.T) {
 		expectedQPS   float32
 		expectedBurst int
 	}{
-		{name: "unset keeps defaults", expectedQPS: 20, expectedBurst: 30},
-		{name: "override both", qps: 100, burst: 200, expectedQPS: 100, expectedBurst: 200},
-		{name: "override qps only", qps: 50, expectedQPS: 50, expectedBurst: 30},
-		{name: "override burst only", burst: 60, expectedQPS: 20, expectedBurst: 60},
+		{name: "unset keeps rate limiting disabled", expectedQPS: -1, expectedBurst: 0},
+		{name: "qps and burst enable rate limiting", qps: 100, burst: 200, expectedQPS: 100, expectedBurst: 200},
+		{name: "qps only leaves burst to client-go", qps: 50, expectedQPS: 50, expectedBurst: 0},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			cfg := &rest.Config{QPS: 20, Burst: 30}
+			// Matches what ctrl.GetConfigOrDie returns when nothing is configured.
+			cfg := &rest.Config{QPS: -1}
 			applyKubeAPIRateLimit(cfg, test.qps, test.burst)
 			require.Equal(t, test.expectedQPS, cfg.QPS)
 			require.Equal(t, test.expectedBurst, cfg.Burst)
+		})
+	}
+}
+
+func TestValidateKubeAPIRateLimit(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		qps         float32
+		burst       int
+		expectedErr string
+	}{
+		{name: "unset"},
+		{name: "qps and burst", qps: 100, burst: 200},
+		{name: "qps only", qps: 50},
+		{name: "negative qps", qps: -1, expectedErr: "kubeAPIQPS must not be negative; leave it unset to disable client-side rate limiting"},
+		{name: "negative burst", qps: 50, burst: -1, expectedErr: "kubeAPIBurst must not be negative"},
+		{name: "burst without qps", burst: 60, expectedErr: "kubeAPIBurst requires kubeAPIQPS to be set"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateKubeAPIRateLimit(spirev1alpha1.ControllerManagerConfig{
+				KubeAPIQPS:   test.qps,
+				KubeAPIBurst: test.burst,
+			})
+			if test.expectedErr != "" {
+				require.EqualError(t, err, test.expectedErr)
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }

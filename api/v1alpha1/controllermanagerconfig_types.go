@@ -55,15 +55,16 @@ type ControllerManagerConfig struct {
 	// the controller.
 	GCInterval time.Duration `json:"gcInterval,omitempty"`
 
-	// KubeAPIQPS is the maximum number of queries per second the client is
-	// allowed to send to the Kubernetes API server. Defaults to the
-	// controller-runtime default when unset or zero.
+	// KubeAPIQPS enables client-side rate limiting of requests to the
+	// Kubernetes API server, capped at this many queries per second. When
+	// unset, client-side rate limiting is disabled (the controller-runtime
+	// default) and the API server's priority and fairness applies.
 	// +optional
 	KubeAPIQPS float32 `json:"kubeAPIQPS,omitempty"`
 
-	// KubeAPIBurst is the maximum burst of requests allowed to the Kubernetes
-	// API server above KubeAPIQPS. Defaults to the controller-runtime default
-	// when unset or zero.
+	// KubeAPIBurst is the maximum burst of requests allowed above KubeAPIQPS.
+	// Only used when KubeAPIQPS is set; client-go defaults it to 10 when
+	// unset.
 	// +optional
 	KubeAPIBurst int `json:"kubeAPIBurst,omitempty"`
 

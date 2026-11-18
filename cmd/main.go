@@ -274,6 +274,10 @@ func parseConfig() (Config, error) {
 		}
 	}
 
+	if err := validateKubeAPIRateLimit(retval.ctrlConfig); err != nil {
+		return retval, err
+	}
+
 	retval.ctrlConfig.EntryIDPrefix = addDotSuffix(retval.ctrlConfig.EntryIDPrefix)
 
 	printCleanup := "<unset>"
@@ -329,15 +333,31 @@ func dialSPIREServer(ctx context.Context, ctrlConfig spirev1alpha1.ControllerMan
 	return spireapi.DialSocket(ctrlConfig.SPIREServerSocketPath, ctrlConfig.Grpc)
 }
 
-// applyKubeAPIRateLimit overrides the client-side rate limit of the given
-// Kubernetes client configuration. Zero values leave the defaults untouched.
+// validateKubeAPIRateLimit checks the optional client-side rate limit
+// settings. Leaving both unset keeps client-side rate limiting disabled,
+// which is the controller-runtime default.
+func validateKubeAPIRateLimit(ctrlConfig spirev1alpha1.ControllerManagerConfig) error {
+	if ctrlConfig.KubeAPIQPS < 0 {
+		return errors.New("kubeAPIQPS must not be negative; leave it unset to disable client-side rate limiting")
+	}
+	if ctrlConfig.KubeAPIBurst < 0 {
+		return errors.New("kubeAPIBurst must not be negative")
+	}
+	if ctrlConfig.KubeAPIBurst > 0 && ctrlConfig.KubeAPIQPS == 0 {
+		return errors.New("kubeAPIBurst requires kubeAPIQPS to be set")
+	}
+	return nil
+}
+
+// applyKubeAPIRateLimit enables client-side rate limiting on the given
+// Kubernetes client configuration when qps is positive. Otherwise the
+// configuration is left as is.
 func applyKubeAPIRateLimit(cfg *rest.Config, qps float32, burst int) {
-	if qps > 0 {
-		cfg.QPS = qps
+	if qps <= 0 {
+		return
 	}
-	if burst > 0 {
-		cfg.Burst = burst
-	}
+	cfg.QPS = qps
+	cfg.Burst = burst
 }
 
 func run(mainConfig Config) (err error) {
